@@ -5,7 +5,7 @@ import WorkingBoard from '../components/WorkingBoard'
 import Chat from '../components/Chat'
 import ErrorBoundary from '../components/ErrorBoundary'
 import { ClientErrorBoundary } from '../components/ClientErrorBoundary'
-import { HEADER_HEIGHT_REM, CHAT_FIXED_PX, LAYOUT_BG, BORDER, SURFACE } from '../ui/tokens'
+import { HEADER_HEIGHT, CHAT_FIXED_PX, LAYOUT_BG, BORDER, SURFACE } from '../ui/tokens'
 
 export default function ClientWorkspace() {
   const [mounted, setMounted] = useState(false)
@@ -42,7 +42,7 @@ export default function ClientWorkspace() {
 
   return (
     <div style={{
-      height: `calc(100dvh - ${HEADER_HEIGHT_REM}rem)`,
+      height: `calc(100dvh - ${HEADER_HEIGHT}px)`,
       display: 'flex',
       width: '100%',
       minHeight: 0,

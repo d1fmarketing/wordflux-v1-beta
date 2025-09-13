@@ -1,5 +1,7 @@
 'use client'
 
+import { INK_900, INK_700, LINE, SURFACE_WHITE, FONT_2XL, WEIGHT_BOLD, BRAND_600, BRAND_700 } from '../ui/tokens'
+
 export function AgentStrip() {
 
   return (
@@ -7,30 +9,37 @@ export function AgentStrip() {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
-      padding: '20px 32px',
-      background: 'linear-gradient(90deg, rgba(255,255,255,0.98) 0%, rgba(255, 249, 249, 0.95) 100%)',
-      borderBottom: '1px solid rgba(255, 102, 51, 0.06)',
-      boxShadow: '0 2px 16px rgba(0, 0, 35, 0.04)',
-      backdropFilter: 'blur(12px)',
+      padding: '0 24px',
+      height: 56,
+      background: SURFACE_WHITE,
+      borderBottom: `1px solid ${LINE}`,
       position: 'sticky',
       top: 0,
       zIndex: 5
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
         <div style={{
-          width: 4,
-          height: 28,
-          background: 'linear-gradient(180deg, #ff6633 0%, #ff3366 100%)',
-          borderRadius: 2
-        }} />
-        <h1 style={{
-          fontSize: 24,
+          width: 32,
+          height: 32,
+          borderRadius: 8,
+          background: `linear-gradient(135deg, ${BRAND_600}, ${BRAND_600}99)`,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: 16,
           fontWeight: 700,
-          letterSpacing: '-0.03em',
-          color: '#000023',
+          color: 'white'
+        }}>
+          W
+        </div>
+        <h1 style={{
+          fontSize: FONT_2XL,
+          fontWeight: WEIGHT_BOLD,
+          letterSpacing: '-0.02em',
+          color: INK_900,
           margin: 0
         }}>
-          Kanban Board
+          Board
         </h1>
       </div>
 
@@ -49,55 +58,51 @@ export function AgentStrip() {
             window.dispatchEvent(event)
           }}
           style={{
-            padding: '12px 16px',
-            backgroundColor: 'white',
-            color: 'rgba(0, 0, 35, 0.6)',
-            border: '1px solid rgba(0, 0, 35, 0.08)',
-            borderRadius: 12,
+            padding: '8px 12px',
+            backgroundColor: '#F6F7FA',
+            color: INK_700,
+            border: `1px solid ${LINE}`,
+            borderRadius: 10,
             fontSize: 14,
             fontWeight: 600,
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
-            gap: 8,
-            transition: 'all 0.2s ease',
-            boxShadow: '0 2px 8px rgba(0, 0, 35, 0.04)'
+            gap: 6,
+            transition: 'all 0.16s ease'
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = 'rgba(255, 102, 51, 0.08)';
-            e.currentTarget.style.borderColor = 'rgba(255, 102, 51, 0.3)';
-            e.currentTarget.style.color = '#ff3366';
+            e.currentTarget.style.backgroundColor = '#F3F4F6';
+            e.currentTarget.style.borderColor = LINE;
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = 'white';
-            e.currentTarget.style.borderColor = 'rgba(0, 0, 35, 0.08)';
-            e.currentTarget.style.color = 'rgba(0, 0, 35, 0.6)';
+            e.currentTarget.style.backgroundColor = '#F6F7FA';
+            e.currentTarget.style.borderColor = LINE;
           }}
         >
-          <span style={{ fontSize: 16 }}>⌘</span>K
+          <span style={{ fontSize: 14, opacity: 0.8 }}>⌘</span>K
         </button>
 
-        {/* Optional: Add primary CTA button */}
         <button
           style={{
-            padding: '12px 20px',
-            background: 'linear-gradient(135deg, #B00020, #C2185B)',
+            padding: '8px 12px',
+            background: `linear-gradient(135deg, ${BRAND_700}, ${BRAND_600})`,
             color: 'white',
-            border: 'none',
-            borderRadius: 12,
+            border: 0,
+            borderRadius: 10,
             fontSize: 14,
             fontWeight: 600,
             cursor: 'pointer',
-            transition: 'all 0.2s ease',
-            boxShadow: '0 3px 12px rgba(176, 0, 32, 0.2)'
+            transition: 'box-shadow 0.16s ease, transform 0.16s ease',
+            boxShadow: '0 1px 1px rgba(0,0,0,.04), 0 6px 16px rgba(176,0,32,.18)'
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.transform = 'translateY(-1px)';
-            e.currentTarget.style.boxShadow = '0 4px 16px rgba(176, 0, 32, 0.3)';
+            e.currentTarget.style.boxShadow = '0 1px 1px rgba(0,0,0,.04), 0 8px 24px rgba(176,0,32,.24)';
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.transform = 'translateY(0)';
-            e.currentTarget.style.boxShadow = '0 3px 12px rgba(176, 0, 32, 0.2)';
+            e.currentTarget.style.boxShadow = '0 1px 1px rgba(0,0,0,.04), 0 6px 16px rgba(176,0,32,.18)';
           }}
           onClick={() => {
             // Trigger create task or open command palette with create task
@@ -109,7 +114,7 @@ export function AgentStrip() {
             window.dispatchEvent(event)
           }}
         >
-          + Nova Tarefa
+          + New Task
         </button>
       </div>
     </div>

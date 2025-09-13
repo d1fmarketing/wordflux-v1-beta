@@ -12,6 +12,16 @@ import { AgentStrip } from './AgentStrip'
 import { TaskPanel } from './TaskPanel'
 import { AnalyzeDrawer, Suggestion } from './AnalyzeDrawer'
 import { AnalysisBanner } from './AnalysisBanner'
+import {
+  INK_900, INK_700, INK_500, LINE, BG, SURFACE_WHITE,
+  BRAND_600, BRAND_700, GRADIENT_BRAND,
+  FONT_SM, FONT_MD, FONT_LG, FONT_XL, FONT_2XL,
+  WEIGHT_MEDIUM, WEIGHT_SEMIBOLD, WEIGHT_BOLD,
+  SPACE_SM, SPACE_MD, SPACE_LG,
+  RADIUS_MD, RADIUS_LG, RADIUS_PILL,
+  SHADOW_CARD, SHADOW_CARD_HOVER,
+  CHAT_PREFERRED_PX
+} from '../ui/tokens'
 
 interface Message {
   id: string
@@ -303,40 +313,35 @@ export default function SafeWorkspace() {
           setSuggestions([])
         }}
       />
-      <div style={{ display: 'flex', height: '100vh', background: 'linear-gradient(135deg, #f8f8fa 0%, #fafafa 100%)' }}>
-        {/* Modern Chat Panel - The Hero Control Center */}
+      <div style={{ display: 'flex', height: '100vh', background: BG }}>
+        {/* Chat Panel - The Remote */}
       <div style={{
-        width: 480,
+        width: CHAT_PREFERRED_PX,
         height: '100vh',
-        background: 'linear-gradient(180deg, #ffffff 0%, #fafbff 100%)',
-        boxShadow: '4px 0 16px rgba(0, 0, 35, 0.06)',
+        background: SURFACE_WHITE,
+        borderRight: `1px solid ${LINE}`,
         display: 'flex',
         flexDirection: 'column',
         position: 'relative',
         zIndex: 10
       }}>
-        {/* Normal Header */}
+        {/* Chat Header */}
         <div style={{
-          padding: '24px 28px',
-          background: 'white',
-          borderBottom: '1px solid rgba(0, 0, 35, 0.06)'
+          padding: `${SPACE_MD}px ${SPACE_LG}px`,
+          background: SURFACE_WHITE,
+          borderBottom: `1px solid ${LINE}`
         }}>
-          <h1 style={{
-            fontSize: 28,
-            fontWeight: 700,
-            background: 'linear-gradient(135deg, #ff6633 0%, #ff3366 100%)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            backgroundClip: 'text',
-            margin: 0,
-            letterSpacing: '-0.02em'
-          }}>WordFlux</h1>
+          <h2 style={{
+            fontSize: FONT_LG,
+            fontWeight: WEIGHT_SEMIBOLD,
+            color: INK_900,
+            margin: 0
+          }}>WordFlux AI</h2>
           <p style={{
-            fontSize: 14,
-            color: 'rgba(0, 0, 35, 0.6)',
-            margin: '6px 0 0 0',
-            fontWeight: 500
-          }}>Fale e eu organizo seu board ✨</p>
+            fontSize: FONT_SM,
+            color: INK_500,
+            margin: '4px 0 0 0'
+          }}>Type what you want and I'll organize your board.</p>
         </div>
         
         <div style={{
@@ -351,12 +356,12 @@ export default function SafeWorkspace() {
           {messages.length === 0 && (
             <div>
               <div style={{
-                fontSize: 16,
-                fontWeight: 600,
-                color: '#111827',
+                fontSize: FONT_MD,
+                fontWeight: WEIGHT_MEDIUM,
+                color: INK_700,
                 marginBottom: 14
               }}>
-                Digite o que quer e eu organizo seu board
+                Type what you want and I'll organize your board.
               </div>
               {actionLog.length > 0 && (
                 <div style={{ marginTop: 16 }}>
@@ -378,25 +383,25 @@ export default function SafeWorkspace() {
               )}
               <div style={{
                 marginTop: 14,
-                padding: 12,
-                backgroundColor: '#f9fafb',
-                borderRadius: 8,
-                fontSize: 14,
-                color: '#6b7280'
+                padding: SPACE_SM,
+                backgroundColor: '#F9FAFB',
+                borderRadius: RADIUS_MD,
+                fontSize: FONT_MD,
+                color: INK_500
               }}>
-                <strong>Dica:</strong> Use ⌘K para comandos rápidos ou escreva aqui
+                <strong>Tip:</strong> Use ⌘K for quick commands
               </div>
             </div>
           )}
           {messages.map(msg => (
             <div key={msg.id} style={{
               alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start',
-              maxWidth: '80%',
-              background: msg.role === 'user' ? 'linear-gradient(135deg, #B00020, #C2185B)' : '#f3f4f6',
-              color: msg.role === 'user' ? 'white' : '#000023',
+              maxWidth: '68ch',
+              background: msg.role === 'user' ? GRADIENT_BRAND : '#F3F4F6',
+              color: msg.role === 'user' ? 'white' : INK_900,
               padding: '10px 14px',
-              borderRadius: msg.role === 'user' ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
-              fontSize: 14,
+              borderRadius: 18,
+              fontSize: FONT_MD,
               lineHeight: 1.5,
               boxShadow: msg.role === 'user' ? '0 2px 8px rgba(176, 0, 32, 0.15)' : 'none'
             }}>
@@ -428,16 +433,15 @@ export default function SafeWorkspace() {
           />
         )}
         
-        {/* Modern Floating Input Bar */}
+        {/* Composer */}
         <div style={{
           position: 'absolute',
           bottom: 0,
           left: 0,
           right: 0,
-          padding: '16px 20px',
-          background: 'linear-gradient(to top, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 0.98) 100%)',
-          borderTop: '1px solid rgba(0, 0, 35, 0.03)',
-          backdropFilter: 'blur(12px)'
+          padding: SPACE_MD,
+          background: SURFACE_WHITE,
+          borderTop: `1px solid ${LINE}`
         }}>
           {lastUndoToken && (
             <div style={{
@@ -489,12 +493,12 @@ export default function SafeWorkspace() {
           )}
 
           <div style={{
-            background: '#f8f8f8',
-            borderRadius: 20,
+            background: '#F8F8F8',
+            borderRadius: RADIUS_PILL,
             padding: 4,
             display: 'flex',
             alignItems: 'center',
-            boxShadow: 'inset 0 1px 4px rgba(0, 0, 35, 0.05)'
+            height: 44
           }}>
             <input
               ref={inputRef}
@@ -502,16 +506,16 @@ export default function SafeWorkspace() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleInputKeyDown}
-              placeholder="Fale e eu organizo..."
+              placeholder="⌘K for quick commands"
               style={{
                 flex: 1,
                 border: 'none',
                 outline: 'none',
                 background: 'transparent',
-                padding: '10px 16px',
-                fontSize: 14,
-                fontWeight: 500,
-                color: '#000023'
+                padding: '0 16px',
+                fontSize: FONT_MD,
+                fontWeight: WEIGHT_MEDIUM,
+                color: INK_900
               }}
             />
             <button
@@ -521,16 +525,16 @@ export default function SafeWorkspace() {
                 width: 36,
                 height: 36,
                 borderRadius: 18,
-                background: input.trim() && !loading ? 'linear-gradient(135deg, #ff6633, #ff3366)' : '#e5e7eb',
+                background: input.trim() && !loading ? GRADIENT_BRAND : '#E5E7EB',
                 border: 'none',
                 color: 'white',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 cursor: input.trim() && !loading ? 'pointer' : 'not-allowed',
-                transition: 'all 0.2s ease',
+                transition: 'all 0.16s ease',
                 fontSize: 16,
-                fontWeight: 700
+                fontWeight: WEIGHT_BOLD
               }}
             >
               →
@@ -552,53 +556,51 @@ export default function SafeWorkspace() {
         <AgentStrip />
         <div style={{
           flex: 1,
-          padding: '24px 28px',
+          padding: `${SPACE_LG}px`,
           overflowX: 'auto',
-          background: 'linear-gradient(180deg, #fafafa 0%, #f5f5f5 100%)'
+          background: BG
         }}>
-        <div style={{ marginBottom: 16 }}>
+        <div style={{ marginBottom: SPACE_MD }}>
           <BoardFilters onChange={setBoardFilters} />
         </div>
 
-        <div style={{ display: 'flex', gap: 12, minWidth: 'fit-content' }}>
+        <div style={{ display: 'flex', gap: SPACE_MD, minWidth: 'fit-content' }}>
           {columns.map(col => (
             <div key={col.id} style={{
-              minWidth: 240,
-              backgroundColor: 'white',
-              borderRadius: 12,
-              boxShadow: '0 3px 12px rgba(0, 0, 35, 0.04)',
+              width: 300,
+              backgroundColor: SURFACE_WHITE,
+              borderRadius: RADIUS_LG,
+              border: `1px solid ${LINE}`,
               display: 'flex',
               flexDirection: 'column',
-              maxHeight: 'calc(100vh - 140px)',
-              transition: 'transform 0.2s, box-shadow 0.2s'
+              maxHeight: 'calc(100vh - 140px)'
             }}>
               <div style={{
                 position: 'sticky',
                 top: 0,
-                background: 'linear-gradient(180deg, rgba(255,255,255,1) 0%, rgba(255,255,255,0.98) 100%)',
-                padding: '14px 18px',
-                borderBottom: '1px solid rgba(0, 0, 35, 0.06)',
-                borderRadius: '12px 12px 0 0',
-                zIndex: 2,
-                backdropFilter: 'blur(8px)'
+                background: SURFACE_WHITE,
+                padding: `${SPACE_SM}px ${SPACE_MD}px`,
+                borderBottom: `1px solid ${LINE}`,
+                borderRadius: `${RADIUS_LG}px ${RADIUS_LG}px 0 0`,
+                zIndex: 2
               }}>
                 <h3 style={{
                   margin: 0,
-                  fontSize: 15,
-                  fontWeight: 700,
-                  color: '#000023',
+                  fontSize: FONT_LG,
+                  fontWeight: WEIGHT_SEMIBOLD,
+                  color: INK_900,
                   display: 'flex',
                   alignItems: 'center',
                   gap: 8
                 }}>
                   {col.title === 'Work in progress' ? 'In Progress' : col.title}
                   <span style={{
-                    fontSize: 13,
-                    fontWeight: 600,
+                    fontSize: FONT_SM,
+                    fontWeight: WEIGHT_SEMIBOLD,
                     padding: '2px 8px',
-                    borderRadius: 12,
-                    background: 'linear-gradient(135deg, #ff6633 0%, #ff3366 100%)',
-                    color: 'white'
+                    borderRadius: RADIUS_PILL,
+                    background: `rgba(${parseInt(BRAND_600.slice(1,3), 16)}, ${parseInt(BRAND_600.slice(3,5), 16)}, ${parseInt(BRAND_600.slice(5,7), 16)}, 0.1)`,
+                    color: BRAND_600
                   }}>
                     {col.tasks?.length || 0}
                   </span>
@@ -612,81 +614,99 @@ export default function SafeWorkspace() {
                 scrollbarWidth: 'thin',
                 scrollbarColor: 'rgba(0, 0, 35, 0.1) transparent'
               }}>
-                {col.tasks?.map(task => (
+                {col.tasks?.map(task => {
+                  const isUrgent = task.priority && task.priority >= 3
+                  return (
                   <div key={task.id} onClick={() => {
                     setSelectedTask({...task, column: col.title})
                     setShowTaskPanel(true)
                   }} style={{
-                    backgroundColor: 'white',
-                    padding: 10,
-                    borderRadius: 8,
-                    marginBottom: 6,
-                    boxShadow: '0 2px 8px rgba(0, 0, 35, 0.04)',
-                    transition: 'transform 0.15s, box-shadow 0.15s',
+                    backgroundColor: SURFACE_WHITE,
+                    padding: '10px 12px',
+                    borderRadius: RADIUS_MD,
+                    marginBottom: 8,
+                    transition: 'box-shadow 0.16s ease, transform 0.16s ease',
                     cursor: 'pointer',
-                    border: '1px solid rgba(0, 0, 35, 0.05)'
+                    border: `1px solid ${LINE}`,
+                    borderLeft: isUrgent ? `3px solid ${BRAND_600}` : `1px solid ${LINE}`,
+                    background: isUrgent ? `linear-gradient(90deg, rgba(194,24,91,0.07), rgba(255,255,255,0) 18px)` : SURFACE_WHITE,
+                    boxShadow: 'none'
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = 'translateY(-2px)'
-                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 35, 0.08)'
+                    e.currentTarget.style.transform = 'translateY(-1px)'
+                    e.currentTarget.style.boxShadow = SHADOW_CARD_HOVER
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.transform = 'translateY(0)'
-                    e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 35, 0.04)'
+                    e.currentTarget.style.boxShadow = 'none'
                   }}
                   >
                     <div style={{
-                      fontSize: 14,
-                      fontWeight: 600,
+                      fontSize: FONT_MD,
+                      fontWeight: WEIGHT_SEMIBOLD,
                       lineHeight: 1.3,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 8,
-                      color: '#000023'
+                      color: INK_900
                     }}>
-                      {task.priority && task.priority >= 3 && <span aria-label="high priority">🔥</span>}
                       <TaskTitle title={task.title} />
                     </div>
                   
                   {task.description && (
                     <div style={{
-                      fontSize: 13,
-                      color: 'rgba(0, 0, 35, 0.6)',
+                      fontSize: FONT_SM,
+                      color: INK_500,
                       marginTop: 6,
-                      lineHeight: 1.4
+                      lineHeight: 1.4,
+                      overflow: 'hidden',
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical',
+                      textOverflow: 'ellipsis'
                     }}>
                       {task.description}
                     </div>
                   )}
                   
                     {task.tags && task.tags.length > 0 && (
-                      <div style={{ display: 'flex', gap: 3, marginTop: 4, flexWrap: 'wrap' }}>
-                        {task.tags.map((tag, i) => (
+                      <div style={{ display: 'flex', gap: 4, marginTop: 6, flexWrap: 'wrap' }}>
+                        {task.tags.slice(0, 2).map((tag, i) => (
                           <span key={i} style={{
-                            fontSize: 11,
-                            padding: '3px 8px',
-                            borderRadius: 12,
-                            background: 'linear-gradient(135deg, rgba(255, 102, 51, 0.1), rgba(255, 51, 102, 0.1))',
-                            color: '#ff3366',
-                            fontWeight: 500
+                            fontSize: FONT_SM,
+                            padding: '2px 8px',
+                            borderRadius: RADIUS_PILL,
+                            background: '#F7F8FB',
+                            border: `1px solid ${LINE}`,
+                            color: INK_700,
+                            fontWeight: WEIGHT_MEDIUM
                           }}>
                             {tag}
                           </span>
                         ))}
+                        {task.tags.length > 2 && (
+                          <span style={{
+                            fontSize: FONT_SM,
+                            padding: '2px 8px',
+                            borderRadius: RADIUS_PILL,
+                            background: '#F7F8FB',
+                            border: `1px solid ${LINE}`,
+                            color: INK_500,
+                            fontWeight: WEIGHT_MEDIUM
+                          }}>
+                            +{task.tags.length - 2}
+                          </span>
+                        )}
                       </div>
                     )}
                   </div>
-                ))}
+                )})}
                 
                 {(!col.tasks || col.tasks.length === 0) && (
                   <div style={{
-                    color: 'rgba(0, 0, 35, 0.3)',
-                    fontSize: 13,
+                    color: INK_500,
+                    fontSize: FONT_MD,
                     textAlign: 'center',
-                    padding: 40,
-                    fontStyle: 'italic'
+                    padding: 40
                   }}>
-                    No tasks yet
+                    No tasks
                   </div>
                 )}
               </div>
