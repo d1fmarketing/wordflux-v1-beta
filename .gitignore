@@ -1,0 +1,109 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+.npm/
+
+# Testing
+coverage/
+
+# Next.js
+.next/
+out/
+build/
+
+# Production
+dist/
+
+# Misc
+.DS_Store
+*.pem
+
+# Debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Local env files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Vercel
+.vercel
+
+# Typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# SSL certificates
+*.pem
+*.key
+*.crt
+cert.pem
+key.pem
+
+# PM2
+.pm2/
+
+# User-specific files
+.bash_history
+.bash_logout
+.bashrc
+.profile
+.zshrc
+.ssh/
+.aws/
+.config/
+.local/
+.dotnet/
+.cursor/
+.cursor-server/
+.codex/
+.claude/
+.claude.json*
+.npm-global/
+.npmrc
+.pki/
+.sudo_as_admin_successful
+.vscode-server/
+.wget-hsts
+.cache/
+
+# Backups and archives
+backups/
+*.tar.gz
+*.zip
+*.bak
+backup-*
+
+# Screenshots and media
+proof-screenshots/
+*.png
+*.jpg
+*.jpeg
+
+# System
+snap/
+
+# Docker
+.docker/
+
+# Logs
+logs/
+*.log
+
+# Misc downloads
+ngrok
+ngrok.log
+cloudflared.log
+*.deb
+*.tgz

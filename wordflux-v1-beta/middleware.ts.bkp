@@ -1,0 +1,33 @@
+import { withAuth } from 'next-auth/middleware'
+import { NextResponse } from 'next/server'
+
+export default withAuth(
+  function middleware(req) {
+    return NextResponse.next()
+  },
+  {
+    callbacks: {
+      authorized({ req, token }) {
+        // Allow access to login page, auth endpoints, health, AI, board, chat, and deploy endpoints
+        if (req.nextUrl.pathname.startsWith('/login') || 
+            req.nextUrl.pathname.startsWith('/api/auth') ||
+            req.nextUrl.pathname === '/api/health' ||
+            req.nextUrl.pathname.startsWith('/api/ai') ||
+            req.nextUrl.pathname === '/api/deploy' ||
+            req.nextUrl.pathname.startsWith('/api/board') ||
+            req.nextUrl.pathname.startsWith('/api/chat')) {
+          return true
+        }
+        // Require authentication for everything else
+        return !!token
+      }
+    },
+  }
+)
+
+export const config = {
+  matcher: [
+    // Protect all routes except static files and auth endpoints
+    '/((?!_next/static|_next/image|favicon.ico|api/auth).*)',
+  ],
+}
