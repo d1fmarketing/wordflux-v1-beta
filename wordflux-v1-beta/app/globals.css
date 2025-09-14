@@ -359,3 +359,38 @@ html { box-sizing: border-box; }
 .column, .tasks, .card, .boardWrap, .boardScroll {
   background-image: none !important;
 }
+
+/* ============================================ */
+/* TARGETED SKELETON DEFENSE v108 - FIXED */
+/* ============================================ */
+/* Surgical removal of skeleton/shimmer only - preserves functionality */
+
+/* Target ONLY skeleton/shimmer animations specifically */
+@keyframes shimmer { to { transform: none !important; } }
+@keyframes skeleton { to { opacity: 1 !important; } }
+@keyframes loading { to { opacity: 1 !important; } }
+
+/* Destroy ONLY elements that are actually skeletons */
+*[class*="skeleton"],
+*[class*="Skeleton"],
+*[class*="shimmer"],
+*[class*="Shimmer"],
+*[class*="loading-overlay"],
+*[class*="LoadingOverlay"] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  position: fixed !important;
+  left: -999999px !important;
+  z-index: -999999 !important;
+}
+
+/* Kill animations ONLY in board columns to prevent overlays */
+.column *[class*="skeleton"],
+.column *[class*="shimmer"],
+.tasks *[class*="skeleton"],
+.tasks *[class*="shimmer"] {
+  animation: none !important;
+  display: none !important;
+}

@@ -19,7 +19,7 @@ export default function BoardColumn({ id, title, tasks, onTaskClick }: BoardColu
     title
 
   return (
-    <div className={styles.column} data-column-id={id}>
+    <div className={styles.column} data-column-id={id} data-no-skeleton="true" data-column="true">
       <div className={styles.header}>
         <h3 className={styles.title}>
           {displayTitle}

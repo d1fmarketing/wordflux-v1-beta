@@ -40,6 +40,8 @@ export default function TaskCard({
         }
       }}
       data-taskid={task.id}
+      data-no-skeleton="true"
+      data-task="true"
     >
       <div className={css.head}>
         <div className={css.title}>{task.title}</div>
