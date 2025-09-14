@@ -1,6 +1,9 @@
-import dynamic from 'next/dynamic';
+import dynamicImport from 'next/dynamic';
 
-const SafeWorkspace = dynamic(() => import('../components/SafeWorkspace'), {
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
+const SafeWorkspace = dynamicImport(() => import('../components/SafeWorkspace'), {
   ssr: false,
   loading: () => <div style={{ padding: 16, textAlign: 'center' }}>Loading workspace...</div>,
 });

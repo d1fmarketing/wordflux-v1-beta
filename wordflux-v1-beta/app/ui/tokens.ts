@@ -2,10 +2,11 @@
 export const HEADER_HEIGHT = 56; // px
 
 // Chat panel sizing (The Remote)
-export const CHAT_MIN_PX = 420;           // Minimum width
-export const CHAT_PREFERRED_PX = 450;     // Target width
-export const CHAT_MAX_PX = 480;           // Maximum width
-export const CHAT_FIXED_PX = 450;         // Fixed width when locking
+// Modernized for responsive layout
+export const CHAT_MIN_PX = 320;           // Minimum width
+export const CHAT_PREFERRED_PX = 376;     // Target width on larger screens
+export const CHAT_MAX_PX = 420;           // Maximum width
+export const CHAT_FIXED_PX = 376;         // Fixed width when locking
 
 // Neutrals - 2025 palette
 export const INK_900 = '#0B0E1A';

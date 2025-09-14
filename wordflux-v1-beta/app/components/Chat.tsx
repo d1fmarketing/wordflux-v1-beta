@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { BORDER, SPACE_MD, SPACE_SM, RADIUS_MD, TEXT_MUTED, TEXT_SOFT, TEXT_DARK, SURFACE, SURFACE_SUBTLE } from '../ui/tokens'
+import { i18n } from '../ui/i18n'
 
 interface Message {
   id: string
@@ -85,8 +86,8 @@ export default function Chat() {
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: SURFACE, minHeight: 0 }}>
       <div style={{ padding: `${SPACE_SM}px ${SPACE_MD}px`, borderBottom: `1px solid ${BORDER}` }}>
-        <h2 style={{ fontWeight: 600, fontSize: 16, margin: 0 }}>WordFlux AI</h2>
-        <p style={{ fontSize: 12, color: TEXT_MUTED, margin: '4px 0 0 0' }}>Your intelligent board assistant</p>
+        <h2 style={{ fontWeight: 600, fontSize: 16, margin: 0 }}>{i18n.chat.title}</h2>
+        <p style={{ fontSize: 12, color: TEXT_MUTED, margin: '4px 0 0 0' }}>{i18n.chat.subtitle}</p>
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto', padding: SPACE_MD }} role="log" aria-live="polite" aria-relevant="additions">
@@ -159,7 +160,7 @@ export default function Chat() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={onKey}
-            placeholder="Type or click a suggestion..."
+            placeholder={i18n.chat.placeholder}
             disabled={loading}
             aria-label="Chat command input"
             data-testid="chat-input"

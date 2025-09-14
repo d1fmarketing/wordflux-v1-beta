@@ -6,6 +6,8 @@ import {
   FONT_MD, WEIGHT_MEDIUM, WEIGHT_SEMIBOLD,
   RADIUS_MD, SHADOW_MODAL, BRAND_600
 } from '../ui/tokens'
+import Button from '../ui/Button'
+import { i18n } from '../ui/i18n'
 
 interface FilterState {
   query?: string
@@ -67,40 +69,29 @@ export function BoardFilters({ onChange, compact = false }: BoardFiltersProps) {
         gap: 8,
         alignItems: 'center'
       }}>
-        <button
-          ref={buttonRef}
+        <Button
+          ref={buttonRef as any}
+          variant={activeCount > 0 ? 'primary' : 'secondary'}
+          aria-pressed={activeCount > 0}
           onClick={() => setShowPopover(!showPopover)}
-          style={{
-            padding: '6px 12px',
-            fontSize: 12,
-            border: `1px solid ${LINE}`,
-            borderRadius: 8,
-            background: activeCount > 0 ? BRAND_600 : SURFACE_WHITE,
-            color: activeCount > 0 ? 'white' : INK_700,
-            cursor: 'pointer',
-            fontWeight: WEIGHT_MEDIUM,
-            transition: 'all 0.16s ease',
-            position: 'relative'
-          }}
+          style={{ fontSize: 12 }}
         >
           Filters {activeCount > 0 && `(${activeCount})`}
-        </button>
+        </Button>
       </div>
     )
   }
 
   return (
     <div style={{
-      marginBottom: 12,
       display: 'flex',
       alignItems: 'center',
       gap: 16,
-      padding: '8px 0',
       position: 'relative'
     }}>
       <input
-        type="text"
-        placeholder="Search title or tag…"
+        type="search"
+        placeholder={i18n.filters.searchPlaceholder}
         style={{
           border: `1px solid ${LINE}`,
           borderRadius: RADIUS_MD,
@@ -123,42 +114,21 @@ export function BoardFilters({ onChange, compact = false }: BoardFiltersProps) {
         }}
       />
 
-      <button
-        ref={buttonRef}
+      <Button
+        ref={buttonRef as any}
+        variant={activeCount > 0 ? 'primary' : 'secondary'}
+        aria-pressed={activeCount > 0}
         onClick={() => setShowPopover(!showPopover)}
-        style={{
-          padding: '8px 12px',
-          fontSize: FONT_MD,
-          border: `1px solid ${LINE}`,
-          borderRadius: 10,
-          background: activeCount > 0 ? `linear-gradient(135deg, ${BRAND_600}, ${BRAND_600}dd)` : '#F6F7FA',
-          color: activeCount > 0 ? 'white' : INK_700,
-          cursor: 'pointer',
-          fontWeight: WEIGHT_SEMIBOLD,
-          transition: 'all 0.16s ease',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 6
-        }}
-        onMouseEnter={(e) => {
-          if (activeCount === 0) {
-            e.currentTarget.style.background = '#F3F4F6'
-          }
-        }}
-        onMouseLeave={(e) => {
-          if (activeCount === 0) {
-            e.currentTarget.style.background = '#F6F7FA'
-          }
-        }}
+        style={{ display: 'flex', alignItems: 'center', gap: 6 }}
       >
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ opacity: 0.8 }}>
           <path d="M2 4.5h12M4 8h8M6 11.5h4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
         </svg>
-        Filters
+        {i18n.filters.title}
         {activeCount > 0 && (
           <span style={{
             background: activeCount > 0 ? 'rgba(255,255,255,0.2)' : BRAND_600,
-            color: activeCount > 0 ? 'white' : 'white',
+            color: 'white',
             padding: '2px 6px',
             borderRadius: 10,
             fontSize: 11,
@@ -167,7 +137,7 @@ export function BoardFilters({ onChange, compact = false }: BoardFiltersProps) {
             {activeCount}
           </span>
         )}
-      </button>
+      </Button>
 
       {/* Filters Popover */}
       {showPopover && (
@@ -194,120 +164,49 @@ export function BoardFilters({ onChange, compact = false }: BoardFiltersProps) {
             textTransform: 'uppercase',
             letterSpacing: '0.05em'
           }}>
-            Filter by
+            {i18n.filters.filterBy}
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <label style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 10,
-              cursor: 'pointer'
-            }}>
-              <input
-                type="checkbox"
-                checked={filters.urgent || false}
-                onChange={() => toggleFilter('urgent')}
-                style={{
-                  width: 16,
-                  height: 16,
-                  borderRadius: 4,
-                  border: `1px solid ${LINE}`,
-                  cursor: 'pointer'
-                }}
-              />
-              <span style={{
-                fontSize: FONT_MD,
-                fontWeight: WEIGHT_MEDIUM,
-                color: INK_900
-              }}>
-                🔥 Urgent
-              </span>
-            </label>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <Button
+              variant={filters.urgent ? 'primary' : 'ghost'}
+              aria-pressed={filters.urgent || false}
+              onClick={() => toggleFilter('urgent')}
+              style={{ justifyContent: 'flex-start' }}
+            >
+              🔥 {i18n.filters.urgent}
+            </Button>
 
-            <label style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 10,
-              cursor: 'pointer'
-            }}>
-              <input
-                type="checkbox"
-                checked={filters.mine || false}
-                onChange={() => toggleFilter('mine')}
-                style={{
-                  width: 16,
-                  height: 16,
-                  borderRadius: 4,
-                  border: `1px solid ${LINE}`,
-                  cursor: 'pointer'
-                }}
-              />
-              <span style={{
-                fontSize: FONT_MD,
-                fontWeight: WEIGHT_MEDIUM,
-                color: INK_900
-              }}>
-                👤 Mine
-              </span>
-            </label>
+            <Button
+              variant={filters.mine ? 'primary' : 'ghost'}
+              aria-pressed={filters.mine || false}
+              onClick={() => toggleFilter('mine')}
+              style={{ justifyContent: 'flex-start' }}
+            >
+              👤 {i18n.filters.mine}
+            </Button>
 
-            <label style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 10,
-              cursor: 'pointer'
-            }}>
-              <input
-                type="checkbox"
-                checked={filters.today || false}
-                onChange={() => toggleFilter('today')}
-                style={{
-                  width: 16,
-                  height: 16,
-                  borderRadius: 4,
-                  border: `1px solid ${LINE}`,
-                  cursor: 'pointer'
-                }}
-              />
-              <span style={{
-                fontSize: FONT_MD,
-                fontWeight: WEIGHT_MEDIUM,
-                color: INK_900
-              }}>
-                📅 Due Today
-              </span>
-            </label>
+            <Button
+              variant={filters.today ? 'primary' : 'ghost'}
+              aria-pressed={filters.today || false}
+              onClick={() => toggleFilter('today')}
+              style={{ justifyContent: 'flex-start' }}
+            >
+              📅 {i18n.filters.today}
+            </Button>
           </div>
 
           {activeCount > 0 && (
-            <button
+            <Button
+              variant="ghost"
               onClick={() => {
                 setFilters({ query: filters.query })
                 onChange({ query: filters.query })
               }}
-              style={{
-                marginTop: 12,
-                padding: '6px 10px',
-                fontSize: 12,
-                border: `1px solid ${LINE}`,
-                borderRadius: 8,
-                background: SURFACE_WHITE,
-                color: INK_700,
-                cursor: 'pointer',
-                fontWeight: WEIGHT_MEDIUM,
-                width: '100%',
-                transition: 'all 0.16s ease'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = '#F3F4F6'
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = SURFACE_WHITE
-              }}
+              style={{ width: '100%', marginTop: 12 }}
             >
-              Clear filters
-            </button>
+              {i18n.filters.clear}
+            </Button>
           )}
         </div>
       )}

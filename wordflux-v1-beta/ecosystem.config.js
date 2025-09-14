@@ -6,7 +6,8 @@ module.exports = {
     cwd: '/home/ubuntu/wordflux-v1-beta',
     env: {
       NODE_ENV: 'production',
-      PORT: 3001
+      PORT: 3001,
+      HOST: '127.0.0.1'
     },
     instances: 1,
     autorestart: true,

@@ -1,0 +1,122 @@
+.column {
+  flex: 0 0 300px; /* fixed column width */
+  min-width: 0; /* critical: allow internal shrink */
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 180px);
+  contain: layout paint; /* isolate layout to prevent bleed */
+}
+
+.header {
+  position: sticky;
+  top: 0;
+  background: var(--surface);
+  padding: var(--space-sm) var(--space-md);
+  border-bottom: 1px solid var(--line);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  z-index: 2;
+}
+
+.title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--ink-900);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.count {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: var(--radius-pill);
+  display: inline-block;
+  min-width: 24px;
+  text-align: center;
+}
+
+.countPill {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--brand-600);
+  background: linear-gradient(90deg, rgba(194,24,91,.10), rgba(255,106,0,.10));
+  border: 1px solid rgba(194,24,91,.22);
+  padding: 2px 6px;
+  border-radius: 9999px;
+}
+
+.tasks {
+  flex: 1 1 auto;
+  min-height: 0; /* critical: enable vertical scrolling */
+  overflow-y: auto;
+  overflow-x: hidden; /* prevent horizontal bleed */
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px 10px 12px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 35, 0.2) transparent;
+  scrollbar-gutter: stable both-edges;
+}
+
+/* Kill any ghost overlays in column body */
+.tasks *::before,
+.tasks *::after { pointer-events: none; }
+
+/* NUCLEAR DEFENSE AGAINST ANY SKELETON/SHIMMER LEAKS */
+/* Kill ALL animations on everything inside columns */
+.column *,
+.tasks * {
+  animation: none !important;
+  animation-name: none !important;
+  animation-duration: 0s !important;
+  animation-fill-mode: none !important;
+  animation-play-state: paused !important;
+}
+
+/* Aggressively hide any skeleton elements that might leak */
+.column .shimmer,
+.column [class*="shimmer"],
+.column [class*="Shimmer"],
+.column [class*="skeleton"],
+.column [class*="Skeleton"],
+.column [class*="loading"],
+.column [class*="Loading"],
+.tasks .shimmer,
+.tasks [class*="shimmer"],
+.tasks [class*="Shimmer"],
+.tasks [class*="skeleton"],
+.tasks [class*="Skeleton"],
+.tasks [class*="loading"],
+.tasks [class*="Loading"] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  position: absolute !important;
+  left: -9999px !important;
+  top: -9999px !important;
+  width: 0 !important;
+  height: 0 !important;
+  overflow: hidden !important;
+}
+
+/* WebKit (Chromium/Safari) */
+.tasks::-webkit-scrollbar { width: 8px; }
+.tasks::-webkit-scrollbar-thumb {
+  background: rgba(0,0,35,.14);
+  border-radius: 8px;
+}
+.tasks::-webkit-scrollbar-track { background: transparent; }
+
+.empty {
+  color: var(--ink-500);
+  font-size: 14px;
+  text-align: center;
+  padding: 40px 20px;
+}
