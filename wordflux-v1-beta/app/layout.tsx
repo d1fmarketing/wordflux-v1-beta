@@ -18,19 +18,62 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        {/* Force cache refresh for CSS - v108 */}
-        <meta httpEquiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+        {/* Force cache refresh for CSS - v110 ULTIMATE */}
+        <meta httpEquiv="Cache-Control" content="no-cache, no-store, must-revalidate, max-age=0" />
         <meta httpEquiv="Pragma" content="no-cache" />
         <meta httpEquiv="Expires" content="0" />
+        <meta name="skeleton-defense-version" content="v110-ultimate" />
+        <meta name="cache-bust" content={`${Date.now()}`} />
       </head>
       <body className={inter.className}>
-        {/* Nuclear JavaScript Skeleton Killer v108 */}
+        {/* ULTRA NUCLEAR SKELETON KILLER v110 - Triple Method Defense */}
         <Script id="skeleton-killer" strategy="afterInteractive">
           {`
-            // NUCLEAR SKELETON KILLER v108 - Runtime Protection
+            // ULTIMATE SKELETON ELIMINATION v110
             if (typeof window !== 'undefined') {
-              // Aggressive skeleton element remover
-              const killSkeletons = () => {
+              // Method 1: Inject global override styles
+              const injectKillerStyles = () => {
+                if (!document.getElementById('skeleton-killer-styles')) {
+                  const style = document.createElement('style');
+                  style.id = 'skeleton-killer-styles';
+                  style.innerHTML = \`
+                    /* RUNTIME SKELETON KILLER v110 */
+                    *[class*="skeleton"],
+                    *[class*="Skeleton"],
+                    *[class*="shimmer"],
+                    *[class*="Shimmer"],
+                    *[class*="loading-overlay"],
+                    *[class*="LoadingOverlay"],
+                    *[data-skeleton],
+                    *[data-loading="true"] {
+                      display: none !important;
+                      opacity: 0 !important;
+                      visibility: hidden !important;
+                      position: absolute !important;
+                      left: -999999px !important;
+                      pointer-events: none !important;
+                      z-index: -999999 !important;
+                    }
+                  \`;
+                  document.head.appendChild(style);
+                }
+              };
+
+              // Method 2: Remove skeleton classes from elements
+              const removeSkeletonClasses = () => {
+                document.querySelectorAll('[class*="skeleton"], [class*="shimmer"]').forEach(el => {
+                  const newClass = el.className.replace(/\\b[\\w-]*skeleton[\\w-]*\\b/gi, '')
+                                               .replace(/\\b[\\w-]*shimmer[\\w-]*\\b/gi, '')
+                                               .replace(/\\s+/g, ' ')
+                                               .trim();
+                  if (el.className !== newClass) {
+                    el.className = newClass;
+                  }
+                });
+              };
+
+              // Method 3: Hide skeleton elements
+              const hideSkeletonElements = () => {
                 const selectors = [
                   '[class*="skeleton"]',
                   '[class*="Skeleton"]',
@@ -44,36 +87,64 @@ export default function RootLayout({
                 ];
 
                 selectors.forEach(selector => {
-                  document.querySelectorAll(selector).forEach(el => {
-                    // Only hide, don't remove - removing breaks React
-                    el.style.display = 'none';
-                    el.style.visibility = 'hidden';
-                    el.style.opacity = '0';
-                    el.style.position = 'absolute';
-                    el.style.left = '-9999px';
-                  });
+                  try {
+                    document.querySelectorAll(selector).forEach(el => {
+                      el.style.cssText = 'display: none !important; visibility: hidden !important; opacity: 0 !important; position: absolute !important; left: -999999px !important;';
+                      el.setAttribute('data-skeleton-killed', 'true');
+                    });
+                  } catch (e) {
+                    // Ignore selector errors
+                  }
                 });
               };
 
+              // Execute all methods
+              const executeTripleKill = () => {
+                injectKillerStyles();
+                removeSkeletonClasses();
+                hideSkeletonElements();
+              };
+
               // Run immediately
-              killSkeletons();
+              executeTripleKill();
 
               // Run on DOM ready
               if (document.readyState === 'loading') {
-                document.addEventListener('DOMContentLoaded', killSkeletons);
+                document.addEventListener('DOMContentLoaded', executeTripleKill);
+              } else {
+                // DOM already loaded, run again
+                executeTripleKill();
               }
 
-              // Run periodically to catch any dynamically added elements
-              setInterval(killSkeletons, 100);
+              // Run periodically (every 50ms for first 2 seconds, then every 200ms)
+              let fastInterval = setInterval(executeTripleKill, 50);
+              setTimeout(() => {
+                clearInterval(fastInterval);
+                setInterval(executeTripleKill, 200);
+              }, 2000);
 
               // Run on any DOM mutations
-              const observer = new MutationObserver(killSkeletons);
-              observer.observe(document.body, {
-                childList: true,
-                subtree: true,
-                attributes: true,
-                attributeFilter: ['class']
+              const observer = new MutationObserver((mutations) => {
+                executeTripleKill();
               });
+
+              // Start observing when body is ready
+              const startObserving = () => {
+                if (document.body) {
+                  observer.observe(document.body, {
+                    childList: true,
+                    subtree: true,
+                    attributes: true,
+                    attributeFilter: ['class', 'data-skeleton', 'data-loading']
+                  });
+                } else {
+                  setTimeout(startObserving, 10);
+                }
+              };
+              startObserving();
+
+              // Log success
+              console.log('[SKELETON-KILLER-v110] Triple defense activated');
             }
           `}
         </Script>
