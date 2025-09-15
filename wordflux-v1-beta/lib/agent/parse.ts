@@ -390,7 +390,9 @@ export function parseMessage(msg: string, columns: string[]): Action[] {
     
     // Board status commands
     if (/^(board\s+)?(status|summary|overview)$/.test(lowerBody)) {
-      actions.push({ type: 'list_tasks' });
+      actions.push({ type: 'list_tasks', column: 'Work in progress' });
+      actions.push({ type: 'list_tasks', column: 'Ready' });
+      actions.push({ type: 'list_tasks', filter: 'overdue' });
     }
     
     // Quick done command: "done #123" or "done 'task title'"
