@@ -41,8 +41,23 @@ export default function Board2() {
   const [cols, setCols] = useState<BoardColumn[]>([])
   useEffect(() => { if (data?.columns) setCols(data.columns) }, [data?.columns])
 
+  // Chat-driven filter: allowed card ids; null => show all
+  const [allowedIds, setAllowedIds] = useState<Set<string> | null>(null)
+  useEffect(() => {
+    function onFilter(ev: any) {
+      const ids: string[] | undefined = ev?.detail?.ids
+      if (Array.isArray(ids) && ids.length > 0) setAllowedIds(new Set(ids.map(String)))
+    }
+    function onClear() { setAllowedIds(null) }
+    window.addEventListener('wf-filter' as any, onFilter)
+    window.addEventListener('wf-filter-clear' as any, onClear)
+    return () => {
+      window.removeEventListener('wf-filter' as any, onFilter)
+      window.removeEventListener('wf-filter-clear' as any, onClear)
+    }
+  }, [])
+
   const [dropHint, setDropHint] = useState<{ colId: string | number; index: number } | null>(null)
-  const [filterOpen, setFilterOpen] = useState(false)
 
   function findColumnByCardId(cardId: string | number) { return cols.find(c => c.cards.some(card => idOf(card.id) === idOf(cardId))) }
 
@@ -139,23 +154,14 @@ export default function Board2() {
 
   if (isLoading) return <div style={{ padding: 16 }}>Loading board…</div>
 
+  const displayCols = allowedIds
+    ? cols.map(c => ({ ...c, cards: c.cards.filter(card => allowedIds.has(String(card.id))) }))
+    : cols
+
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragOver={onDragOver} onDragEnd={onDragEnd}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 12px', margin: '6px 0 -6px 0' }}>
-        <div style={{ fontWeight: 600, color: 'var(--ink-900)' }}>Board</div>
-        <button id="wf-filter" aria-label="Filter" onClick={() => setFilterOpen(true)} style={{ padding: '6px 10px', border: '1px solid var(--line)', borderRadius: 9999, background: '#fff', cursor: 'pointer' }}>Filter</button>
-      </div>
-      {filterOpen && (
-        <div style={{ position:'fixed', right:16, top:16, background:'#fff', border:'1px solid var(--line)', borderRadius:12, boxShadow:'var(--wf-shadow)', padding:12, zIndex:50 }}>
-          <div style={{ fontWeight:600, marginBottom:8 }}>Filters</div>
-          <div style={{ fontSize:12, color:'var(--ink-500)' }}>Coming soon</div>
-          <div style={{ marginTop:10, display:'flex', justifyContent:'flex-end' }}>
-            <button onClick={() => setFilterOpen(false)} style={{ padding:'6px 10px', border:'1px solid var(--line)', borderRadius:9999, background:'#fff' }}>Close</button>
-          </div>
-        </div>
-      )}
       <div className={styles.boardRoot} role="list" aria-label="Kanban columns">
-        {cols.map((col) => (
+        {displayCols.map((col) => (
           <div key={col.id} role="listitem">
             <SortableContext items={col.cards.map(c => cardKey(c.id))} strategy={rectSortingStrategy}>
               <Column
@@ -168,7 +174,7 @@ export default function Board2() {
             </SortableContext>
           </div>
         ))}
-        {cols.length === 0 && <div className={styles.empty}>No columns found</div>}
+        {displayCols.length === 0 && <div className={styles.empty}>No columns found</div>}
       </div>
     </DndContext>
   )

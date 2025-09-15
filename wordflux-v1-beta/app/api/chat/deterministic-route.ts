@@ -365,24 +365,38 @@ async function executeAction(
 
     case 'list_tasks': {
       const tasks = await kb.listProjectTasks(PROJECT_ID);
-      
       let filtered = tasks;
       if (action.column) {
         const col = columnsByName[action.column.toLowerCase()];
-        if (col) {
-          filtered = tasks.filter(t => t.column_id === col.id);
+        if (col) filtered = filtered.filter((t: any) => t.column_id === col.id);
+      }
+      if ((action as any).filter) {
+        const f = String((action as any).filter).toLowerCase();
+        const now = new Date();
+        const start = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()/1000; // seconds
+        const end = start + 86400;
+        if (f === 'today') {
+          filtered = filtered.filter((t: any) => t.date_due && t.date_due >= start && t.date_due < end);
+        } else if (f === 'overdue') {
+          filtered = filtered.filter((t: any) => t.date_due && t.date_due < Math.floor(Date.now()/1000) && t.is_active === 1);
+        } else if (f === 'blocked') {
+          filtered = filtered.filter((t: any) => {
+            const title = String(t.title||'').toLowerCase();
+            const cat = String((t as any).category||'').toLowerCase();
+            const tags = Array.isArray((t as any).tags)? (t as any).tags.map((x:any)=>String(x).toLowerCase()): [];
+            return title.includes('block') || title.includes('stuck') || cat.includes('block') || tags.includes('blocked') || tags.includes('blocker');
+          });
+        } else if (f === 'mine') {
+          // Heuristic: if API exposes owner_id, keep those with an owner
+          filtered = filtered.filter((t: any) => t.owner_id && Number(t.owner_id) > 0);
         }
       }
-      
       return {
         count: filtered.length,
-        tasks: filtered.slice(0, 10).map(t => ({
-          id: t.id,
-          title: t.title,
-          column_id: t.column_id
-        }))
+        tasks: filtered.slice(0, 20).map((t: any) => ({ id: t.id, title: t.title, column_id: t.column_id }))
       };
     }
+
 
     case 'search_tasks': {
       const tasks = await kb.searchTasks(PROJECT_ID, action.query);

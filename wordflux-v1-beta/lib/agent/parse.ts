@@ -364,6 +364,19 @@ export function parseMessage(msg: string, columns: string[]): Action[] {
   }
 
   // Search tasks: "search login bug" or "find authentication"
+
+  // Natural filters: "blocked", "overdue", "due today", "today", "my tasks"
+  if (actions.length === 0) {
+    if (/^blocked$/.test(body) || /what'?s?\s+blocked/.test(body)) {
+      actions.push({ type: 'list_tasks', filter: 'blocked' });
+    } else if (/^(overdue|past\s+due)$/.test(body)) {
+      actions.push({ type: 'list_tasks', filter: 'overdue' });
+    } else if (/^(due\s+today|today)$/.test(body)) {
+      actions.push({ type: 'list_tasks', filter: 'today' });
+    } else if (/^(my\s+tasks|mine)$/.test(body)) {
+      actions.push({ type: 'list_tasks', filter: 'mine' });
+    }
+  }
   if (actions.length === 0) {
     const match = body.match(/^(search|find)\s+(.+)$/i);
     if (match) {

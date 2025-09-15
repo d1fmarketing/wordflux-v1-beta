@@ -79,7 +79,19 @@ export default function Chat() {
           }
         }
       } catch { /* ignore */ }
-      if (data.boardUpdated || (Array.isArray(data.actions) && data.actions.length > 0)) window.dispatchEvent(new Event('board-refresh'))
+            // Chat-driven filter: list/search results -> focus ids
+      try {
+        if (Array.isArray(data.results)) {
+          const list = data.results.find((r: any) => (r?.type === 'list_tasks' || r?.type === 'search_tasks') && r?.result?.tasks);
+          if (list?.result?.tasks?.length) {
+            const ids = list.result.tasks.map((t: any) => String(t.id));
+            window.dispatchEvent(new CustomEvent('wf-filter', { detail: { ids } }));
+            const toast = (window as any).wfToast;
+            if (toast) toast({ text: `Filtered ${ids.length} task(s) — Clear`, action: { label: 'Clear', onClick: () => { window.dispatchEvent(new Event('wf-filter-clear')) } } });
+          }
+        }
+      } catch { /* noop */ }
+if (data.boardUpdated || (Array.isArray(data.actions) && data.actions.length > 0)) window.dispatchEvent(new Event('board-refresh'))
     } catch {
       setMessages(prev => [...prev, { id: (Date.now() + 1).toString(), role: 'assistant', content: 'Sorry, error. Try again.', timestamp: new Date() }])
     } finally { setLoading(false) }
