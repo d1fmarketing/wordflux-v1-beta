@@ -29,6 +29,20 @@ function idOf(x: string | number) { return String(x) }
 function cardKey(id: string | number) { return `card-${idOf(id)}` }
 function colKey(id: string | number) { return `col-${idOf(id)}` }
 
+function columnWeight(name: string): number {
+  const n = name.toLowerCase();
+  if (/backlog|todo|inbox|ideas/.test(n)) return 10;
+  if (/ready|up next|queued|planned/.test(n)) return 20;
+  if (/in progress|work in progress|wip|doing|active|current/.test(n)) return 30;
+  if (/review|qa|test|verify|validation/.test(n)) return 40;
+  if (/done|complete|finished|closed|shipped|deployed|live/.test(n)) return 50;
+  return 999;
+}
+
+function sortColumns(cols: { id: string|number; name: string; cards: any[] }[]) {
+  return cols.slice().sort((a,b) => columnWeight(a.name) - columnWeight(b.name));
+}
+
 export default function Board2() {
   const { data, isLoading, mutate } = useSWR<{ columns: BoardColumn[]; error?: string }>(
     '/api/board/state',
@@ -39,7 +53,7 @@ export default function Board2() {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
 
   const [cols, setCols] = useState<BoardColumn[]>([])
-  useEffect(() => { if (data?.columns) setCols(data.columns) }, [data?.columns])
+  useEffect(() => { if (data?.columns) setCols(sortColumns(data.columns)) }, [data?.columns])
 
   // Chat-driven filter: allowed card ids; null => show all
   const [allowedIds, setAllowedIds] = useState<Set<string> | null>(null)
@@ -155,8 +169,8 @@ export default function Board2() {
   if (isLoading) return <div style={{ padding: 16 }}>Loading board…</div>
 
   const displayCols = allowedIds
-    ? cols.map(c => ({ ...c, cards: c.cards.filter(card => allowedIds.has(String(card.id))) }))
-    : cols
+    ? sortColumns(cols.map((c) => ({ ...c, cards: c.cards.filter(card => allowedIds.has(String(card.id))) })))
+    : sortColumns(cols)
 
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragOver={onDragOver} onDragEnd={onDragEnd}>
