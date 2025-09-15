@@ -1,20 +1,17 @@
 import { NextResponse } from 'next/server'
-import { KanboardClient } from '@/lib/kanboard-client'
+import { getBoardProvider } from '@/lib/providers'
+import { detectProvider } from '@/lib/board-provider'
 
 export const dynamic = 'force-dynamic'
 
 async function getBoardState() {
   try {
-    const client = new KanboardClient({
-      url: process.env.KANBOARD_URL,
-      username: process.env.KANBOARD_USERNAME,
-      password: process.env.KANBOARD_PASSWORD
-    })
+    const provider = getBoardProvider()
 
     const projectId = Number(process.env.KANBOARD_PROJECT_ID || 1)
     console.log('Fetching board state for project:', projectId)
     
-    const boardState = await client.getBoardState(projectId)
+    const boardState = await provider.getBoardState(projectId)
     
     // Debug log
     console.log('Board state columns:', boardState.columns.map(c => ({
@@ -26,10 +23,7 @@ async function getBoardState() {
     return NextResponse.json(boardState || { columns: [] })
   } catch (error) {
     console.error('Board state error:', error)
-    return NextResponse.json({
-      columns: [],
-      error: 'Failed to fetch board'
-    })
+    return NextResponse.json({ columns: [], error: 'Failed to fetch board', detail: (error as any)?.message || String(error) })
   }
 }
 

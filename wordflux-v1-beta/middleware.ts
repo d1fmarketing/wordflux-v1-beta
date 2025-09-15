@@ -14,7 +14,7 @@ export function middleware(req: NextRequest) {
   // Content Security Policy
   const csp = [
     "default-src 'self'",
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval'", // Next.js requires these
+    "script-src 'self' 'unsafe-inline' ", // Next.js requires these
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: https:",
     "font-src 'self' data:",

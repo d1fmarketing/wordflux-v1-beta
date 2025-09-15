@@ -100,7 +100,7 @@ html { box-sizing: border-box; }
   body {
     @apply text-foreground;
     background: var(--bg);
-    color: var(--brand-navy);
+    color: var(--ink-900);
     font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     min-height: 100vh;
   }
@@ -274,94 +274,7 @@ html { box-sizing: border-box; }
   * { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
 
-/* ============================================ */
-/* GLOBAL NUCLEAR SHIMMER/SKELETON KILLER v107 */
-/* ============================================ */
-/* This is the final defense against any skeleton/shimmer overlays */
-/* Applied globally to prevent ANY loading animations from appearing */
 
-/* Kill ALL shimmer animations everywhere */
-@keyframes shimmer { to { transform: none !important; } }
-@keyframes skeleton { to { opacity: 0 !important; } }
-@keyframes loading { to { opacity: 0 !important; } }
-@keyframes pulse { to { opacity: 0 !important; } }
-
-/* Aggressively hide ANY element that looks like a skeleton/shimmer */
-[class*="shimmer"],
-[class*="Shimmer"],
-[class*="skeleton"],
-[class*="Skeleton"],
-[class*="loading-overlay"],
-[class*="LoadingOverlay"],
-[data-loading="true"],
-[data-skeleton="true"],
-.shimmer,
-.skeleton,
-.loading-overlay {
-  display: none !important;
-  visibility: hidden !important;
-  opacity: 0 !important;
-  pointer-events: none !important;
-  position: absolute !important;
-  left: -99999px !important;
-  top: -99999px !important;
-  width: 0 !important;
-  height: 0 !important;
-  overflow: hidden !important;
-  z-index: -9999 !important;
-}
-
-/* Kill any pseudo-elements that might create overlays */
-[class*="shimmer"]::before,
-[class*="shimmer"]::after,
-[class*="Shimmer"]::before,
-[class*="Shimmer"]::after,
-[class*="skeleton"]::before,
-[class*="skeleton"]::after,
-[class*="Skeleton"]::before,
-[class*="Skeleton"]::after {
-  content: none !important;
-  display: none !important;
-  animation: none !important;
-}
-
-/* Ensure board columns and task cards are NEVER affected by animations */
-.column *,
-.tasks *,
-.card *,
-[class*="BoardColumn"] *,
-[class*="TaskCard"] * {
-  animation: none !important;
-  animation-name: none !important;
-  animation-duration: 0s !important;
-  animation-fill-mode: none !important;
-  animation-play-state: paused !important;
-}
-
-/* Extra protection for the workspace and board areas */
-#workspace *[class*="shimmer"],
-#workspace *[class*="skeleton"],
-.workspace *[class*="shimmer"],
-.workspace *[class*="skeleton"],
-.boardWrap *[class*="shimmer"],
-.boardWrap *[class*="skeleton"],
-.boardScroll *[class*="shimmer"],
-.boardScroll *[class*="skeleton"] {
-  display: none !important;
-  pointer-events: none !important;
-  opacity: 0 !important;
-}
-
-/* Final safeguard: No striped backgrounds anywhere in the app */
-* {
-  background-image: none !important;
-}
-.column, .tasks, .card, .boardWrap, .boardScroll {
-  background-image: none !important;
-}
-
-/* ============================================ */
-/* TARGETED SKELETON DEFENSE v108 - FIXED */
 /* ============================================ */
 /* Surgical removal of skeleton/shimmer only - preserves functionality */
 
@@ -394,3 +307,5 @@ html { box-sizing: border-box; }
   animation: none !important;
   display: none !important;
 }
+
+@import "./styles/tokens.css";

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
-import { KanboardClient } from '@/lib/kanboard-client'
+import { getBoardProvider } from '@/lib/providers'
+import { detectProvider } from '@/lib/board-provider'
 
 export async function POST(request: Request) {
   try {
@@ -13,22 +14,12 @@ export async function POST(request: Request) {
       }, { status: 400 })
     }
 
-    const client = new KanboardClient({
-      url: process.env.KANBOARD_URL,
-      username: process.env.KANBOARD_USERNAME,
-      password: process.env.KANBOARD_PASSWORD
-    })
+    const provider = getBoardProvider()
 
     const projectId = Number(process.env.KANBOARD_PROJECT_ID || 1)
     const swimlaneId = Number(process.env.KANBOARD_SWIMLANE_ID || 1)
     
-    const result = await client.moveTask(
-      projectId,
-      taskId,
-      toColumnId,
-      position,
-      swimlaneId
-    )
+    const result = await provider.moveTask(projectId, taskId, toColumnId, position)
 
     return NextResponse.json({
       ok: true,

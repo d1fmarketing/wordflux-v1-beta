@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
-import { KanboardClient } from '@/lib/kanboard-client'
+import { getBoardProvider } from '@/lib/providers'
+import { detectProvider } from '@/lib/board-provider'
 
 export async function POST(request: Request) {
   try {
@@ -13,20 +14,11 @@ export async function POST(request: Request) {
       }, { status: 400 })
     }
 
-    const client = new KanboardClient({
-      url: process.env.KANBOARD_URL,
-      username: process.env.KANBOARD_USERNAME,
-      password: process.env.KANBOARD_PASSWORD
-    })
+    const provider = getBoardProvider()
 
     const projectId = Number(process.env.KANBOARD_PROJECT_ID || 1)
     
-    const taskId = await client.createTask(
-      projectId,
-      title,
-      columnId ? Number(columnId) : undefined,
-      description
-    )
+    const taskId = await provider.createTask(projectId, title, columnId ? columnId : undefined, description)
 
     console.log('Task created:', { taskId, title, columnId })
 

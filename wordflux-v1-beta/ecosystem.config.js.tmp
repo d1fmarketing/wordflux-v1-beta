@@ -7,12 +7,7 @@ module.exports = {
     env: {
       NODE_ENV: 'production',
       PORT: 3001,
-      HOST: '127.0.0.1',
-      BOARD_BACKEND: 'taskcafe',
-      TASKCAFE_URL: 'http://127.0.0.1:3333/graphql',
-      TASKCAFE_USERNAME: 'wfadmin',
-      TASKCAFE_PASSWORD: '',
-      TASKCAFE_AUTH_COOKIE: 'authToken=1492c944-4c4b-4c91-8f39-15b14431249a'
+      HOST: '127.0.0.1'
     },
     instances: 1,
     autorestart: true,

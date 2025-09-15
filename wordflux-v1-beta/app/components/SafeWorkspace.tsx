@@ -25,7 +25,7 @@ import {
   SPACE_SM, SPACE_MD, SPACE_LG,
   RADIUS_MD, RADIUS_LG, RADIUS_PILL,
   SHADOW_CARD, SHADOW_CARD_HOVER,
-  CHAT_MIN_PX, CHAT_PREFERRED_PX, CHAT_MAX_PX
+  CHAT_MIN_PX, CHAT_PREFERRED_PX, CHAT_MAX_PX, POLL_FOREGROUND_MS, POLL_BACKGROUND_MS
 } from '../ui/tokens'
 import styles from './workspace.module.css'
 import TaskCard from './TaskCard'
@@ -113,8 +113,19 @@ export default function SafeWorkspace() {
     }
 
     fetchBoard()
-    const interval = setInterval(fetchBoard, 5000)
-    return () => clearInterval(interval)
+    let intervalId: any
+    const setTimer = () => {
+      if (intervalId) clearInterval(intervalId)
+      const delay = (typeof document !== 'undefined' && document.hidden) ? POLL_BACKGROUND_MS : POLL_FOREGROUND_MS
+      intervalId = setInterval(fetchBoard, delay)
+    }
+    setTimer()
+    const onVis = () => setTimer()
+    if (typeof document !== 'undefined') document.addEventListener('visibilitychange', onVis)
+    return () => {
+      if (intervalId) clearInterval(intervalId)
+      if (typeof document !== 'undefined') document.removeEventListener('visibilitychange', onVis)
+    }
   }, [mounted])
 
   const handleCommandSelect = (command: string) => {
@@ -330,7 +341,7 @@ export default function SafeWorkspace() {
       />
       <div className={styles.workspace}>
         {/* Chat Panel - The Remote */}
-      <div className={styles.chatPanel} style={{ display: chatOpen ? 'flex' : 'none' }}>
+      <div className={[styles.chatPanel, chatOpen ? '' : styles.chatPanelHidden].join(" ")} aria-hidden={!chatOpen}>
         {/* Chat Header */}
         <div style={{
           padding: `${SPACE_MD}px ${SPACE_LG}px`,

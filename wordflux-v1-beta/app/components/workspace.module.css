@@ -121,3 +121,9 @@
 .columnBody { min-height: 0; }
 .card { width: 100%; max-width: 100%; overflow: hidden; }
 .title { overflow-wrap: anywhere; }
+/* Off-canvas behavior for chat panel on mobile */
+.chatPanel { transition: transform .25s ease; }
+@media (max-width: 1024px) {
+  .chatPanel { position: fixed; left: 0; top: 0; height: 100vh; box-shadow: 0 10px 40px rgba(0,0,0,.2); background: var(--surface); }
+  .chatPanelHidden { transform: translateX(-105%); pointer-events: none; }
+}
