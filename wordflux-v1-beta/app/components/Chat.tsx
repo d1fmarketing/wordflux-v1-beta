@@ -55,6 +55,30 @@ export default function Chat() {
       const bot: Message = { id: (Date.now() + 1).toString(), role: 'assistant', content: data.response || 'I processed your request.', timestamp: new Date() }
       setMessages(prev => [...prev, bot])
       if (data.suggestions && Array.isArray(data.suggestions)) setSuggestions(data.suggestions)
+
+      try {
+        const toast = (window as any).wfToast as undefined | ((t: { text: string; action?: { label: string; onClick: () => void } }) => void);
+        if (toast && Array.isArray(data.results)) {
+          const created = data.results.find((r: any) => r?.type === 'create_task' && r?.result?.taskId);
+          if (created?.result?.taskId) {
+            const taskId = created.result.taskId;
+            toast({ text: `Created #${taskId} — Undo`, action: { label: 'Undo', onClick: () => {
+              fetch('/api/board/remove', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ taskId }) })
+                .then(() => window.dispatchEvent(new Event('board-refresh')))
+                .catch(() => {});
+            } } });
+          }
+          const moved = data.results.find((r: any) => r?.type === 'move_task' && r?.result?.taskId);
+          if (moved?.result?.taskId && data.undoToken) {
+            const token = data.undoToken;
+            toast({ text: `Moved #${moved.result.taskId} — Undo`, action: { label: 'Undo', onClick: () => {
+              fetch('/api/chat/deterministic-route', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: `undo ${token}` }) })
+                .then(() => window.dispatchEvent(new Event('board-refresh')))
+                .catch(() => {});
+            } } });
+          }
+        }
+      } catch { /* ignore */ }
       if (data.boardUpdated || (Array.isArray(data.actions) && data.actions.length > 0)) window.dispatchEvent(new Event('board-refresh'))
     } catch {
       setMessages(prev => [...prev, { id: (Date.now() + 1).toString(), role: 'assistant', content: 'Sorry, error. Try again.', timestamp: new Date() }])
