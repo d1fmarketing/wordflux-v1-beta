@@ -82,9 +82,9 @@ export default function Chat() {
             // Chat-driven filter: list/search results -> focus ids
       try {
         if (Array.isArray(data.results)) {
-          const list = data.results.find((r: any) => (r?.type === 'list_tasks' || r?.type === 'search_tasks') && r?.result?.tasks);
-          if (list?.result?.tasks?.length) {
-            const ids = list.result.tasks.map((t: any) => String(t.id));
+          const buckets = data.results.filter((r: any) => (r?.type === 'list_tasks' || r?.type === 'search_tasks') && r?.result?.tasks);
+          const ids = Array.from(new Set(buckets.flatMap((b: any) => (b.result.tasks||[]).map((t: any) => String(t.id)))));
+          if (ids.length) {
             window.dispatchEvent(new CustomEvent('wf-filter', { detail: { ids } }));
             const toast = (window as any).wfToast;
             if (toast) toast({ text: `Filtered ${ids.length} task(s) — Clear`, action: { label: 'Clear', onClick: () => { window.dispatchEvent(new Event('wf-filter-clear')) } } });

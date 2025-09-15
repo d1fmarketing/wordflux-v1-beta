@@ -558,6 +558,33 @@ export async function processMessage(message: string, preview: boolean = false, 
       }
     }
     
+    // If response is a board summary (one or more list_tasks), append concise counts
+    try {
+      const onlyLists = actions.every((a: any) => a.type === 'list_tasks')
+      if (onlyLists) {
+        const cols = await kb.getColumns(PROJECT_ID)
+        const all = await kb.listProjectTasks(PROJECT_ID)
+        const lowerTitle = (t: any) => String(t.title||'').toLowerCase()
+        const cnt = { ready:0, wip:0, done:0, overdue:0 }
+        const byColId: Record<number,string> = {}
+        for (const c of cols) byColId[c.id] = String(c.title||'')
+        const now = Math.floor(Date.now()/1000)
+        for (const t of all) {
+          const name = lowerTitle({ title: byColId[t.column_id]||'' })
+          if (/ready/.test(name)) cnt.ready++
+          else if (/(in progress|work in progress|wip|doing|active|current)/.test(name)) cnt.wip++
+          else if (/(done|complete|finished|closed|shipped|deployed|live)/.test(name)) cnt.done++
+          if (t.date_due && t.date_due < now && t.is_active === 1) cnt.overdue++
+        }
+        const parts = [] as string[]
+        parts.push(`Ready ${cnt.ready}`)
+        parts.push(`In Progress ${cnt.wip}`)
+        parts.push(`Done ${cnt.done}`)
+        parts.push(`Overdue ${cnt.overdue}`)
+        messages.unshift('Summary — ' + parts.join(' • '))
+      }
+    } catch {}
+
     // Store undo record if there were state-changing actions
     if (undo.actions.length > 0) {
       UNDO_LOG.set(undoToken, undo);
