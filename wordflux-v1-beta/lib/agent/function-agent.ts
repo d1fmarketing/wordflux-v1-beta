@@ -2,6 +2,7 @@ import OpenAI from 'openai'
 import { KanboardClient } from '../kanboard-client'
 import { BoardState } from '../board-state'
 import { tools } from './tools'
+import { callMcp } from '../mcp-client'
 import { UserMemory } from './memory'
 import { enforceStyle, formatOutput, detectOutputType } from '../style-guard'
 
@@ -192,23 +193,14 @@ Never output anything outside these formats.`
           const targetColumn = columns.find((c: any) => 
             c.title.toLowerCase() === args.column.toLowerCase()
           ) || columns[0]
-
-          const taskId = await this.kanboard.createTask(
-            projectId,
-            args.title,
-            targetColumn.id,
-            args.description,
-            {
-              owner_id: args.assignee ? await this.getUserId(args.assignee) : undefined,
-              date_due: args.dueDate,
-              tags: args.labels,
-              score: args.points
-            }
-          )
-
+          const result = await callMcp('create_card', {
+            title: args.title,
+            columnId: targetColumn.id,
+            description: args.description
+          })
           return {
             success: true,
-            taskId,
+            taskId: result?.taskId,
             title: args.title,
             column: targetColumn.title
           }
@@ -225,7 +217,7 @@ Never output anything outside these formats.`
             throw new Error(`Column not found: ${args.toColumn}`)
           }
 
-          await this.kanboard.moveTask(taskId, targetColumn.id, projectId, args.position)
+          await callMcp('move_card', { taskId, toColumnId: targetColumn.id, position: args.position })
 
           return {
             success: true,
@@ -236,7 +228,7 @@ Never output anything outside these formats.`
 
         case 'kb_assign_task': {
           const taskId = await this.resolveTaskId(args.taskId)
-          await this.kanboard.assignTask(taskId, args.assignee)
+          await callMcp('assign_card', { taskId, assignee: args.assignee })
 
           return {
             success: true,
@@ -248,7 +240,7 @@ Never output anything outside these formats.`
         case 'kb_set_due_date': {
           const taskId = await this.resolveTaskId(args.taskId)
           const dueDate = this.parseDueDate(args.date)
-          await this.kanboard.setTaskDueDate(taskId, dueDate)
+          await callMcp('set_due', { taskId, when: args.date })
 
           return {
             success: true,
@@ -259,7 +251,7 @@ Never output anything outside these formats.`
 
         case 'kb_add_label': {
           const taskId = await this.resolveTaskId(args.taskId)
-          await this.kanboard.addTaskLabel(taskId, args.label)
+          await callMcp('add_label', { taskId, label: args.label })
 
           return {
             success: true,
@@ -270,12 +262,12 @@ Never output anything outside these formats.`
 
         case 'kb_add_comment': {
           const taskId = await this.resolveTaskId(args.taskId)
-          const commentId = await this.kanboard.addTaskComment(taskId, args.content)
+          const result = await callMcp('add_comment', { taskId, content: args.content })
 
           return {
             success: true,
             taskId,
-            commentId
+            commentId: result?.commentId
           }
         }
 
@@ -316,13 +308,11 @@ Never output anything outside these formats.`
           }
 
           const taskId = await this.resolveTaskId(args.taskId)
-          const task = await this.kanboard.getTask(taskId)
-          await this.kanboard.removeTask(taskId)
+          await callMcp('remove_card', { taskId })
 
           return {
             success: true,
-            taskId,
-            title: task.title
+            taskId
           }
         }
 

@@ -1,0 +1,143 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { getBoardProvider } from '@/lib/providers'
+import { detectProvider } from '@/lib/board-provider'
+import { KanboardClient } from '@/lib/kanboard-client'
+
+export const dynamic = 'force-dynamic'
+
+function parseDueDate(input: string) {
+  const date = new Date(input)
+  if (!isNaN(date.getTime())) return Math.floor(date.getTime() / 1000)
+  const lower = input.trim().toLowerCase()
+  const now = new Date()
+  const setAndReturn = (d: Date) => Math.floor(d.getTime() / 1000)
+  if (['today', 'hoje'].includes(lower)) {
+    now.setHours(17, 0, 0, 0)
+    return setAndReturn(now)
+  }
+  if (['tomorrow', 'amanhã'].includes(lower)) {
+    now.setDate(now.getDate() + 1)
+    now.setHours(17, 0, 0, 0)
+    return setAndReturn(now)
+  }
+  return null
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    const body = await req.json()
+    const { method, params } = body || {}
+    if (!method) return NextResponse.json({ ok: false, error: 'Missing method' }, { status: 400 })
+
+    const provider: any = getBoardProvider()
+    const projectId = Number(process.env.KANBOARD_PROJECT_ID || 1)
+    const kind = detectProvider()
+
+    switch (method) {
+      case 'list_cards': {
+        const state = await provider.getBoardState(projectId)
+        return NextResponse.json({ ok: true, result: state })
+      }
+      case 'create_card': {
+        const { title, columnId, description } = params || {}
+        if (!title) return NextResponse.json({ ok: false, error: 'title required' }, { status: 400 })
+        const taskId = await provider.createTask(projectId, title, columnId, description)
+        return NextResponse.json({ ok: true, result: { taskId } })
+      }
+      case 'move_card': {
+        const { taskId, toColumnId, position } = params || {}
+        if (!taskId || !toColumnId) return NextResponse.json({ ok: false, error: 'taskId/toColumnId required' }, { status: 400 })
+        await provider.moveTask(projectId, taskId, toColumnId, position)
+        return NextResponse.json({ ok: true })
+      }
+      case 'update_card': {
+        const { taskId, title, description } = params || {}
+        if (!taskId) return NextResponse.json({ ok: false, error: 'taskId required' }, { status: 400 })
+        if (typeof provider.updateTask === 'function') {
+          await provider.updateTask(projectId, taskId, { title, description })
+          return NextResponse.json({ ok: true })
+        }
+        return NextResponse.json({ ok: false, error: 'updateTask not supported' }, { status: 501 })
+      }
+      case 'remove_card': {
+        const { taskId } = params || {}
+        if (!taskId) return NextResponse.json({ ok: false, error: 'taskId required' }, { status: 400 })
+        if (typeof provider.removeTask === 'function') {
+          await provider.removeTask(projectId, taskId)
+          return NextResponse.json({ ok: true })
+        }
+        return NextResponse.json({ ok: false, error: 'removeTask not supported' }, { status: 501 })
+      }
+      case 'set_due': {
+        const { taskId, when } = params || {}
+        if (!taskId || !when) return NextResponse.json({ ok: false, error: 'taskId/when required' }, { status: 400 })
+        if (kind !== 'kanboard') {
+          return NextResponse.json({ ok: false, error: 'set_due available only on Kanboard' }, { status: 501 })
+        }
+        const kb = new KanboardClient({
+          url: process.env.KANBOARD_URL!,
+          username: process.env.KANBOARD_USERNAME!,
+          password: process.env.KANBOARD_PASSWORD!
+        })
+        const due = parseDueDate(String(when))
+        await kb.updateTask(Number(taskId), { date_due: due || undefined })
+        return NextResponse.json({ ok: true, result: { due } })
+      }
+      case 'assign_card': {
+        const { taskId, assignee } = params || {}
+        if (!taskId || !assignee) return NextResponse.json({ ok: false, error: 'taskId/assignee required' }, { status: 400 })
+        if (kind !== 'kanboard') return NextResponse.json({ ok: false, error: 'assign not supported' }, { status: 501 })
+        const kb = new KanboardClient({
+          url: process.env.KANBOARD_URL!,
+          username: process.env.KANBOARD_USERNAME!,
+          password: process.env.KANBOARD_PASSWORD!
+        })
+        await kb.assignTask(Number(taskId), assignee)
+        return NextResponse.json({ ok: true })
+      }
+      case 'add_label': {
+        const { taskId, label } = params || {}
+        if (!taskId || !label) return NextResponse.json({ ok: false, error: 'taskId/label required' }, { status: 400 })
+        if (kind !== 'kanboard') return NextResponse.json({ ok: false, error: 'labels not supported' }, { status: 501 })
+        const kb = new KanboardClient({
+          url: process.env.KANBOARD_URL!,
+          username: process.env.KANBOARD_USERNAME!,
+          password: process.env.KANBOARD_PASSWORD!
+        })
+        await kb.addTaskLabel(Number(taskId), label)
+        return NextResponse.json({ ok: true })
+      }
+      case 'remove_label': {
+        const { taskId, label } = params || {}
+        if (!taskId || !label) return NextResponse.json({ ok: false, error: 'taskId/label required' }, { status: 400 })
+        if (kind !== 'kanboard') return NextResponse.json({ ok: false, error: 'labels not supported' }, { status: 501 })
+        const kb = new KanboardClient({
+          url: process.env.KANBOARD_URL!,
+          username: process.env.KANBOARD_USERNAME!,
+          password: process.env.KANBOARD_PASSWORD!
+        })
+        const task = await kb.getTask(Number(taskId))
+        const tags = (task.tags || []).filter((l: string) => l !== label)
+        await kb.updateTask(Number(taskId), { tags } as any)
+        return NextResponse.json({ ok: true })
+      }
+      case 'add_comment': {
+        const { taskId, content } = params || {}
+        if (!taskId || !content) return NextResponse.json({ ok: false, error: 'taskId/content required' }, { status: 400 })
+        if (kind !== 'kanboard') return NextResponse.json({ ok: false, error: 'comments not supported' }, { status: 501 })
+        const kb = new KanboardClient({
+          url: process.env.KANBOARD_URL!,
+          username: process.env.KANBOARD_USERNAME!,
+          password: process.env.KANBOARD_PASSWORD!
+        })
+        const commentId = await kb.addComment(Number(taskId), content)
+        return NextResponse.json({ ok: true, result: { commentId } })
+      }
+      default:
+        return NextResponse.json({ ok: false, error: `Unknown method: ${method}` }, { status: 400 })
+    }
+  } catch (err: any) {
+    console.error('[MCP invoke] error', err)
+    return NextResponse.json({ ok: false, error: err?.message || 'invoke_failed' }, { status: 500 })
+  }
+}
