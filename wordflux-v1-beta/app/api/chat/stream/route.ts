@@ -38,6 +38,8 @@ function describeAction(action: any) {
       return `Set points for ${id ? '#' + id : ''}`
     case 'kb_tidy_board':
       return 'Tidied board'
+    case 'kb_tidy_column':
+      return 'Tidied column' 
     default:
       return tool.replace(/^kb_/,'') || 'Action'
   }

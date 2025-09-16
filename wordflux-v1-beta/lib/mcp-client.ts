@@ -16,6 +16,7 @@ export type McpMethod =
   | 'undo_update'
   | 'undo_last'
   | 'tidy_board'
+  | 'tidy_column'
   | 'undo_last'
   | 'bulk_move'
   | 'set_points'

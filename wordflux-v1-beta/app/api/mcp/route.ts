@@ -260,6 +260,46 @@ async function invoke(method: string, params: any, ctx: Context, opts: InvokeOpt
       }
       return { ok: true, result: report }
     }
+    case 'tidy_column': {
+      const columnName = String(params?.column || '').trim()
+      if (!columnName) throw new Error('column required')
+      const state = await provider.getBoardState(projectId)
+      const columnsRaw: any[] = Array.isArray(state?.columns) ? state.columns : []
+      const mapped = mapColumnsForTidy(columnsRaw)
+      const target = mapped.find(c => (c.canonicalName || c.name).toLowerCase() === canonicalColumn(columnName, mapped.some(col => col.canonicalName === 'Backlog')).toLowerCase())
+      if (!target) throw new Error(`Column not found: ${columnName}`)
+      const backlog = mapped.find(c => c.canonicalName === 'Backlog')
+      const report: any = { movedEmpty: [], normalized: [], removed: [] }
+      const registry = new Set<string>()
+      const cards = Array.isArray(target.cards) ? target.cards : []
+      for (const card of cards) {
+        const taskId = card?.id
+        if (!taskId) continue
+        const title = String(card?.title || '')
+        const trimmed = title.trim()
+        const collapsed = trimmed.replace(/\s+/g, ' ')
+        if (!collapsed.length) {
+          if (backlog && backlog.id !== target.id) {
+            await invoke('move_card', { taskId, toColumnId: backlog.id }, ctx)
+            report.movedEmpty.push({ taskId, from: target.name })
+          }
+          continue
+        }
+        const normalizedTitle = collapsed[0].toUpperCase() + collapsed.slice(1)
+        const dupKey = normalizedTitle.toLowerCase()
+        if (registry.has(dupKey)) {
+          await invoke('remove_card', { taskId }, ctx)
+          report.removed.push({ taskId, title: normalizedTitle })
+          continue
+        }
+        registry.add(dupKey)
+        if (normalizedTitle !== title) {
+          await invoke('update_card', { taskId, title: normalizedTitle }, ctx)
+          report.normalized.push({ taskId, from: title, to: normalizedTitle })
+        }
+      }
+      return { ok: true, result: report }
+    }
     case 'undo_last': {
       const record = await popUndo()
       if (!record) throw new Error('Nothing to undo')

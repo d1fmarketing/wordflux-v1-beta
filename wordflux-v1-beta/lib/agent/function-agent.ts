@@ -610,6 +610,7 @@ Never output anything outside these formats.`
       'kb_set_points',
       'kb_bulk_move',
       'kb_tidy_board',
+      'kb_tidy_column',
       'kb_undo_last'
     ]
     

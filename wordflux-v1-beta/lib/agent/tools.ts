@@ -367,6 +367,18 @@ export const tools = [
         required: []
       }
     }
+  },
+  {
+    type: 'function' as const,
+    function: {
+      name: 'kb_tidy_column',
+      description: 'Tidy a single column (move empty cards back, normalize titles, remove duplicates)',
+      parameters: {
+        type: 'object',
+        properties: { column: { type: 'string', description: 'Column name to tidy' } },
+        required: ['column']
+      }
+    }
   }
 ]
 

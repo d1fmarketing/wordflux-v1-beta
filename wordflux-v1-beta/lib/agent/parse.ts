@@ -340,8 +340,16 @@ export function parseMessage(msg: string, columns: string[]): Action[] {
   }
 
   if (actions.length === 0) {
-    if (/^tidy( board| quadro)?$/i.test(body.trim())) {
-      actions.push({ type: 'tidy_board' })
+    const tidyMatch = body.trim().match(/^tidy\s+(.*)$/i)
+    if (tidyMatch) {
+      const target = tidyMatch[1].toLowerCase()
+      if (target === '' || target === 'board' || target === 'quadro') {
+        actions.push({ type: 'tidy_board' })
+      } else {
+        const columnKey = normalize(target)
+        const column = colMap[columnKey] || tidyMatch[1].trim()
+        actions.push({ type: 'tidy_column', column })
+      }
     }
   }
 
