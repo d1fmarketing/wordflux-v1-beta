@@ -1,0 +1,22 @@
+{
+  "name": "wordflux-board",
+  "description": "Board operations (create/move/update/delete/cards) for WordFlux",
+  "methods": [
+    { "name": "list_cards", "description": "Get board state", "params": {} },
+    { "name": "create_card", "params": { "title": "string", "columnId": "string", "description": "string?" } },
+    { "name": "move_card", "params": { "taskId": "string", "toColumnId": "string", "position": "number?" } },
+    { "name": "update_card", "params": { "taskId": "string", "title": "string?", "description": "string?", "points": "number?" } },
+    { "name": "remove_card", "params": { "taskId": "string" } },
+    { "name": "set_due", "params": { "taskId": "string", "when": "string" } },
+    { "name": "assign_card", "params": { "taskId": "string", "assignee": "string" } },
+    { "name": "add_label", "params": { "taskId": "string", "label": "string" } },
+    { "name": "remove_label", "params": { "taskId": "string", "label": "string" } },
+    { "name": "add_comment", "params": { "taskId": "string", "content": "string" } },
+    { "name": "bulk_move", "params": { "tasks": "Array<{ taskId: string, position?: number }>", "toColumnId": "string" } },
+    { "name": "set_points", "params": { "taskId": "string", "points": "number" } },
+    { "name": "undo_create", "params": { "taskId": "string" } },
+    { "name": "undo_move", "params": { "taskId": "string", "columnId": "string", "position": "number?" } },
+    { "name": "undo_update", "params": { "taskId": "string", "patch": "Record<string, any>" } }
+  ],
+  "auth": "internal"
+}

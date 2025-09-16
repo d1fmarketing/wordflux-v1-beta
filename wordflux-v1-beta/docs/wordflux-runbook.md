@@ -81,3 +81,30 @@ Validate against the running app if you change providers.
 - Move/create failing: inspect provider client logs (`lib/providers/*`); verify upstream URLs and tokens.
 - Memory/CPU spikes: `pm2 monit` or `top`; consider `pm2 reload` to clear leaks.
 
+
+## MCP Endpoint
+
+```
+POST /api/mcp
+{ "method": string, "params": object }
+```
+
+| Method        | Params (JSON)                                     | Notes                                   |
+|---------------|---------------------------------------------------|-----------------------------------------|
+| list_cards    | {}                                                | returns { columns }                     |
+| create_card   | { title, columnId?, description? }                | columnId optional (provider default)    |
+| move_card     | { taskId, toColumnId, position? }                 | uses ladder positioning                 |
+| update_card   | { taskId, title?, description?, points? }         | maps to provider.updateTask             |
+| remove_card   | { taskId }                                        | delete card                             |
+| set_due       | { taskId, when }                                  | Kanboard only (natural language aware)  |
+| assign_card   | { taskId, assignee }                              | Kanboard only (username)                |
+| add_label     | { taskId, label }                                 | Kanboard only                           |
+| remove_label  | { taskId, label }                                 | Kanboard only                           |
+| add_comment   | { taskId, content }                               | Kanboard only                           |
+| bulk_move     | { tasks: [{ taskId, position? }], toColumnId }    | multi-move                              |
+| set_points    | { taskId, points }                                | Kanboard only                           |
+| undo_create   | { taskId }                                        | calls remove_card                       |
+| undo_move     | { taskId, columnId, position? }                   | move back                               |
+| undo_update   | { taskId, patch }                                 | restore fields                          |
+
+Set `MCP_INTERNAL_URL` to override the base URL; otherwise falls back to NEXTAUTH_URL or `http://127.0.0.1:${PORT}`.

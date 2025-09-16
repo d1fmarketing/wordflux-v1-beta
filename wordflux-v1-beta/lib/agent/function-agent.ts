@@ -273,7 +273,7 @@ Never output anything outside these formats.`
 
         case 'kb_set_points': {
           const taskId = await this.resolveTaskId(args.taskId)
-          await this.kanboard.updateTaskScore(taskId, args.points)
+          await callMcp('set_points', { taskId, points: args.points })
 
           return {
             success: true,
@@ -283,7 +283,14 @@ Never output anything outside these formats.`
         }
 
         case 'kb_search_tasks': {
-          const tasks = await this.searchTasks(args.query)
+          const result = await callMcp('list_cards')
+          const columns = Array.isArray(result?.columns) ? result.columns : []
+          const query = String(args.query || '').toLowerCase()
+          const tasks = columns.flatMap((col: any) => (col.cards || []).filter((card: any) => {
+            const title = String(card.title || '').toLowerCase()
+            const desc = String(card.description || '').toLowerCase()
+            return title.includes(query) || desc.includes(query)
+          }).map((card: any) => ({ id: card.id, title: card.title, column_id: col.id, column: col.name })))
           return {
             success: true,
             tasks,
@@ -291,6 +298,16 @@ Never output anything outside these formats.`
           }
         }
 
+
+        case 'kb_update_task': {
+          const taskId = await this.resolveTaskId(args.taskId)
+          await callMcp('update_card', { taskId, title: args.updates?.title, description: args.updates?.description, points: args.updates?.points })
+          return {
+            success: true,
+            taskId,
+            updates: args.updates
+          }
+        }
         case 'kb_get_board_summary': {
           const summary = await this.getBoardSummary(args.detailed)
           return {
@@ -337,7 +354,7 @@ Never output anything outside these formats.`
           for (const taskRef of args.taskIds) {
             try {
               const taskId = await this.resolveTaskId(taskRef)
-              await this.kanboard.moveTask(taskId, targetColumn.id, projectId)
+              await callMcp('move_card', { taskId, toColumnId: targetColumn.id })
               results.push({ taskId, success: true })
             } catch (error) {
               results.push({ taskId: taskRef, success: false, error: error.message })

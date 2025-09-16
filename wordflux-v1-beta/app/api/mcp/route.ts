@@ -133,6 +133,53 @@ export async function POST(req: NextRequest) {
         const commentId = await kb.addComment(Number(taskId), content)
         return NextResponse.json({ ok: true, result: { commentId } })
       }
+      case 'bulk_move': {
+        const { tasks = [], toColumnId } = params || {}
+        if (!Array.isArray(tasks) || tasks.length === 0 || !toColumnId) {
+          return NextResponse.json({ ok: false, error: 'tasks/toColumnId required' }, { status: 400 })
+        }
+        for (const t of tasks) {
+          const { taskId, position } = t || {}
+          if (!taskId) continue
+          await provider.moveTask(projectId, taskId, toColumnId, position)
+        }
+        return NextResponse.json({ ok: true, result: { moved: tasks.length } })
+      }
+      case 'set_points': {
+        const { taskId, points } = params || {}
+        if (!taskId || typeof points !== 'number') {
+          return NextResponse.json({ ok: false, error: 'taskId/points required' }, { status: 400 })
+        }
+        if (typeof provider.updateTask === 'function') {
+          await provider.updateTask(projectId, taskId, { points })
+          return NextResponse.json({ ok: true })
+        }
+        return NextResponse.json({ ok: false, error: 'set_points not supported' }, { status: 501 })
+      }
+      case 'undo_create': {
+        const { taskId } = params || {}
+        if (!taskId) return NextResponse.json({ ok: false, error: 'taskId required' }, { status: 400 })
+        if (typeof provider.removeTask === 'function') {
+          await provider.removeTask(projectId, taskId)
+          return NextResponse.json({ ok: true })
+        }
+        return NextResponse.json({ ok: false, error: 'removeTask not supported' }, { status: 501 })
+      }
+      case 'undo_move': {
+        const { taskId, columnId, position } = params || {}
+        if (!taskId || !columnId) return NextResponse.json({ ok: false, error: 'taskId/columnId required' }, { status: 400 })
+        await provider.moveTask(projectId, taskId, columnId, position)
+        return NextResponse.json({ ok: true })
+      }
+      case 'undo_update': {
+        const { taskId, patch } = params || {}
+        if (!taskId || typeof patch !== 'object') return NextResponse.json({ ok: false, error: 'taskId/patch required' }, { status: 400 })
+        if (typeof provider.updateTask === 'function') {
+          await provider.updateTask(projectId, taskId, patch)
+          return NextResponse.json({ ok: true })
+        }
+        return NextResponse.json({ ok: false, error: 'updateTask not supported' }, { status: 501 })
+      }
       default:
         return NextResponse.json({ ok: false, error: `Unknown method: ${method}` }, { status: 400 })
     }
