@@ -22,6 +22,7 @@ export default function Chat() {
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [suggestions, setSuggestions] = useState<string[]>([])
+  const [status, setStatus] = useState<string | null>(null)
   const endRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -50,10 +51,9 @@ export default function Chat() {
     setMessages(prev => [...prev, user])
     setInput('')
     setLoading(true)
-    try {
-      const res = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: user.content }) })
-      const data = await res.json()
-      const bot: Message = { id: (Date.now() + 1).toString(), role: 'assistant', content: data.response || 'I processed your request.', timestamp: new Date() }
+    setStatus(null)
+    const handleResult = (data: any) => {
+      const bot: Message = { id: (Date.now() + 1).toString(), role: 'assistant', content: data.response || data.message || 'I processed your request.', timestamp: new Date() }
       setMessages(prev => [...prev, bot])
       if (data.suggestions && Array.isArray(data.suggestions)) setSuggestions(data.suggestions)
 
@@ -71,7 +71,6 @@ export default function Chat() {
           }
           const moved = data.results.find((r: any) => r?.type === 'move_task' && r?.result?.taskId);
           if (moved?.result?.taskId && data.undoToken) {
-            const token = data.undoToken;
             toast({ text: `Moved #${moved.result.taskId} — Undo`, action: { label: 'Undo', onClick: () => {
               callMcp('undo_last')
                 .then(() => window.dispatchEvent(new Event('board-refresh')))
@@ -80,7 +79,7 @@ export default function Chat() {
           }
         }
       } catch { /* ignore */ }
-            // Chat-driven filter: list/search results -> focus ids
+
       try {
         if (Array.isArray(data.results)) {
           const buckets = data.results.filter((r: any) => (r?.type === 'list_tasks' || r?.type === 'search_tasks') && r?.result?.tasks);
@@ -93,10 +92,63 @@ export default function Chat() {
           }
         }
       } catch { /* noop */ }
-if (data.boardUpdated || (Array.isArray(data.actions) && data.actions.length > 0)) window.dispatchEvent(new Event('board-refresh'))
+
+      if (data.boardUpdated || (Array.isArray(data.actions) && data.actions.length > 0)) window.dispatchEvent(new Event('board-refresh'))
+    }
+
+    try {
+      const res = await fetch('/api/chat/stream', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: user.content }) })
+      const contentType = res.headers.get('content-type') || ''
+      if (res.ok && contentType.includes('text/event-stream') && res.body) {
+        const reader = res.body.getReader()
+        const decoder = new TextDecoder()
+        let buffer = ''
+        const flush = (chunk: string) => {
+          const entries = chunk.split(/\n\n/)
+          for (const entry of entries) {
+            if (!entry) continue
+            const trimmed = entry.trim()
+            if (!trimmed.startsWith('data:')) continue
+            const payload = trimmed.slice(5).trim()
+            if (!payload) continue
+            try {
+              const evt = JSON.parse(payload)
+              if (evt.type === 'progress') {
+                setStatus(evt.message || null)
+              } else if (evt.type === 'result') {
+                setStatus(null)
+                handleResult(evt.payload || {})
+              } else if (evt.type === 'error') {
+                setStatus(evt.message || 'Error')
+                setMessages(prev => [...prev, { id: (Date.now() + 1).toString(), role: 'assistant', content: evt.message || 'Sorry, error. Try again.', timestamp: new Date() }])
+              }
+            } catch { /* ignore malformed event */ }
+          }
+        }
+        while (true) {
+          const { value, done } = await reader.read()
+          if (done) break
+          buffer += decoder.decode(value, { stream: true })
+          const i = buffer.lastIndexOf('\n\n')
+          if (i >= 0) {
+            const chunk = buffer.slice(0, i)
+            buffer = buffer.slice(i + 2)
+            flush(chunk)
+          }
+        }
+        const remaining = decoder.decode()
+        if (buffer) flush(buffer)
+        if (remaining) flush(remaining)
+      } else {
+        const data = await res.json()
+        handleResult(data)
+      }
     } catch {
       setMessages(prev => [...prev, { id: (Date.now() + 1).toString(), role: 'assistant', content: 'Sorry, error. Try again.', timestamp: new Date() }])
-    } finally { setLoading(false) }
+    } finally {
+      setLoading(false)
+      setStatus(null)
+    }
   }
 
   function onKey(e: React.KeyboardEvent) {
@@ -133,6 +185,9 @@ if (data.boardUpdated || (Array.isArray(data.actions) && data.actions.length > 0
               </button>
             ))}
           </div>
+        )}
+        {status && (
+          <div className={styles.status} aria-live="polite">{status}</div>
         )}
         <div className={styles.inputRow}>
           <input

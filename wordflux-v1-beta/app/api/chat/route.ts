@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { AgentControllerV2 } from '@/lib/agent-controller-v2'
-import { FunctionAgent } from '@/lib/agent/function-agent'
+import { getAgent } from '@/lib/agent/get-agent'
 import { processMessage as processDeterministic } from './deterministic-route'
 import { withRateLimit } from '@/lib/rate-limiter'
 import { chatMessageSchema, validateInput } from '@/lib/validation'
+
+const USE_DETERMINISTIC = process.env.USE_DETERMINISTIC_PARSER !== 'false'
 
 // ---- Process-persistent idempotency cache (survives HMR in dev) ----
 type IdempRec = { ts: number; payload: any };
@@ -31,29 +32,6 @@ function idempRemember(key: string, payload: any) {
     Array.from(IDEMP_CACHE.entries()).forEach(([k, v]) => {
       if (now - v.ts > 60000) IDEMP_CACHE.delete(k);
     });
-  }
-}
-
-// Feature flags
-const USE_DETERMINISTIC = process.env.USE_DETERMINISTIC_PARSER !== 'false' // Default to true
-const USE_FUNCTION_AGENT = process.env.USE_FUNCTION_AGENT === 'true' || true // Default to new agent
-
-let agentInstance: AgentControllerV2 | null = null
-let functionAgentInstance: FunctionAgent | null = null
-
-async function getAgent() {
-  if (USE_FUNCTION_AGENT) {
-    if (!functionAgentInstance) {
-      functionAgentInstance = new FunctionAgent()
-      await functionAgentInstance.initialize()
-    }
-    return functionAgentInstance
-  } else {
-    if (!agentInstance) {
-      agentInstance = new AgentControllerV2()
-      await agentInstance.initialize()
-    }
-    return agentInstance
   }
 }
 
