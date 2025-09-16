@@ -609,6 +609,7 @@ Never output anything outside these formats.`
       'kb_add_comment',
       'kb_set_points',
       'kb_bulk_move',
+      'kb_tidy_board',
       'kb_undo_last'
     ]
     

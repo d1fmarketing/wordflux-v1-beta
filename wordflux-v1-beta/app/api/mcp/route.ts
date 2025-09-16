@@ -214,10 +214,51 @@ async function invoke(method: string, params: any, ctx: Context, opts: InvokeOpt
       if (typeof provider.updateTask === 'function') {
         const snapshot = await findCardSnapshot(ctx, taskId)
         await provider.updateTask(projectId, taskId, { points })
-        if (snapshot && !opts.skipUndo) await pushUndo({ method: 'set_points', params: { taskId, points: snapshot?.points }, label: `Set points ${snapshot.title}` })
+        if (snapshot && !opts.skipUndo) await pushUndo({ method: 'set_points', params: { taskId, points: snapshot?.points ?? 0 }, label: `Set points ${snapshot.title}` })
         return { ok: true }
       }
       throw new Error('set_points not supported')
+    }
+    case 'tidy_board': {
+      const state = await provider.getBoardState(projectId)
+      const columnsRaw: any[] = Array.isArray(state?.columns) ? state.columns : []
+      const mapped = mapColumnsForTidy(columnsRaw)
+      const backlog = mapped.find(c => c.canonicalName === 'Backlog')
+      const report: any = { movedEmpty: [], normalized: [], removed: [] }
+      const seen = new Map<string, Set<string>>()
+      for (const col of mapped) {
+        const cards = Array.isArray(col.cards) ? col.cards : []
+        const key = String(col.canonicalName || col.name)
+        if (!seen.has(key)) seen.set(key, new Set())
+        const registry = seen.get(key)!
+        for (const card of cards) {
+          const taskId = card?.id
+          if (!taskId) continue
+          const title = String(card?.title || '')
+          const trimmed = title.trim()
+          const collapsed = trimmed.replace(/\s+/g, ' ')
+          if (!collapsed.length) {
+            if (backlog && backlog.id !== col.id) {
+              await invoke('move_card', { taskId, toColumnId: backlog.id }, ctx)
+              report.movedEmpty.push({ taskId, from: col.name })
+            }
+            continue
+          }
+          const normalizedTitle = collapsed[0].toUpperCase() + collapsed.slice(1)
+          const dupKey = `${key.toLowerCase()}::${normalizedTitle.toLowerCase()}`
+          if (registry.has(dupKey)) {
+            await invoke('remove_card', { taskId }, ctx)
+            report.removed.push({ taskId, title: normalizedTitle, column: col.name })
+            continue
+          }
+          registry.add(dupKey)
+          if (normalizedTitle !== title) {
+            await invoke('update_card', { taskId, title: normalizedTitle }, ctx)
+            report.normalized.push({ taskId, from: title, to: normalizedTitle })
+          }
+        }
+      }
+      return { ok: true, result: report }
     }
     case 'undo_last': {
       const record = await popUndo()
@@ -237,6 +278,28 @@ async function invoke(method: string, params: any, ctx: Context, opts: InvokeOpt
 const globalRate = (globalThis as any).__MCP_RATE__ || ((globalThis as any).__MCP_RATE__ = new Map<string, number[]>())
 const RATE_WINDOW_MS = 60_000
 const RATE_LIMIT = Number(process.env.MCP_RATE_LIMIT || '60')
+
+const backlogRegex = /(backlog|todo|to-do|to do|inbox|ideas|analysis|planning|intake|icebox)/i
+const readyRegex = /(ready|up next|queued|planned)/i
+const progressRegex = /(in progress|work in progress|wip|doing|active|current|dev|coding|building|implementing)/i
+const reviewRegex = /(review|qa|qc|verify|verification|testing|validation|check|staging|uat)/i
+const doneRegex = /(done|complete|completed|finished|closed|shipped|deployed|live|released|published|archived)/i
+
+function canonicalColumn(name: string, hasBacklog: boolean) {
+  const lower = (name || '').toLowerCase()
+  if (backlogRegex.test(lower)) return 'Backlog'
+  if (reviewRegex.test(lower)) return 'Review'
+  if (doneRegex.test(lower)) return 'Done'
+  if (progressRegex.test(lower)) return 'In Progress'
+  if (!hasBacklog && readyRegex.test(lower)) return 'Backlog'
+  if (readyRegex.test(lower)) return 'Ready'
+  return name
+}
+
+function mapColumnsForTidy(columns: any[]) {
+  const hasBacklog = columns.some(col => backlogRegex.test(String(col?.name || '')))
+  return columns.map(col => ({ ...col, canonicalName: canonicalColumn(String(col?.name || ''), hasBacklog) }))
+}
 
 function checkRateLimit(key: string) {
   const now = Date.now()

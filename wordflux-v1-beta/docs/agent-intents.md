@@ -169,3 +169,4 @@ Add comment
 
 ### Quick commands (language-aware)
 - "Undo last" / "Desfazer": produces `{ "type": "undo_last" }` and calls MCP `undo_last`.
+- "Tidy board" / "Organizar quadro": produces `{ "type": "tidy_board" }` and calls MCP `tidy_board`.

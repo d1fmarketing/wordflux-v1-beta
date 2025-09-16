@@ -355,6 +355,18 @@ export const tools = [
         required: []
       }
     }
+  },
+  {
+    type: 'function' as const,
+    function: {
+      name: 'kb_tidy_board',
+      description: 'Tidy the board (move empty cards, normalize titles, remove duplicates)',
+      parameters: {
+        type: 'object',
+        properties: {},
+        required: []
+      }
+    }
   }
 ]
 

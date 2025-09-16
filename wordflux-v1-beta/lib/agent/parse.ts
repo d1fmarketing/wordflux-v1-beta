@@ -339,6 +339,12 @@ export function parseMessage(msg: string, columns: string[]): Action[] {
     }
   }
 
+  if (actions.length === 0) {
+    if (/^tidy( board| quadro)?$/i.test(body.trim())) {
+      actions.push({ type: 'tidy_board' })
+    }
+  }
+
   // Tag task: "tag #21 add urgent, ai" or "tag #21 remove urgent"
   if (actions.length === 0) {
     const match = body.match(/^tag\s+(.+?)\s+(add|remove)\s+(.+)$/i);

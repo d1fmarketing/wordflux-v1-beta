@@ -68,6 +68,10 @@ export const UndoLastAction = z.object({
   type: z.literal('undo_last'),
 });
 
+export const TidyBoardAction = z.object({
+  type: z.literal('tidy_board'),
+});
+
 export const PreviewAction = z.object({
   type: z.literal('preview'),
   actions: z.array(z.any()),
@@ -93,6 +97,7 @@ export const Action = z.discriminatedUnion('type', [
   SearchTasks,
   UndoAction,
   UndoLastAction,
+  TidyBoardAction,
   PreviewAction,
 ]);
 
@@ -108,5 +113,6 @@ export type ListTasksAction = z.infer<typeof ListTasks>;
 export type SearchTasksAction = z.infer<typeof SearchTasks>;
 export type UndoActionType = z.infer<typeof UndoAction>;
 export type UndoLastActionType = z.infer<typeof UndoLastAction>;
+export type TidyBoardActionType = z.infer<typeof TidyBoardAction>;
 
 export const ActionList = z.array(Action).min(1);

@@ -531,6 +531,20 @@ async function executeAction(
       }
     }
 
+    case 'tidy_board': {
+      try {
+        const res = await callMcp('tidy_board')
+        const info = res?.result || {}
+        const moved = Array.isArray(info.movedEmpty) ? info.movedEmpty.length : 0
+        const normalized = Array.isArray(info.normalized) ? info.normalized.length : 0
+        const removed = Array.isArray(info.removed) ? info.removed.length : 0
+        const message = `Tidy complete — moved ${moved} empty, normalized ${normalized}, removed ${removed}.`
+        return { ok: res?.ok !== false, message, tidy: info }
+      } catch (e: any) {
+        return { ok: false, error: e?.message || 'tidy_failed' }
+      }
+    }
+
     case 'undo': {
       const record = UNDO_LOG.get(action.token);
       if (!record) {
