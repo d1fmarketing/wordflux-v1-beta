@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { i18n } from '../ui/i18n'
 import styles from './Chat.module.css'
+import { callMcp } from '@/lib/mcp-client'
 
 interface Message {
   id: string
@@ -63,7 +64,7 @@ export default function Chat() {
           if (created?.result?.taskId) {
             const taskId = created.result.taskId;
             toast({ text: `Created #${taskId} — Undo`, action: { label: 'Undo', onClick: () => {
-              fetch('/api/board/remove', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ taskId }) })
+              callMcp('undo_create', { taskId })
                 .then(() => window.dispatchEvent(new Event('board-refresh')))
                 .catch(() => {});
             } } });

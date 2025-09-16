@@ -9,6 +9,11 @@ export type McpMethod =
   | 'add_label'
   | 'remove_label'
   | 'add_comment'
+  | 'bulk_move'
+  | 'set_points'
+  | 'undo_create'
+  | 'undo_move'
+  | 'undo_update'
 
 function resolveBaseUrl() {
   const internal = process.env.MCP_INTERNAL_URL

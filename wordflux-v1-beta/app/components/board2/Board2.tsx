@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import useSWR from 'swr'
 import styles from './Board2.module.css'
+import { callMcp } from '@/lib/mcp-client'
 import { Column } from './Column'
 import { DndContext, type DragEndEvent, type DragOverEvent, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { SortableContext, rectSortingStrategy } from '@dnd-kit/sortable'
@@ -143,6 +144,7 @@ export default function Board2() {
     const prev = mat[insertIndex - 1]?.position ?? null
     const next = mat[insertIndex + 1]?.position ?? null
     const position = computePosition(prev, next)
+    const originalPosition = fromCol.cards[fromIndex]?.position ?? ((fromIndex + 1) * STEP)
 
     setCols(prevCols => {
       const copy = prevCols.map(c => ({ ...c, cards: c.cards.slice() }))
@@ -153,17 +155,18 @@ export default function Board2() {
       return copy
     })
 
-    fetch('/api/board/move', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ taskId: activeRawId, toColumnId: toCol.id, position })
-    }).then(() => {
-      if ((window as any).wfToast) {
-        (window as any).wfToast({ text: `Moved to ${String((toCol as any).name || toCol.id)}`, action: { label: 'Undo', onClick: () => {
-          fetch('/api/board/move', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ taskId: activeRawId, toColumnId: fromCol.id, position: fromIndex + 1 }) })
-        } } })
-      }
-      mutate()
-    })
+    callMcp('move_card', { taskId: activeRawId, toColumnId: toCol.id, position })
+      .then(() => {
+        if ((window as any).wfToast) {
+          (window as any).wfToast({ text: `Moved to ${String((toCol as any).name || toCol.id)}`, action: { label: 'Undo', onClick: () => {
+            callMcp('undo_move', { taskId: activeRawId, columnId: fromCol.id, position: originalPosition })
+              .then(() => mutate())
+              .catch(() => mutate())
+          } } })
+        }
+        mutate()
+      })
+      .catch(() => mutate())
   }
 
   if (isLoading) return <div style={{ padding: 16 }}>Loading board…</div>
