@@ -168,9 +168,10 @@ export default function Board2() {
 
   if (isLoading) return <div style={{ padding: 16 }}>Loading board…</div>
 
+  const base = cols.filter(c => !/^(ready|up next|queued|planned)$/i.test(String(c.name)))
   const displayCols = allowedIds
-    ? sortColumns(cols.map((c) => ({ ...c, cards: c.cards.filter(card => allowedIds.has(String(card.id))) })))
-    : sortColumns(cols)
+    ? sortColumns(base.map((c) => ({ ...c, cards: c.cards.filter(card => allowedIds.has(String(card.id))) })))
+    : sortColumns(base)
 
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragOver={onDragOver} onDragEnd={onDragEnd}>

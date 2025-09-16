@@ -202,6 +202,8 @@ async function executeAction(
         columnName = 'Backlog';
       }
       
+      // Remap Ready -> Backlog for create
+      if (columnName && /(ready|up next|queued|planned)/i.test(String(columnName))) { columnName = 'Backlog' }
       // Move to the target column
       col = columnsByName[columnName.toLowerCase()];
       if (col) {
@@ -250,7 +252,8 @@ async function executeAction(
       const task = await resolveTask(action.task);
       if (!task) throw new Error(`Task not found: ${action.task}`);
       
-      const toColumn = columnsByName[action.column.toLowerCase()];
+      const targetName = /(ready|up next|queued|planned)/i.test(String(action.column)) ? 'Review' : action.column;
+      const toColumn = columnsByName[targetName.toLowerCase()];
       if (!toColumn) throw new Error(`Column not found: ${action.column}`);
       
       const fromColumnId = task.column_id;
