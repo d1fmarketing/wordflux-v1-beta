@@ -40,8 +40,8 @@ function columnWeight(name: string): number {
   return 999;
 }
 
-function sortColumns(cols: { id: string|number; name: string; cards: any[] }[]) {
-  return cols.slice().sort((a,b) => columnWeight(a.name) - columnWeight(b.name));
+function sortColumns(cols: { id: string|number; name: string; cards: any[]; canonicalName?: string }[]) {
+  return cols.slice().sort((a,b) => columnWeight(a.canonicalName || a.name) - columnWeight(b.canonicalName || b.name));
 }
 
 export default function Board2() {
@@ -190,7 +190,7 @@ export default function Board2() {
             <SortableContext items={col.cards.map(c => cardKey(c.id))} strategy={rectSortingStrategy}>
               <Column
                 id={col.id}
-                name={col.name}
+                name={col.canonicalName || col.name}
                 cards={col.cards}
                 droppableId={colKey(col.id)}
                 dropIndex={dropHint && idOf(dropHint.colId) === idOf(col.id) ? dropHint.index : undefined}
