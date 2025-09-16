@@ -166,3 +166,6 @@ Add comment
 | "Marcar #12 urgente" / "Tirar urgente" | `update_task` urgente/normal         |
 | "Comentar #45 precisa de QA"            | `comment_task`                       |
 | "Bloqueados" / "Overdue" / "Hoje" / "Minhas" | `list_tasks` com filtros             |
+
+### Quick commands (language-aware)
+- "Undo last" / "Desfazer": produces `{ "type": "undo_last" }` and calls MCP `undo_last`.

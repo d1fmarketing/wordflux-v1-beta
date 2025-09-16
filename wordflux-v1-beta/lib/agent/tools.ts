@@ -343,6 +343,18 @@ export const tools = [
         required: ['taskId']
       }
     }
+  },
+  {
+    type: 'function' as const,
+    function: {
+      name: 'kb_undo_last',
+      description: 'Undo the last board mutation',
+      parameters: {
+        type: 'object',
+        properties: {},
+        required: []
+      }
+    }
   }
 ]
 

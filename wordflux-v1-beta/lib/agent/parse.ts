@@ -333,6 +333,12 @@ export function parseMessage(msg: string, columns: string[]): Action[] {
     if (m) { const id = Number(m[3]); actions.push({ type: 'update_task', task: id, priority: 'normal' }); }
   }
 
+  if (actions.length === 0) {
+    if (/^(undo|undo last|desfazer|voltar)$/i.test(body.trim())) {
+      actions.push({ type: 'undo_last' })
+    }
+  }
+
   // Tag task: "tag #21 add urgent, ai" or "tag #21 remove urgent"
   if (actions.length === 0) {
     const match = body.match(/^tag\s+(.+?)\s+(add|remove)\s+(.+)$/i);

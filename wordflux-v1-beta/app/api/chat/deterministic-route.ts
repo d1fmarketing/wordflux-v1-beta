@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Action, ActionList } from '@/lib/agent/action-schema';
 import { parseMessage } from '@/lib/agent/parse';
+import { callMcp } from '@/lib/mcp-client';
 import { KanboardClient } from '@/lib/kanboard-client/index';
 import crypto from 'crypto';
 import { detectAutoTags, formatTagsForComment, formatTagsForDisplay } from '@/lib/auto-tagger';
@@ -515,6 +516,19 @@ async function executeAction(
         }
       }
       return { ok:true, updated, when: whenTs }
+    }
+
+    case 'undo_last': {
+      try {
+        const res = await callMcp('undo_last')
+        return {
+          ok: res?.ok !== false,
+          message: res?.result ? 'Undid the last action.' : 'Nothing to undo.',
+          undone: res?.result
+        }
+      } catch (e: any) {
+        return { ok: false, error: e?.message || 'undo_failed' }
+      }
     }
 
     case 'undo': {

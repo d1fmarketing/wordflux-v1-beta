@@ -608,7 +608,8 @@ Never output anything outside these formats.`
       'kb_remove_label',
       'kb_add_comment',
       'kb_set_points',
-      'kb_bulk_move'
+      'kb_bulk_move',
+      'kb_undo_last'
     ]
     
     return modifyingActions.includes(toolName)

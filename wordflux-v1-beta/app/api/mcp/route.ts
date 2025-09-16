@@ -76,7 +76,7 @@ async function invoke(method: string, params: any, ctx: Context, opts: InvokeOpt
       if (!title) throw new Error('title required')
       const taskId = await provider.createTask(projectId, title, columnId, description)
       const undo: UndoRecord = { method: 'remove_card', params: { taskId }, label: `Create ${title}` }
-      if (!opts.skipUndo) pushUndo(undo)
+      if (!opts.skipUndo) await pushUndo(undo)
       return { ok: true, result: { taskId }, undo }
     }
     case 'move_card': {
@@ -85,7 +85,7 @@ async function invoke(method: string, params: any, ctx: Context, opts: InvokeOpt
       const snapshot = await findCardSnapshot(ctx, taskId)
       await provider.moveTask(projectId, taskId, toColumnId, position)
       if (snapshot && !opts.skipUndo) {
-        pushUndo({ method: 'move_card', params: { taskId, toColumnId: snapshot.columnId, position: snapshot.position }, label: `Move ${snapshot.title}` })
+        await pushUndo({ method: 'move_card', params: { taskId, toColumnId: snapshot.columnId, position: snapshot.position }, label: `Move ${snapshot.title}` })
       }
       return { ok: true }
     }
@@ -100,7 +100,7 @@ async function invoke(method: string, params: any, ctx: Context, opts: InvokeOpt
           if (title !== undefined) patch.title = snapshot.title
           if (description !== undefined) patch.description = snapshot.description
           if (points !== undefined) patch.points = snapshot?.points
-          pushUndo({ method: 'update_card', params: { taskId, ...patch }, label: `Update ${snapshot.title}` })
+          await pushUndo({ method: 'update_card', params: { taskId, ...patch }, label: `Update ${snapshot.title}` })
         }
         return { ok: true }
       }
@@ -113,7 +113,7 @@ async function invoke(method: string, params: any, ctx: Context, opts: InvokeOpt
       if (typeof provider.removeTask === 'function') {
         await provider.removeTask(projectId, taskId)
         if (snapshot && !opts.skipUndo) {
-          pushUndo({ method: 'create_card', params: { title: snapshot.title, columnId: snapshot.columnId, description: snapshot.description }, label: `Delete ${snapshot.title}` })
+          await pushUndo({ method: 'create_card', params: { title: snapshot.title, columnId: snapshot.columnId, description: snapshot.description }, label: `Delete ${snapshot.title}` })
         }
         return { ok: true }
       }
@@ -133,7 +133,7 @@ async function invoke(method: string, params: any, ctx: Context, opts: InvokeOpt
       await kb.updateTask(Number(taskId), { date_due: due || undefined })
       if (snapshot && !opts.skipUndo) {
         const prevWhen = snapshot.dueDate ? new Date(Number(snapshot.dueDate) * 1000).toISOString() : 'clear'
-        pushUndo({ method: 'set_due', params: { taskId, when: prevWhen }, label: `Set due ${snapshot.title}` })
+        await pushUndo({ method: 'set_due', params: { taskId, when: prevWhen }, label: `Set due ${snapshot.title}` })
       }
       return { ok: true, result: { due } }
     }
@@ -150,7 +150,7 @@ async function invoke(method: string, params: any, ctx: Context, opts: InvokeOpt
       await kb.assignTask(Number(taskId), assignee)
       if (snapshot && !opts.skipUndo) {
         const prev = snapshot.assignees?.[0] || null
-        pushUndo({ method: 'assign_card', params: { taskId, assignee: prev || '' }, label: `Assign ${snapshot.title}` })
+        await pushUndo({ method: 'assign_card', params: { taskId, assignee: prev || '' }, label: `Assign ${snapshot.title}` })
       }
       return { ok: true }
     }
@@ -164,7 +164,7 @@ async function invoke(method: string, params: any, ctx: Context, opts: InvokeOpt
         password: process.env.KANBOARD_PASSWORD!
       })
       await kb.addTaskLabel(Number(taskId), label)
-      if (!opts.skipUndo) pushUndo({ method: 'remove_label', params: { taskId, label }, label: `Label ${label}` })
+      if (!opts.skipUndo) await pushUndo({ method: 'remove_label', params: { taskId, label }, label: `Label ${label}` })
       return { ok: true }
     }
     case 'remove_label': {
@@ -179,7 +179,7 @@ async function invoke(method: string, params: any, ctx: Context, opts: InvokeOpt
       const task = await kb.getTask(Number(taskId))
       const tags = (task.tags || []).filter((l: string) => l !== label)
       await kb.updateTask(Number(taskId), { tags } as any)
-      if (!opts.skipUndo) pushUndo({ method: 'add_label', params: { taskId, label }, label: `Remove label ${label}` })
+      if (!opts.skipUndo) await pushUndo({ method: 'add_label', params: { taskId, label }, label: `Remove label ${label}` })
       return { ok: true }
     }
     case 'add_comment': {
@@ -203,7 +203,7 @@ async function invoke(method: string, params: any, ctx: Context, opts: InvokeOpt
         const snapshot = await findCardSnapshot(ctx, taskId)
         await provider.moveTask(projectId, taskId, toColumnId, position)
         if (snapshot && !opts.skipUndo) {
-          pushUndo({ method: 'move_card', params: { taskId, toColumnId: snapshot.columnId, position: snapshot.position }, label: `Move ${snapshot.title}` })
+          await pushUndo({ method: 'move_card', params: { taskId, toColumnId: snapshot.columnId, position: snapshot.position }, label: `Move ${snapshot.title}` })
         }
       }
       return { ok: true, result: { moved: tasks.length } }
@@ -214,13 +214,13 @@ async function invoke(method: string, params: any, ctx: Context, opts: InvokeOpt
       if (typeof provider.updateTask === 'function') {
         const snapshot = await findCardSnapshot(ctx, taskId)
         await provider.updateTask(projectId, taskId, { points })
-        if (snapshot && !opts.skipUndo) pushUndo({ method: 'set_points', params: { taskId, points: snapshot?.points }, label: `Set points ${snapshot.title}` })
+        if (snapshot && !opts.skipUndo) await pushUndo({ method: 'set_points', params: { taskId, points: snapshot?.points }, label: `Set points ${snapshot.title}` })
         return { ok: true }
       }
       throw new Error('set_points not supported')
     }
     case 'undo_last': {
-      const record = popUndo()
+      const record = await popUndo()
       if (!record) throw new Error('Nothing to undo')
       const res = await invoke(record.method, record.params, ctx, { skipUndo: true })
       return { ok: true, result: { undone: record.method, record, inner: res } }

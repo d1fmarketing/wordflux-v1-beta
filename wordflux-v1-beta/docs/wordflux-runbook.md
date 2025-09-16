@@ -109,6 +109,11 @@ POST /api/mcp
 
 Set `MCP_INTERNAL_URL` to override the base URL; otherwise falls back to NEXTAUTH_URL or `http://127.0.0.1:${PORT}`.
 
+Undo stack options:
+- `MCP_UNDO_DRIVER=json` (default) keeps a rotating JSON file at `data/mcp-undo.json`.
+- `MCP_UNDO_DRIVER=redis` + `MCP_UNDO_REDIS_URL=redis://user:pass@host:6379` persists undo actions via Redis (`MCP_UNDO_REDIS_KEY` optional).
+- `MCP_UNDO_MAX` controls stack size (default 200).
+
 ## Fonts
 - Primary (titles): Wondra (fallback to 'Inter Tight', system UI).
 - Body: Belkin (fallback to 'Inter', system UI).
