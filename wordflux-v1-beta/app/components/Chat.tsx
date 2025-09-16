@@ -64,7 +64,7 @@ export default function Chat() {
           if (created?.result?.taskId) {
             const taskId = created.result.taskId;
             toast({ text: `Created #${taskId} — Undo`, action: { label: 'Undo', onClick: () => {
-              callMcp('undo_create', { taskId })
+              callMcp('undo_last')
                 .then(() => window.dispatchEvent(new Event('board-refresh')))
                 .catch(() => {});
             } } });
@@ -73,7 +73,7 @@ export default function Chat() {
           if (moved?.result?.taskId && data.undoToken) {
             const token = data.undoToken;
             toast({ text: `Moved #${moved.result.taskId} — Undo`, action: { label: 'Undo', onClick: () => {
-              fetch('/api/chat/deterministic-route', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: `undo ${token}` }) })
+              callMcp('undo_last')
                 .then(() => window.dispatchEvent(new Event('board-refresh')))
                 .catch(() => {});
             } } });

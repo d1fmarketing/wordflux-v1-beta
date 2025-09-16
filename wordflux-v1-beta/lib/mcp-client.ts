@@ -14,6 +14,13 @@ export type McpMethod =
   | 'undo_create'
   | 'undo_move'
   | 'undo_update'
+  | 'undo_last'
+  | 'undo_last'
+  | 'bulk_move'
+  | 'set_points'
+  | 'undo_create'
+  | 'undo_move'
+  | 'undo_update'
 
 function resolveBaseUrl() {
   const internal = process.env.MCP_INTERNAL_URL

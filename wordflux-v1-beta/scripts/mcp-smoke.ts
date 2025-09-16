@@ -29,8 +29,8 @@ async function main() {
   const created = await invoke('create_card', { title: `[smoke] ${Date.now()}`, columnId: firstColumn.id })
   console.log('[mcp] created:', created?.taskId)
   if (created?.taskId) {
-    await invoke('undo_create', { taskId: created.taskId })
-    console.log('[mcp] undo_create ok')
+    await invoke('undo_last', {})
+    console.log('[mcp] undo_last ok')
   }
 }
 

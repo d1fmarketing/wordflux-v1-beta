@@ -144,7 +144,6 @@ export default function Board2() {
     const prev = mat[insertIndex - 1]?.position ?? null
     const next = mat[insertIndex + 1]?.position ?? null
     const position = computePosition(prev, next)
-    const originalPosition = fromCol.cards[fromIndex]?.position ?? ((fromIndex + 1) * STEP)
 
     setCols(prevCols => {
       const copy = prevCols.map(c => ({ ...c, cards: c.cards.slice() }))
@@ -159,9 +158,7 @@ export default function Board2() {
       .then(() => {
         if ((window as any).wfToast) {
           (window as any).wfToast({ text: `Moved to ${String((toCol as any).name || toCol.id)}`, action: { label: 'Undo', onClick: () => {
-            callMcp('undo_move', { taskId: activeRawId, columnId: fromCol.id, position: originalPosition })
-              .then(() => mutate())
-              .catch(() => mutate())
+            callMcp('undo_last').then(() => mutate()).catch(() => mutate())
           } } })
         }
         mutate()
