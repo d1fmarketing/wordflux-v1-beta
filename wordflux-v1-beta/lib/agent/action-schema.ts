@@ -70,11 +70,15 @@ export const UndoLastAction = z.object({
 
 export const TidyBoardAction = z.object({
   type: z.literal('tidy_board'),
+  preview: z.boolean().optional(),
+  confirm: z.boolean().optional()
 });
 
 export const TidyColumnAction = z.object({
   type: z.literal('tidy_column'),
   column: ColumnName,
+  preview: z.boolean().optional(),
+  confirm: z.boolean().optional()
 });
 
 export const PreviewAction = z.object({

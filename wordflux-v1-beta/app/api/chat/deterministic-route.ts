@@ -13,6 +13,26 @@ export const dynamic = 'force-dynamic';
 const PROJECT_ID = parseInt(process.env.KANBOARD_PROJECT_ID || '1', 10);
 const SWIMLANE_ID = parseInt(process.env.KANBOARD_SWIMLANE_ID || '1', 10);
 
+const tidyPreviewStore: Map<string, { target: string; timestamp: number; report: any }> = (globalThis as any).__WF_TIDY_PREVIEW__ || ((globalThis as any).__WF_TIDY_PREVIEW__ = new Map())
+const tidyLastExec: Map<string, number> = (globalThis as any).__WF_TIDY_EXEC__ || ((globalThis as any).__WF_TIDY_EXEC__ = new Map())
+const TIDY_PREVIEW_TTL_MS = parseInt(process.env.TIDY_PREVIEW_TTL_MS || '1800000', 10)
+const TIDY_COOLDOWN_MS = parseInt(process.env.TIDY_COOLDOWN_MS || '3600000', 10)
+
+function requesterKey(req?: Request) {
+  try {
+    const headers: any = (req as any)?.headers
+    if (headers?.get) {
+      const forwarded = headers.get('x-forwarded-for')
+      const realIp = headers.get('x-real-ip')
+      const ip = forwarded?.split(',')[0]?.trim() || realIp || 'unknown'
+      return ip
+    }
+  } catch (e) {
+    console.warn('[tidy] requester key error', e)
+  }
+  return 'unknown'
+}
+
 // Initialize Kanboard client
 const kbRaw = new KanboardClient({
   url: process.env.KANBOARD_URL!,
@@ -532,29 +552,81 @@ async function executeAction(
     }
 
     case 'tidy_board': {
+      const key = `${requesterKey(request)}::board`
+      if ((action as any).preview) {
+        try {
+          const res = await callMcp('tidy_board', { preview: true })
+          tidyPreviewStore.set(key, { target: 'board', report: res?.result, timestamp: Date.now() })
+          const info = res?.result || {}
+          const moved = Array.isArray(info.movedEmpty) ? info.movedEmpty.length : 0
+          const normalized = Array.isArray(info.normalized) ? info.normalized.length : 0
+          const marked = Array.isArray(info.markedDuplicates) ? info.markedDuplicates.length : 0
+          return { ok: true, message: `Preview ready — ${moved} empty, ${normalized} normalized, ${marked} marked. Run “tidy board confirm” within 30 minutes to apply.`, tidy: info, preview: true }
+        } catch (e: any) {
+          return { ok: false, error: e?.message || 'tidy_failed' }
+        }
+      }
+      if (!(action as any).confirm) {
+        return { ok: false, error: 'Run “preview: tidy board” first, then confirm with “tidy board confirm”.' }
+      }
+      const preview = tidyPreviewStore.get(key)
+      if (!preview || Date.now() - preview.timestamp > TIDY_PREVIEW_TTL_MS) {
+        return { ok: false, error: 'Preview expired. Run “preview: tidy board” again.' }
+      }
+      const lastExec = tidyLastExec.get(key)
+      if (lastExec && Date.now() - lastExec < TIDY_COOLDOWN_MS) {
+        return { ok: false, error: 'Tidy is limited to once per hour.' }
+      }
       try {
-        const res = await callMcp('tidy_board')
+        const res = await callMcp('tidy_board', { preview: false })
+        tidyPreviewStore.delete(key)
+        tidyLastExec.set(key, Date.now())
         const info = res?.result || {}
         const moved = Array.isArray(info.movedEmpty) ? info.movedEmpty.length : 0
         const normalized = Array.isArray(info.normalized) ? info.normalized.length : 0
-        const removed = Array.isArray(info.removed) ? info.removed.length : 0
-        const message = `Tidy complete — moved ${moved} empty, normalized ${normalized}, removed ${removed}.`
-        return { ok: res?.ok !== false, message, tidy: info }
+        const marked = Array.isArray(info.markedDuplicates) ? info.markedDuplicates.length : 0
+        return { ok: res?.ok !== false, message: `Tidy complete — moved ${moved} empty, normalized ${normalized}, marked ${marked} duplicates.`, tidy: info }
       } catch (e: any) {
         return { ok: false, error: e?.message || 'tidy_failed' }
       }
     }
 
     case 'tidy_column': {
+      const column = String((action as any).column || '').trim()
+      const key = `${requesterKey(request)}::${column.toLowerCase()}`
+      if ((action as any).preview) {
+        try {
+          const res = await callMcp('tidy_column', { column, preview: true })
+          tidyPreviewStore.set(key, { target: column, report: res?.result, timestamp: Date.now() })
+          const info = res?.result || {}
+          const moved = Array.isArray(info.movedEmpty) ? info.movedEmpty.length : 0
+          const normalized = Array.isArray(info.normalized) ? info.normalized.length : 0
+          const marked = Array.isArray(info.markedDuplicates) ? info.markedDuplicates.length : 0
+          return { ok: true, message: `Preview for ${column} — ${moved} empty, ${normalized} normalized, ${marked} marked. Run “tidy ${column} confirm” within 30 minutes to apply.`, tidy: info, preview: true }
+        } catch (e: any) {
+          return { ok: false, error: e?.message || 'tidy_failed' }
+        }
+      }
+      if (!(action as any).confirm) {
+        return { ok: false, error: `Run “preview: tidy ${column}” first, then confirm with “tidy ${column} confirm”.` }
+      }
+      const preview = tidyPreviewStore.get(key)
+      if (!preview || Date.now() - preview.timestamp > TIDY_PREVIEW_TTL_MS) {
+        return { ok: false, error: 'Preview expired. Run the preview command again.' }
+      }
+      const lastExec = tidyLastExec.get(key)
+      if (lastExec && Date.now() - lastExec < TIDY_COOLDOWN_MS) {
+        return { ok: false, error: 'Tidy is limited to once per hour.' }
+      }
       try {
-        const column = (action as any).column
         const res = await callMcp('tidy_column', { column })
+        tidyPreviewStore.delete(key)
+        tidyLastExec.set(key, Date.now())
         const info = res?.result || {}
         const moved = Array.isArray(info.movedEmpty) ? info.movedEmpty.length : 0
         const normalized = Array.isArray(info.normalized) ? info.normalized.length : 0
-        const removed = Array.isArray(info.removed) ? info.removed.length : 0
-        const message = `Tidied ${column} — moved ${moved} empty, normalized ${normalized}, removed ${removed}.`
-        return { ok: res?.ok !== false, message, tidy: info }
+        const marked = Array.isArray(info.markedDuplicates) ? info.markedDuplicates.length : 0
+        return { ok: res?.ok !== false, message: `Tidied ${column} — moved ${moved} empty, normalized ${normalized}, marked ${marked} duplicates.`, tidy: info }
       } catch (e: any) {
         return { ok: false, error: e?.message || 'tidy_failed' }
       }

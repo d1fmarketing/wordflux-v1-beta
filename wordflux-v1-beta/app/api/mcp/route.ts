@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getBoardProvider } from '@/lib/providers'
 import { detectProvider } from '@/lib/board-provider'
 import { KanboardClient } from '@/lib/kanboard-client'
+import fs from 'fs'
+import path from 'path'
 import { pushUndo, popUndo, UndoRecord } from '@/lib/mcp/undo-store'
 
 export const dynamic = 'force-dynamic'
@@ -224,38 +226,21 @@ async function invoke(method: string, params: any, ctx: Context, opts: InvokeOpt
       const columnsRaw: any[] = Array.isArray(state?.columns) ? state.columns : []
       const mapped = mapColumnsForTidy(columnsRaw)
       const backlog = mapped.find(c => c.canonicalName === 'Backlog')
-      const report: any = { movedEmpty: [], normalized: [], removed: [] }
-      const seen = new Map<string, Set<string>>()
-      for (const col of mapped) {
-        const cards = Array.isArray(col.cards) ? col.cards : []
-        const key = String(col.canonicalName || col.name)
-        if (!seen.has(key)) seen.set(key, new Set())
-        const registry = seen.get(key)!
-        for (const card of cards) {
-          const taskId = card?.id
-          if (!taskId) continue
-          const title = String(card?.title || '')
-          const trimmed = title.trim()
-          const collapsed = trimmed.replace(/\s+/g, ' ')
-          if (!collapsed.length) {
-            if (backlog && backlog.id !== col.id) {
-              await invoke('move_card', { taskId, toColumnId: backlog.id }, ctx)
-              report.movedEmpty.push({ taskId, from: col.name })
-            }
-            continue
+      const preview = params?.preview === true
+      const { ops, report } = planTidy(mapped, backlog)
+      if (preview) {
+        return { ok: true, result: report }
+      }
+      saveTidyBackup('board', state)
+      for (const op of ops) {
+        if (op.type === 'move_empty') {
+          if (backlog && op.fromColumnId !== backlog.id) {
+            await invoke('move_card', { taskId: op.taskId, toColumnId: backlog.id }, ctx)
           }
-          const normalizedTitle = collapsed[0].toUpperCase() + collapsed.slice(1)
-          const dupKey = `${key.toLowerCase()}::${normalizedTitle.toLowerCase()}`
-          if (registry.has(dupKey)) {
-            await invoke('remove_card', { taskId }, ctx)
-            report.removed.push({ taskId, title: normalizedTitle, column: col.name })
-            continue
-          }
-          registry.add(dupKey)
-          if (normalizedTitle !== title) {
-            await invoke('update_card', { taskId, title: normalizedTitle }, ctx)
-            report.normalized.push({ taskId, from: title, to: normalizedTitle })
-          }
+        } else if (op.type === 'rename') {
+          await invoke('update_card', { taskId: op.taskId, title: op.title }, ctx)
+        } else if (op.type === 'mark_duplicate') {
+          await invoke('update_card', { taskId: op.taskId, title: op.title }, ctx)
         }
       }
       return { ok: true, result: report }
@@ -266,36 +251,23 @@ async function invoke(method: string, params: any, ctx: Context, opts: InvokeOpt
       const state = await provider.getBoardState(projectId)
       const columnsRaw: any[] = Array.isArray(state?.columns) ? state.columns : []
       const mapped = mapColumnsForTidy(columnsRaw)
-      const target = mapped.find(c => (c.canonicalName || c.name).toLowerCase() === canonicalColumn(columnName, mapped.some(col => col.canonicalName === 'Backlog')).toLowerCase())
-      if (!target) throw new Error(`Column not found: ${columnName}`)
       const backlog = mapped.find(c => c.canonicalName === 'Backlog')
-      const report: any = { movedEmpty: [], normalized: [], removed: [] }
-      const registry = new Set<string>()
-      const cards = Array.isArray(target.cards) ? target.cards : []
-      for (const card of cards) {
-        const taskId = card?.id
-        if (!taskId) continue
-        const title = String(card?.title || '')
-        const trimmed = title.trim()
-        const collapsed = trimmed.replace(/\s+/g, ' ')
-        if (!collapsed.length) {
-          if (backlog && backlog.id !== target.id) {
-            await invoke('move_card', { taskId, toColumnId: backlog.id }, ctx)
-            report.movedEmpty.push({ taskId, from: target.name })
+      const canonicalTarget = canonicalColumn(columnName, mapped.some(col => col.canonicalName === 'Backlog'))
+      const preview = params?.preview === true
+      const { ops, report } = planTidy(mapped, backlog, canonicalTarget)
+      if (preview) {
+        return { ok: true, result: report }
+      }
+      saveTidyBackup(`column-${canonicalTarget.toLowerCase()}`, state)
+      for (const op of ops) {
+        if (op.type === 'move_empty') {
+          if (backlog && op.fromColumnId !== backlog.id) {
+            await invoke('move_card', { taskId: op.taskId, toColumnId: backlog.id }, ctx)
           }
-          continue
-        }
-        const normalizedTitle = collapsed[0].toUpperCase() + collapsed.slice(1)
-        const dupKey = normalizedTitle.toLowerCase()
-        if (registry.has(dupKey)) {
-          await invoke('remove_card', { taskId }, ctx)
-          report.removed.push({ taskId, title: normalizedTitle })
-          continue
-        }
-        registry.add(dupKey)
-        if (normalizedTitle !== title) {
-          await invoke('update_card', { taskId, title: normalizedTitle }, ctx)
-          report.normalized.push({ taskId, from: title, to: normalizedTitle })
+        } else if (op.type === 'rename') {
+          await invoke('update_card', { taskId: op.taskId, title: op.title }, ctx)
+        } else if (op.type === 'mark_duplicate') {
+          await invoke('update_card', { taskId: op.taskId, title: op.title }, ctx)
         }
       }
       return { ok: true, result: report }
@@ -339,6 +311,66 @@ function canonicalColumn(name: string, hasBacklog: boolean) {
 function mapColumnsForTidy(columns: any[]) {
   const hasBacklog = columns.some(col => backlogRegex.test(String(col?.name || '')))
   return columns.map(col => ({ ...col, canonicalName: canonicalColumn(String(col?.name || ''), hasBacklog) }))
+}
+
+const TIDY_BACKUP_DIR = path.join(process.cwd(), 'data', 'tidy-backups')
+
+function saveTidyBackup(target: string, state: any) {
+  try {
+    fs.mkdirSync(TIDY_BACKUP_DIR, { recursive: true })
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
+    fs.writeFileSync(path.join(TIDY_BACKUP_DIR, `${target}-${timestamp}.json`), JSON.stringify(state, null, 2))
+  } catch (err) {
+    console.error('[tidy] backup failed', err)
+  }
+}
+
+type PlannedOp =
+  | { type: 'move_empty'; taskId: any; fromColumnId: any; fromName: string }
+  | { type: 'rename'; taskId: any; title: string }
+  | { type: 'mark_duplicate'; taskId: any; title: string }
+
+function planTidy(mapped: any[], backlog: any, targetColumn?: string) {
+  const ops: PlannedOp[] = []
+  const report: any = { movedEmpty: [], normalized: [], markedDuplicates: [] }
+  const seenByColumn = new Map<string, Set<string>>()
+  for (const col of mapped) {
+    const canonical = String(col.canonicalName || col.name)
+    if (targetColumn && canonical.toLowerCase() !== targetColumn.toLowerCase()) continue
+    const cards = Array.isArray(col.cards) ? col.cards : []
+    if (!seenByColumn.has(canonical)) seenByColumn.set(canonical, new Set())
+    const registry = seenByColumn.get(canonical)!
+    for (const card of cards) {
+      const taskId = card?.id
+      if (!taskId) continue
+      const title = String(card?.title || '')
+      const trimmed = title.trim()
+      const collapsed = trimmed.replace(/\s+/g, ' ')
+      if (!collapsed.length) {
+        if (backlog && backlog.id !== col.id) {
+          ops.push({ type: 'move_empty', taskId, fromColumnId: col.id, fromName: canonical })
+          report.movedEmpty.push({ taskId, from: canonical })
+        }
+        continue
+      }
+      const normalizedTitle = collapsed[0].toUpperCase() + collapsed.slice(1)
+      const dupKey = normalizedTitle.toLowerCase()
+      if (registry.has(dupKey)) {
+        if (!title.toLowerCase().includes('duplicate')) {
+          const markTitle = `[Duplicate] ${normalizedTitle}`
+          ops.push({ type: 'mark_duplicate', taskId, title: markTitle })
+          report.markedDuplicates.push({ taskId, title: normalizedTitle, column: canonical })
+        }
+        continue
+      }
+      registry.add(dupKey)
+      if (normalizedTitle !== title && !title.toLowerCase().includes('duplicate')) {
+        ops.push({ type: 'rename', taskId, title: normalizedTitle })
+        report.normalized.push({ taskId, from: title, to: normalizedTitle })
+      }
+    }
+  }
+  return { ops, report }
 }
 
 function checkRateLimit(key: string) {

@@ -340,15 +340,34 @@ export function parseMessage(msg: string, columns: string[]): Action[] {
   }
 
   if (actions.length === 0) {
-    const tidyMatch = body.trim().match(/^tidy\s+(.*)$/i)
-    if (tidyMatch) {
-      const target = tidyMatch[1].toLowerCase()
-      if (target === '' || target === 'board' || target === 'quadro') {
-        actions.push({ type: 'tidy_board' })
+    const previewMatch = body.match(/^\s*preview:\s*tidy\s+(.*)$/i)
+    if (previewMatch) {
+      const target = previewMatch[1].trim()
+      if (!target || target.toLowerCase() === 'board' || target.toLowerCase() === 'quadro') {
+        actions.push({ type: 'tidy_board', preview: true })
       } else {
         const columnKey = normalize(target)
-        const column = colMap[columnKey] || tidyMatch[1].trim()
-        actions.push({ type: 'tidy_column', column })
+        const column = colMap[columnKey] || target
+        actions.push({ type: 'tidy_column', column, preview: true })
+      }
+    }
+  }
+
+  if (actions.length === 0) {
+    const tidyMatch = body.match(/^tidy\s+(.*)$/i)
+    if (tidyMatch) {
+      let target = tidyMatch[1].trim()
+      let confirm = false
+      if (/\bconfirm$/i.test(target)) {
+        confirm = true
+        target = target.replace(/\bconfirm$/i, '').trim()
+      }
+      if (!target || target.toLowerCase() === 'board' || target.toLowerCase() === 'quadro') {
+        actions.push({ type: 'tidy_board', confirm, preview: false })
+      } else {
+        const columnKey = normalize(target)
+        const column = colMap[columnKey] || target
+        actions.push({ type: 'tidy_column', column, confirm, preview: false })
       }
     }
   }
