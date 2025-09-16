@@ -384,6 +384,28 @@ export function parseMessage(msg: string, columns: string[]): Action[] {
     }
   }
 
+
+  // Summarize specific scope: "summarize ready", "summarize overdue", "summarize my tasks"
+  if (actions.length === 0) {
+    const m = body.match(/^(summary|summarize|resumo|resumir)\s+(.+)$/i);
+    if (m) {
+      const scope = m[2].trim().toLowerCase();
+      if (/(overdue|past\s+due|atrasad)/.test(scope)) {
+        actions.push({ type: 'list_tasks', filter: 'overdue' });
+      } else if (/(today|hoje)/.test(scope)) {
+        actions.push({ type: 'list_tasks', filter: 'today' });
+      } else if (/(mine|my\s+tasks|minhas)/.test(scope)) {
+        actions.push({ type: 'list_tasks', filter: 'mine' });
+      } else if (/(blocked|bloquead|stuck)/.test(scope)) {
+        actions.push({ type: 'list_tasks', filter: 'blocked' });
+      } else {
+        const columnKey = normalize(scope);
+        const column = colMap[columnKey] || m[2];
+        actions.push({ type: 'list_tasks', column });
+      }
+    }
+  }
+
   // Quick commands
   if (actions.length === 0) {
     const lowerBody = body.toLowerCase();

@@ -563,6 +563,8 @@ export async function processMessage(message: string, preview: boolean = false, 
       const onlyLists = actions.every((a: any) => a.type === 'list_tasks')
       if (onlyLists) {
         const cols = await kb.getColumns(PROJECT_ID)
+        const lang = (request as any)?.headers?.get ? ((request as any).headers.get('accept-language')||'').toLowerCase() : ''
+        const isPT = lang.startsWith('pt')
         const all = await kb.listProjectTasks(PROJECT_ID)
         const lowerTitle = (t: any) => String(t.title||'').toLowerCase()
         const cnt = { ready:0, wip:0, done:0, overdue:0 }
@@ -577,11 +579,11 @@ export async function processMessage(message: string, preview: boolean = false, 
           if (t.date_due && t.date_due < now && t.is_active === 1) cnt.overdue++
         }
         const parts = [] as string[]
-        parts.push(`Ready ${cnt.ready}`)
-        parts.push(`In Progress ${cnt.wip}`)
-        parts.push(`Done ${cnt.done}`)
-        parts.push(`Overdue ${cnt.overdue}`)
-        messages.unshift('Summary — ' + parts.join(' • '))
+        parts.push((isPT?`Prontas ${cnt.ready}`:`Ready ${cnt.ready}`))
+        parts.push((isPT?`Em Progresso ${cnt.wip}`:`In Progress ${cnt.wip}`))
+        parts.push((isPT?`Concluídas ${cnt.done}`:`Done ${cnt.done}`))
+        parts.push((isPT?`Atrasadas ${cnt.overdue}`:`Overdue ${cnt.overdue}`))
+                messages.unshift(((isPT ? 'Resumo — ' : 'Summary — ') + parts.join(' • ')))
       }
     } catch {}
 
