@@ -414,6 +414,109 @@ async function executeAction(
       };
     }
 
+    case 'set_due': {
+      const parseWhenSimple = (input: string): number => {
+        let s = String(input || '').toLowerCase().replace(/[h,:]/g, ' ').trim()
+        const now = new Date()
+
+        function ts(d: Date) { return Math.floor(d.getTime() / 1000) }
+
+        // today / tomorrow / hoje / amanhã
+        if (/^(today|hoje)$/.test(s)) {
+          const d = new Date(now)
+          d.setHours(17, 0, 0, 0)
+          return ts(d)
+        }
+        if (/^(tomorrow|amanhã)$/.test(s)) {
+          const d = new Date(now)
+          d.setDate(d.getDate() + 1)
+          d.setHours(17, 0, 0, 0)
+          return ts(d)
+        }
+
+        // weekday names
+        const map: Record<string, number> = {
+          sun: 0,
+          mon: 1,
+          tue: 2,
+          wed: 3,
+          thu: 4,
+          fri: 5,
+          sat: 6,
+          domingo: 0,
+          segunda: 1,
+          terca: 2,
+          terça: 2,
+          quarta: 3,
+          quinta: 4,
+          sexta: 5,
+          sabado: 6,
+          sábado: 6
+        }
+
+        const weekdayMatch = s.match(/(sun|mon|tue|wed|thu|fri|sat|domingo|segunda|ter[çc]a|quarta|quinta|sexta|s[áa]bado)/)
+        let hh = 17
+        let mm = 0
+        const timeMatch = s.match(/(\d{1,2})(?::(\d{2}))?/)
+        if (timeMatch) {
+          hh = parseInt(timeMatch[1], 10)
+          mm = timeMatch[2] ? parseInt(timeMatch[2], 10) : 0
+        }
+
+        if (weekdayMatch) {
+          const target = map[weekdayMatch[1]]
+          const cur = now.getDay()
+          let delta = (target - cur) % 7
+          if (delta <= 0) delta += 7
+          const d = new Date(now)
+          d.setDate(now.getDate() + delta)
+          d.setHours(hh, mm, 0, 0)
+          return ts(d)
+        }
+
+        // ISO date
+        const d = new Date(s)
+        if (!isNaN(d.getTime())) return ts(d)
+
+        const fallback = new Date(now)
+        fallback.setDate(now.getDate() + 1)
+        fallback.setHours(17, 0, 0, 0)
+        return ts(fallback)
+      }
+
+      const whenTs = parseWhenSimple((action as any).when || 'tomorrow 17:00')
+      const updated: number[] = []
+
+      if ((action as any).ids && Array.isArray((action as any).ids)) {
+        for (const id of (action as any).ids) {
+          const tid = typeof id === 'number' ? id : parseInt(String(id), 10)
+          let prevDue: number | null = null
+          try {
+            const prevTask = await kb.getTask(tid)
+            prevDue = prevTask?.date_due ?? null
+          } catch (_) {
+            // ignore snapshot errors
+          }
+          (undo.actions as any).push({ type: 'update_task', taskId: tid, prev: { date_due: prevDue } })
+          await kb.updateTask(tid, { date_due: whenTs })
+          updated.push(tid)
+        }
+      } else if ((action as any).first && (action as any).column) {
+        const col = columnsByName[(action as any).column.toLowerCase()]
+        if (col) {
+          const tasks = await kb.listProjectTasks(PROJECT_ID)
+          const list = tasks.filter((t: any) => t.column_id === col.id).sort((a:any,b:any)=> (a.position||0) - (b.position||0)).slice(0, (action as any).first)
+          for (const t of list) {
+            let prevDue: number | null = null
+            try { const prevTask = await kb.getTask(t.id); prevDue = prevTask?.date_due ?? null; } catch {}
+            (undo.actions as any).push({ type: 'update_task', taskId: t.id, prev: { date_due: prevDue } })
+            await kb.updateTask(t.id, { date_due: whenTs }); updated.push(t.id)
+          }
+        }
+      }
+      return { ok:true, updated, when: whenTs }
+    }
+
     case 'undo': {
       const record = UNDO_LOG.get(action.token);
       if (!record) {

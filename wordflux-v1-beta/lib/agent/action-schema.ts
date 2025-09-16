@@ -69,6 +69,14 @@ export const PreviewAction = z.object({
   actions: z.array(z.any()),
 });
 
+export const SetDue = z.object({
+  type: z.literal('set_due'),
+  when: z.string().min(1),
+  ids: z.array(TaskRef).optional(),
+  first: z.number().optional(),
+  column: ColumnName.optional(),
+});
+
 export const Action = z.discriminatedUnion('type', [
   CreateTask,
   MoveTask,
@@ -76,6 +84,7 @@ export const Action = z.discriminatedUnion('type', [
   AssignTask,
   TagTask,
   CommentTask,
+  SetDue,
   ListTasks,
   SearchTasks,
   UndoAction,
@@ -89,6 +98,7 @@ export type UpdateTaskAction = z.infer<typeof UpdateTask>;
 export type AssignTaskAction = z.infer<typeof AssignTask>;
 export type TagTaskAction = z.infer<typeof TagTask>;
 export type CommentTaskAction = z.infer<typeof CommentTask>;
+export type SetDueAction = z.infer<typeof SetDue>;
 export type ListTasksAction = z.infer<typeof ListTasks>;
 export type SearchTasksAction = z.infer<typeof SearchTasks>;
 export type UndoActionType = z.infer<typeof UndoAction>;

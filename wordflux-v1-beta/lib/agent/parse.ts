@@ -22,6 +22,10 @@ export function buildColumnMap(columns: string[]): ColumnMap {
       map['inbox'] = col;
       map['new'] = col;
       map['ideas'] = col;
+      map['analysis'] = col;
+      map['planning'] = col;
+      map['intake'] = col;
+      map['icebox'] = col;
     }
     if (/ready/.test(key)) {
       map['ready'] = col;
@@ -41,6 +45,10 @@ export function buildColumnMap(columns: string[]): ColumnMap {
       map['working'] = col;
       map['active'] = col;
       map['current'] = col;
+      map['dev'] = col;
+      map['coding'] = col;
+      map['building'] = col;
+      map['implementing'] = col;
       map['ongoing'] = col;
       map['started'] = col;
     }
@@ -55,6 +63,9 @@ export function buildColumnMap(columns: string[]): ColumnMap {
       map['test'] = col;
       map['validation'] = col;
       map['checking'] = col;
+      map['staging'] = col;
+      map['uat'] = col;
+      map['verification'] = col;
     }
     if (/done|complete|finished/.test(key)) {
       map['done'] = col;
@@ -66,6 +77,9 @@ export function buildColumnMap(columns: string[]): ColumnMap {
       map['shipped'] = col;
       map['deployed'] = col;
       map['live'] = col;
+      map['released'] = col;
+      map['published'] = col;
+      map['archived'] = col;
     }
     if (/block/.test(key)) {
       map['blocked'] = col;
@@ -286,6 +300,37 @@ export function parseMessage(msg: string, columns: string[]): Action[] {
       
       actions.push(action);
     }
+  }
+
+
+  // Set due dates: "set due <when> for #ids" or PT: "coloque prazo <quando> para #ids"
+  if (actions.length === 0) {
+    let m = body.match(/^(set|coloc(a|e)|defin(a|ir))\s+(due|prazo)\s+(.+?)\s+(for|para)\s+(.+)$/i);
+    if (m) {
+      const when = m[5].trim();
+      const idsRaw = m[7];
+      const ids = Array.from(idsRaw.matchAll(/#?(\d+)/g)).map(x=>Number(x[1]));
+      if (ids.length>0) actions.push({ type: 'set_due', when, ids });
+    }
+  }
+  // Set due for first N in column: "set due <when> for first N in Backlog" or PT "nos 3 primeiros do Backlog"
+  if (actions.length === 0) {
+    let m = body.match(/^(set|coloc(a|e)|defin(a|ir))\s+(due|prazo)\s+(.+?)\s+(for\s+first\s+(\d+)\s+in\s+(.+)|nos?\s+(\d+)\s+primeiros?\s+do\s+(.+))$/i);
+    if (m) {
+      const when = m[5].trim();
+      const first = Number(m[7] || m[9] || 0);
+      const column = (m[8] || m[10] || '').trim();
+      if (first>0 && column) actions.push({ type: 'set_due', when, first, column });
+    }
+  }
+  // Quick urgent: "mark #id urgent" / "marcar #id urgente" / "tirar urgente #id"
+  if (actions.length === 0) {
+    let m = body.match(/^mark\s+#(\d+)\s+urgent$/i) || body.match(/^marc(ar|ar)\s+#(\d+)\s+urgent(e)?$/i);
+    if (m) { const id = Number(m[1] || m[2]); actions.push({ type: 'update_task', task: id, priority: 'high' }); }
+  }
+  if (actions.length === 0) {
+    let m = body.match(/^(remove|tirar)\s+urgent(e)?\s+#(\d+)$/i);
+    if (m) { const id = Number(m[3]); actions.push({ type: 'update_task', task: id, priority: 'normal' }); }
   }
 
   // Tag task: "tag #21 add urgent, ai" or "tag #21 remove urgent"

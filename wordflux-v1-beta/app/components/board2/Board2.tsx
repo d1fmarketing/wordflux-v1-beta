@@ -31,11 +31,11 @@ function colKey(id: string | number) { return `col-${idOf(id)}` }
 
 function columnWeight(name: string): number {
   const n = name.toLowerCase();
-  if (/backlog|todo|inbox|ideas/.test(n)) return 10;
+  if (/backlog|todo|inbox|ideas|analysis|planning|intake|icebox/.test(n)) return 10;
   if (/ready|up next|queued|planned/.test(n)) return 20;
-  if (/in progress|work in progress|wip|doing|active|current/.test(n)) return 30;
-  if (/review|qa|test|verify|validation/.test(n)) return 40;
-  if (/done|complete|finished|closed|shipped|deployed|live/.test(n)) return 50;
+  if (/in progress|work in progress|wip|doing|active|current|dev|coding|building|implementing/.test(n)) return 30;
+  if (/review|qa|qc|verify|validation|testing|staging|uat|verification|check/.test(n)) return 40;
+  if (/done|complete|finished|closed|shipped|deployed|live|released|published|archived/.test(n)) return 50;
   return 999;
 }
 
