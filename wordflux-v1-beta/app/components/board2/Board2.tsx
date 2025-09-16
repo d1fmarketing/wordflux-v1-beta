@@ -73,6 +73,28 @@ export default function Board2() {
   }, [])
 
   const [dropHint, setDropHint] = useState<{ colId: string | number; index: number } | null>(null)
+  const [highlightIds, setHighlightIds] = useState<Set<string>>(new Set())
+
+  useEffect(() => {
+    function onHighlight(ev: any) {
+      const ids: string[] | undefined = ev?.detail?.ids
+      if (!Array.isArray(ids) || ids.length === 0) return
+      setHighlightIds(prev => {
+        const next = new Set(prev)
+        ids.forEach(id => next.add(String(id)))
+        return next
+      })
+      setTimeout(() => {
+        setHighlightIds(prev => {
+          const next = new Set(prev)
+          ids.forEach(id => next.delete(String(id)))
+          return next
+        })
+      }, 5000)
+    }
+    window.addEventListener('wf-highlight' as any, onHighlight)
+    return () => window.removeEventListener('wf-highlight' as any, onHighlight)
+  }, [])
 
   function findColumnByCardId(cardId: string | number) { return cols.find(c => c.cards.some(card => idOf(card.id) === idOf(cardId))) }
 
@@ -191,6 +213,7 @@ export default function Board2() {
                 cards={col.cards}
                 droppableId={colKey(col.id)}
                 dropIndex={dropHint && idOf(dropHint.colId) === idOf(col.id) ? dropHint.index : undefined}
+                highlightIds={highlightIds}
               />
             </SortableContext>
           </div>

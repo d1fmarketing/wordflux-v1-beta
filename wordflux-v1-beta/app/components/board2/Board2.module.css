@@ -126,3 +126,8 @@
 .dragging { transition: transform 120ms ease, box-shadow 120ms ease; transform: rotate(1deg) scale(0.98); opacity: 0.85; }
 
 .dropLine { height: 6px; border-radius: 6px; background: var(--accent-weak, #4c7eff33); margin: 4px 0; }
+
+.highlighted {
+  box-shadow: 0 0 0 3px rgba(229, 12, 120, 0.25), var(--wf-shadow);
+  transition: box-shadow 0.2s ease;
+}

@@ -87,6 +87,7 @@ export default function Chat() {
           const ids = Array.from(new Set(buckets.flatMap((b: any) => (b.result.tasks||[]).map((t: any) => String(t.id)))));
           if (ids.length) {
             window.dispatchEvent(new CustomEvent('wf-filter', { detail: { ids } }));
+            window.dispatchEvent(new CustomEvent('wf-highlight', { detail: { ids } }));
             const toast = (window as any).wfToast;
             if (toast) toast({ text: `Filtered ${ids.length} task(s) — Clear`, action: { label: 'Clear', onClick: () => { window.dispatchEvent(new Event('wf-filter-clear')) } } });
           }

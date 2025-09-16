@@ -13,20 +13,28 @@ export function Column({
   cards,
   droppableId,
   dropIndex,
+  highlightIds,
 }: {
   id: string | number
   name: string
   cards: Array<{ id: string | number; title: string; description?: string; due_date?: string | null; tags?: string[]; position?: number }>
   droppableId?: string
   dropIndex?: number
+  highlightIds?: Set<string>
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: droppableId || `col-${String(id)}` })
 
   function SortableCardRow({ card }: { card: { id: string | number; title: string; description?: string; due_date?: string | null; tags?: string[] } }) {
     const { attributes, listeners, setNodeRef: setRef, transform, transition, isDragging } = useSortable({ id: `card-${String(card.id)}` })
     const style: React.CSSProperties = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.9 : 1 }
+    const highlighted = highlightIds?.has(String(card.id))
     return (
-      <div ref={setRef} style={style} {...attributes} className={isDragging ? styles.dragging : undefined}>
+      <div
+        ref={setRef}
+        style={style}
+        {...attributes}
+        className={[isDragging ? styles.dragging : '', highlighted ? styles.highlighted : ''].filter(Boolean).join(' ')}
+      >
         <div className={styles.handle} aria-hidden {...listeners} />
         <Card title={card.title} description={card.description} due={card.due_date} tags={card.tags} />
       </div>
