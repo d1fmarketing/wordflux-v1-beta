@@ -37,6 +37,8 @@ function checkRateLimit(key: string) {
 }
 
 export async function POST(req: NextRequest) {
+  let methodName = ''
+  let params: any = {}
   try {
     const requiredToken = process.env.MCP_TOKEN
     if (requiredToken) {
@@ -52,14 +54,14 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json()
-    const { method, params } = body || {}
+    const { method, params: mcpParams } = body || {}; methodName = method; params = mcpParams; console.log('[MCP invoke]', methodName, params)
     if (!method) return NextResponse.json({ ok: false, error: 'Missing method' }, { status: 400 })
 
     const provider: any = getBoardProvider()
     const projectId = Number(process.env.KANBOARD_PROJECT_ID || 1)
     const kind = detectProvider()
 
-    switch (method) {
+    switch (methodName) {
       case 'list_cards': {
         const state = await provider.getBoardState(projectId)
         return NextResponse.json({ ok: true, result: state })
@@ -207,10 +209,10 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ ok: false, error: 'updateTask not supported' }, { status: 501 })
       }
       default:
-        return NextResponse.json({ ok: false, error: `Unknown method: ${method}` }, { status: 400 })
+        return NextResponse.json({ ok: false, error: `Unknown method: ${methodName}` }, { status: 400 })
     }
   } catch (err: any) {
-    console.error('[MCP invoke] error', err)
+    console.error('[MCP invoke] error', err, { method: methodName, params })
     return NextResponse.json({ ok: false, error: err?.message || 'invoke_failed' }, { status: 500 })
   }
 }

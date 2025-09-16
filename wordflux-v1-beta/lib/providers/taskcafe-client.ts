@@ -112,9 +112,11 @@ export class TaskcafeClient implements BoardProvider {
   }
 
   async removeTask(projectId: number | string, taskId: number | string): Promise<boolean> {
-    const m = `mutation DeleteTask($taskID: UUID!) { deleteTask(input: { taskID: $taskID }) { id } }`
+    const m = `mutation DeleteTask($taskID: UUID!) { deleteTask(input: { taskID: $taskID }) { taskID } }`
     const data = await this.gql<any>(m, { taskID: String(taskId) })
-    return !!data?.deleteTask?.id
+    if (data?.deleteTask?.taskID || data?.deleteTask?.success || data?.deleteTask === true) return true
+    console.warn('[Taskcafe] deleteTask response', data)
+    return false
   }
 
 }
