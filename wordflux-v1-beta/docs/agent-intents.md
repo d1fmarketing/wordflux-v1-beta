@@ -155,3 +155,14 @@ Add comment
 - Keep `reply` short, specific, and consistent with executed actions.
 - Provide 2–3 helpful `suggestions` guiding next steps.
 
+
+### Natural commands (PT/EN)
+
+| Intent phrase                            | Result                               |
+|-----------------------------------------|--------------------------------------|
+| "What’s next?" / "Qual é o próximo?"     | Lista/filtra Backlog                 |
+| "Summarize" / "Resumo"                 | Contagem + destaque Ready/WIP/Overdue|
+| "Set due Friday 17h #12"                | Chama `set_due` (natural parser)     |
+| "Marcar #12 urgente" / "Tirar urgente" | `update_task` urgente/normal         |
+| "Comentar #45 precisa de QA"            | `comment_task`                       |
+| "Bloqueados" / "Overdue" / "Hoje" / "Minhas" | `list_tasks` com filtros             |

@@ -172,6 +172,12 @@ export default function Board2() {
   if (isLoading) return <div style={{ padding: 16 }}>Loading board…</div>
 
   const base = cols.filter(c => !/^(ready|up next|queued|planned)$/i.test(String(c.name)))
+
+  const unknown = base.filter(c => columnWeight(String(c.name)) === 999)
+  if (unknown.length && !(globalThis as any).__WF_UNKNOWN_LOGGED) {
+    (globalThis as any).__WF_UNKNOWN_LOGGED = true
+    console.warn('[Board] Unknown columns from provider:', unknown.map(c => c.name))
+  }
   const displayCols = allowedIds
     ? sortColumns(base.map((c) => ({ ...c, cards: c.cards.filter(card => allowedIds.has(String(card.id))) })))
     : sortColumns(base)

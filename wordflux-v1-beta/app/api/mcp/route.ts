@@ -23,8 +23,34 @@ function parseDueDate(input: string) {
   return null
 }
 
+const globalRate = (globalThis as any).__MCP_RATE__ || ((globalThis as any).__MCP_RATE__ = new Map<string, number[]>())
+const RATE_WINDOW_MS = 60_000
+const RATE_LIMIT = Number(process.env.MCP_RATE_LIMIT || '60')
+
+function checkRateLimit(key: string) {
+  const now = Date.now()
+  const arr: number[] = globalRate.get(key) || []
+  const fresh = arr.filter(ts => now - ts < RATE_WINDOW_MS)
+  fresh.push(now)
+  globalRate.set(key, fresh)
+  return fresh.length <= RATE_LIMIT
+}
+
 export async function POST(req: NextRequest) {
   try {
+    const requiredToken = process.env.MCP_TOKEN
+    if (requiredToken) {
+      const header = (req.headers.get('x-mcp-token') || req.headers.get('authorization') || '').trim()
+      if (header !== requiredToken) {
+        return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 })
+      }
+    }
+
+    const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || req.headers.get('x-real-ip') || req.ip || 'unknown'
+    if (!checkRateLimit(`${ip}:${requiredToken || 'anon'}`)) {
+      return NextResponse.json({ ok: false, error: 'Rate limit exceeded' }, { status: 429 })
+    }
+
     const body = await req.json()
     const { method, params } = body || {}
     if (!method) return NextResponse.json({ ok: false, error: 'Missing method' }, { status: 400 })

@@ -108,3 +108,8 @@ POST /api/mcp
 | undo_update   | { taskId, patch }                                 | restore fields                          |
 
 Set `MCP_INTERNAL_URL` to override the base URL; otherwise falls back to NEXTAUTH_URL or `http://127.0.0.1:${PORT}`.
+
+## Fonts
+- Primary (titles): Wondra (fallback to 'Inter Tight', system UI).
+- Body: Belkin (fallback to 'Inter', system UI).
+- Upload licensed fonts to `app/styles/fonts/` and adjust `brand.css` if needed.
