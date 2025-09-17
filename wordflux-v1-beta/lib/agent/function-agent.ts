@@ -1,5 +1,5 @@
 import OpenAI from 'openai'
-import { KanboardClient } from '../kanboard-client'
+import { TaskCafeClient } from '../providers/taskcafe-client'
 import { BoardState } from '../board-state'
 import { tools } from './tools'
 import { callMcp } from '../mcp-client'
@@ -16,7 +16,7 @@ interface ProcessResult {
 
 export class FunctionAgent {
   private openai: OpenAI
-  private kanboard: KanboardClient
+  private taskcafe: TaskCafeClient
   private boardState: BoardState
   private memory: UserMemory
   private systemPrompt: string
@@ -26,13 +26,13 @@ export class FunctionAgent {
       apiKey: process.env.OPENAI_API_KEY
     })
 
-    this.kanboard = new KanboardClient({
-      url: process.env.KANBOARD_URL!,
-      username: process.env.KANBOARD_USERNAME!,
-      password: process.env.KANBOARD_PASSWORD!
+    this.taskcafe = new TaskCafeClient({
+      url: process.env.TASKCAFE_URL!,
+      username: process.env.TASKCAFE_USERNAME!,
+      password: process.env.TASKCAFE_PASSWORD!
     })
 
-    this.boardState = new BoardState(this.kanboard)
+    this.boardState = new BoardState(this.taskcafe)
     this.memory = new UserMemory()
 
     this.systemPrompt = `You are WordFlux Board Orchestrator. Your job is to turn messages into board actions with zero fluff.
@@ -184,12 +184,12 @@ Never output anything outside these formats.`
   private async executeToolCall(toolCall: OpenAI.Chat.ChatCompletionMessageToolCall): Promise<any> {
     const functionName = toolCall.function.name
     const args = JSON.parse(toolCall.function.arguments)
-    const projectId = parseInt(process.env.KANBOARD_PROJECT_ID || '1')
+    const projectId = parseInt(process.env.TASKCAFE_PROJECT_ID || '1')
 
     try {
       switch (functionName) {
         case 'kb_create_task': {
-          const columns = await this.kanboard.getColumns(projectId)
+          const columns = await this.taskcafe.getColumns(projectId)
           const targetColumn = columns.find((c: any) => 
             c.title.toLowerCase() === args.column.toLowerCase()
           ) || columns[0]
@@ -208,7 +208,7 @@ Never output anything outside these formats.`
 
         case 'kb_move_task': {
           const taskId = await this.resolveTaskId(args.taskId)
-          const columns = await this.kanboard.getColumns(projectId)
+          const columns = await this.taskcafe.getColumns(projectId)
           const targetColumn = columns.find((c: any) => 
             c.title.toLowerCase() === args.toColumn.toLowerCase()
           )
@@ -341,7 +341,7 @@ Never output anything outside these formats.`
             }
           }
 
-          const columns = await this.kanboard.getColumns(projectId)
+          const columns = await this.taskcafe.getColumns(projectId)
           const targetColumn = columns.find((c: any) => 
             c.title.toLowerCase() === args.toColumn.toLowerCase()
           )
@@ -410,7 +410,7 @@ Never output anything outside these formats.`
     }
 
     try {
-      const users = await this.kanboard.request('getAllUsers', {})
+      const users = await this.taskcafe.request('getAllUsers', {})
       const user = users.find((u: any) => 
         u.username === username || u.name === username
       )

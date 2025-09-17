@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { KanboardClient } from '@/lib/kanboard-client'
+import { TaskCafeClient } from '@/lib/providers/taskcafe-client'
 
 export const dynamic = 'force-dynamic'
 
@@ -8,33 +8,34 @@ export async function GET() {
   const results: any = {
     timestamp: new Date().toISOString(),
     environment: {
-      kanboard_url: process.env.KANBOARD_URL,
-      project_id: process.env.KANBOARD_PROJECT_ID || '1',
+      taskcafe_url: process.env.TASKCAFE_URL,
+      project_id: process.env.TASKCAFE_PROJECT_ID || '1',
       node_env: process.env.NODE_ENV
     },
     tests: []
   }
 
   try {
-    const client = new KanboardClient({
-      url: process.env.KANBOARD_URL!,
-      username: process.env.KANBOARD_USERNAME!,
-      password: process.env.KANBOARD_PASSWORD!
+    const client = new TaskCafeClient({
+      url: process.env.TASKCAFE_URL!,
+      username: process.env.TASKCAFE_USERNAME!,
+      password: process.env.TASKCAFE_PASSWORD!,
+      projectId: process.env.TASKCAFE_PROJECT_ID
     })
     
-    const projectId = Number(process.env.KANBOARD_PROJECT_ID || 1)
+    const projectId = process.env.TASKCAFE_PROJECT_ID || '1'
     
     // Test 1: Basic connectivity
     try {
       const columns = await client.getColumns(projectId)
       results.tests.push({
-        name: 'Kanboard Connectivity',
+        name: 'taskcafe Connectivity',
         status: 'PASS',
         message: `Connected. Found ${columns.length} columns`
       })
     } catch (err) {
       results.tests.push({
-        name: 'Kanboard Connectivity',
+        name: 'taskcafe Connectivity',
         status: 'FAIL',
         error: err instanceof Error ? err.message : 'Unknown error'
       })
@@ -42,41 +43,29 @@ export async function GET() {
     
     // Test 2: Compare getBoard vs getAllTasks
     try {
-      const boardPromise = client.request('getBoard', { project_id: projectId })
-      const tasksPromise = client.request('getAllTasks', { project_id: projectId })
+      const boardState = await client.getBoardState(projectId)
+      const allTasks = await client.getTasks(projectId)
       
-      const [board, allTasks] = await Promise.all([boardPromise, tasksPromise])
-      
-      // Count tasks from getBoard
+      const boardTaskIds = new Set<string>()
       let boardTaskCount = 0
-      const boardTaskIds = new Set()
-      if (board && Array.isArray(board) && board[0]?.columns) {
-        board[0].columns.forEach((col: any) => {
-          if (col.tasks && Array.isArray(col.tasks)) {
-            boardTaskCount += col.tasks.length
-            col.tasks.forEach((t: any) => boardTaskIds.add(t.id))
-          }
-        })
+      for (const column of boardState.columns) {
+        for (const card of column.cards) {
+          boardTaskIds.add(String(card.id))
+          boardTaskCount += 1
+        }
       }
       
-      // Count active tasks from getAllTasks
-      const activeTasks = allTasks.filter((t: any) => t.is_active === 1)
-      const allTaskIds = new Set(activeTasks.map((t: any) => t.id))
-      
-      // Find discrepancies
+      const allTaskIds = new Set(allTasks.map(task => String(task.id)))
       const missingInBoard = Array.from(allTaskIds).filter(id => !boardTaskIds.has(id))
       const extraInBoard = Array.from(boardTaskIds).filter(id => !allTaskIds.has(id))
-      
-      const isConsistent = boardTaskCount === activeTasks.length && 
-                           missingInBoard.length === 0 && 
-                           extraInBoard.length === 0
+      const isConsistent = missingInBoard.length === 0 && extraInBoard.length === 0
       
       results.tests.push({
         name: 'Data Consistency',
         status: isConsistent ? 'PASS' : 'WARN',
         details: {
           getBoard_count: boardTaskCount,
-          getAllTasks_count: activeTasks.length,
+          getAllTasks_count: allTasks.length,
           missing_in_board: missingInBoard,
           extra_in_board: extraInBoard,
           consistent: isConsistent
@@ -85,13 +74,17 @@ export async function GET() {
       
       // Test 3: Column task distribution
       const columnDistribution: any = {}
-      if (board && Array.isArray(board) && board[0]?.columns) {
-        board[0].columns.forEach((col: any) => {
-          columnDistribution[col.title] = {
-            getBoard: col.tasks?.length || 0,
-            getAllTasks: activeTasks.filter((t: any) => t.column_id === col.id).length
-          }
-        })
+      const tasksByColumn = allTasks.reduce<Record<string, number>>((acc, task) => {
+        const key = String(task.column_id)
+        acc[key] = (acc[key] ?? 0) + 1
+        return acc
+      }, {})
+
+      for (const column of boardState.columns) {
+        columnDistribution[column.name] = {
+          getBoard: column.cards.length,
+          getAllTasks: tasksByColumn[String(column.id)] ?? 0
+        }
       }
       
       results.tests.push({

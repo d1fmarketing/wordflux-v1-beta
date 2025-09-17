@@ -1,11 +1,20 @@
 export const dynamic = 'force-dynamic'
-export const revalidate = 0
 
-import ndynamic from 'next/dynamic'
+import dynamicLoad from 'next/dynamic'
 
-const Board2 = ndynamic(() => import('../components/board2/Board2'), { ssr: false })
-const Chat = ndynamic(() => import('../components/Chat'), { ssr: false })
-const ToastHost = ndynamic(() => import('../components/ToastHost'), { ssr: false })
+const Board2 = dynamicLoad(() => import('../components/board2/Board2'), {
+  ssr: false,
+  loading: () => <div style={{ padding: 16 }}>Loading board...</div>
+})
+
+const Chat = dynamicLoad(() => import('../components/Chat'), {
+  ssr: false,
+  loading: () => <div style={{ padding: 16 }}>Loading chat...</div>
+})
+
+const ToastHost = dynamicLoad(() => import('../components/ToastHost'), {
+  ssr: false
+})
 
 export default function WorkspacePage() {
   return (

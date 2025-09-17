@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getBoardProvider } from '@/lib/providers'
 import { detectProvider } from '@/lib/board-provider'
-import { KanboardClient } from '@/lib/kanboard-client'
+import { TaskCafeClient } from '@/lib/providers/taskcafe-client'
 import fs from 'fs'
 import path from 'path'
 import { pushUndo, popUndo, UndoRecord } from '@/lib/mcp/undo-store'
@@ -11,7 +11,7 @@ export const dynamic = 'force-dynamic'
 type Context = {
   provider: any
   projectId: number
-  kind: 'kanboard' | 'taskcafe'
+  kind: 'taskcafe'
 }
 
 type InvokeResult = {
@@ -113,7 +113,7 @@ async function invoke(method: string, params: any, ctx: Context, opts: InvokeOpt
       if (!taskId) throw new Error('taskId required')
       const snapshot = await findCardSnapshot(ctx, taskId)
       if (typeof provider.removeTask === 'function') {
-        await provider.removeTask(projectId, taskId)
+        await provider.removeTask(taskId)
         if (snapshot && !opts.skipUndo) {
           await pushUndo({ method: 'create_card', params: { title: snapshot.title, columnId: snapshot.columnId, description: snapshot.description }, label: `Delete ${snapshot.title}` })
         }
@@ -124,11 +124,11 @@ async function invoke(method: string, params: any, ctx: Context, opts: InvokeOpt
     case 'set_due': {
       const { taskId, when } = params || {}
       if (!taskId || when === undefined) throw new Error('taskId/when required')
-      if (kind !== 'kanboard') throw new Error('set_due available only on Kanboard')
-      const kb = new KanboardClient({
-        url: process.env.KANBOARD_URL!,
-        username: process.env.KANBOARD_USERNAME!,
-        password: process.env.KANBOARD_PASSWORD!
+      if (kind !== 'taskcafe') throw new Error('set_due available only on taskcafe')
+      const kb = new TaskCafeClient({
+        url: process.env.TASKCAFE_URL!,
+        username: process.env.TASKCAFE_USERNAME!,
+        password: process.env.TASKCAFE_PASSWORD!
       })
       const snapshot = await findCardSnapshot(ctx, taskId)
       const due = parseDueDate(String(when))
@@ -142,11 +142,11 @@ async function invoke(method: string, params: any, ctx: Context, opts: InvokeOpt
     case 'assign_card': {
       const { taskId, assignee } = params || {}
       if (!taskId || !assignee) throw new Error('taskId/assignee required')
-      if (kind !== 'kanboard') throw new Error('assign not supported')
-      const kb = new KanboardClient({
-        url: process.env.KANBOARD_URL!,
-        username: process.env.KANBOARD_USERNAME!,
-        password: process.env.KANBOARD_PASSWORD!
+      if (kind !== 'taskcafe') throw new Error('assign not supported')
+      const kb = new TaskCafeClient({
+        url: process.env.TASKCAFE_URL!,
+        username: process.env.TASKCAFE_USERNAME!,
+        password: process.env.TASKCAFE_PASSWORD!
       })
       const snapshot = await findCardSnapshot(ctx, taskId)
       await kb.assignTask(Number(taskId), assignee)
@@ -159,11 +159,11 @@ async function invoke(method: string, params: any, ctx: Context, opts: InvokeOpt
     case 'add_label': {
       const { taskId, label } = params || {}
       if (!taskId || !label) throw new Error('taskId/label required')
-      if (kind !== 'kanboard') throw new Error('labels not supported')
-      const kb = new KanboardClient({
-        url: process.env.KANBOARD_URL!,
-        username: process.env.KANBOARD_USERNAME!,
-        password: process.env.KANBOARD_PASSWORD!
+      if (kind !== 'taskcafe') throw new Error('labels not supported')
+      const kb = new TaskCafeClient({
+        url: process.env.TASKCAFE_URL!,
+        username: process.env.TASKCAFE_USERNAME!,
+        password: process.env.TASKCAFE_PASSWORD!
       })
       await kb.addTaskLabel(Number(taskId), label)
       if (!opts.skipUndo) await pushUndo({ method: 'remove_label', params: { taskId, label }, label: `Label ${label}` })
@@ -172,11 +172,11 @@ async function invoke(method: string, params: any, ctx: Context, opts: InvokeOpt
     case 'remove_label': {
       const { taskId, label } = params || {}
       if (!taskId || !label) throw new Error('taskId/label required')
-      if (kind !== 'kanboard') throw new Error('labels not supported')
-      const kb = new KanboardClient({
-        url: process.env.KANBOARD_URL!,
-        username: process.env.KANBOARD_USERNAME!,
-        password: process.env.KANBOARD_PASSWORD!
+      if (kind !== 'taskcafe') throw new Error('labels not supported')
+      const kb = new TaskCafeClient({
+        url: process.env.TASKCAFE_URL!,
+        username: process.env.TASKCAFE_USERNAME!,
+        password: process.env.TASKCAFE_PASSWORD!
       })
       const task = await kb.getTask(Number(taskId))
       const tags = (task.tags || []).filter((l: string) => l !== label)
@@ -187,11 +187,11 @@ async function invoke(method: string, params: any, ctx: Context, opts: InvokeOpt
     case 'add_comment': {
       const { taskId, content } = params || {}
       if (!taskId || !content) throw new Error('taskId/content required')
-      if (kind !== 'kanboard') throw new Error('comments not supported')
-      const kb = new KanboardClient({
-        url: process.env.KANBOARD_URL!,
-        username: process.env.KANBOARD_USERNAME!,
-        password: process.env.KANBOARD_PASSWORD!
+      if (kind !== 'taskcafe') throw new Error('comments not supported')
+      const kb = new TaskCafeClient({
+        url: process.env.TASKCAFE_URL!,
+        username: process.env.TASKCAFE_USERNAME!,
+        password: process.env.TASKCAFE_PASSWORD!
       })
       const commentId = await kb.addComment(Number(taskId), content)
       return { ok: true, result: { commentId } }
@@ -407,7 +407,7 @@ export async function POST(req: NextRequest) {
     if (!method) return NextResponse.json({ ok: false, error: 'Missing method' }, { status: 400 })
 
     const provider: any = getBoardProvider()
-    const projectId = Number(process.env.KANBOARD_PROJECT_ID || 1)
+    const projectId = Number(process.env.TASKCAFE_PROJECT_ID || 1)
     const kind = detectProvider()
 
     const ctx: Context = { provider, projectId, kind }

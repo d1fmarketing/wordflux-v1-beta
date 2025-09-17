@@ -1,4 +1,4 @@
-interface KanboardConfig {
+interface TaskCafeConfig {
   url: string
   username: string
   password: string
@@ -34,11 +34,11 @@ export interface Column {
   description?: string
 }
 
-export class KanboardClient {
-  private config: KanboardConfig
+export class TaskCafeClient {
+  private config: TaskCafeConfig
   private requestId = 0
 
-  constructor(config: KanboardConfig) {
+  constructor(config: TaskCafeConfig) {
     this.config = config
   }
 

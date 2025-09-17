@@ -19,14 +19,20 @@ export interface BoardProvider {
   getBoardState(projectId?: number | string): Promise<{ columns: BoardColumn[] }>
   createTask(projectId: number | string, title: string, columnId?: number | string, description?: string): Promise<string | number>
   moveTask(projectId: number | string, taskId: number | string, toColumnId: number | string, position?: number): Promise<boolean>
-  updateTask?(projectId: number | string, taskId: number | string, updates: { title?: string; description?: string }): Promise<boolean>
-  removeTask?(projectId: number | string, taskId: number | string): Promise<boolean>
+  updateTask?(
+    projectOrTaskId: number | string,
+    taskIdOrUpdates: number | string | { title?: string; description?: string; points?: number; dueDate?: string | null; tags?: string[] },
+    maybeUpdates?: { title?: string; description?: string; points?: number; dueDate?: string | null; tags?: string[] }
+  ): Promise<boolean>
+  removeTask?(projectOrTaskId: number | string, maybeTaskId?: number | string): Promise<boolean>
+  getTask?(taskId: number | string): Promise<any>
+  assignTask?(taskId: number | string, assigneeId: string): Promise<boolean>
+  addTaskLabel?(taskId: number | string, labelIds: string[] | string): Promise<boolean>
+  addComment?(taskId: number | string, content: string): Promise<string | number>
 }
 
-export type ProviderKind = 'kanboard' | 'taskcafe'
+export type ProviderKind = 'taskcafe'
 
 export function detectProvider(): ProviderKind {
-  const v = (process.env.BOARD_BACKEND || '').toLowerCase()
-  if (v === 'taskcafe') return 'taskcafe'
-  return 'kanboard'
+  return 'taskcafe'
 }

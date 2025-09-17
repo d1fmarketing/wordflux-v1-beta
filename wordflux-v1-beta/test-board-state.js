@@ -1,7 +1,7 @@
-const { KanboardClient } = require('./dist/lib/kanboard-client.js')
+const { TaskCafeClient } = require('./dist/lib/providers/taskcafe-client.js')
 
 async function test() {
-  const client = new KanboardClient({
+  const client = new TaskCafeClient({
     url: 'http://localhost:8090/jsonrpc.php',
     username: 'jsonrpc',
     password: 'wordflux-api-token-2025'

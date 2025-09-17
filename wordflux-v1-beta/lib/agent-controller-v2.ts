@@ -1,4 +1,4 @@
-import { KanboardClient } from './kanboard-client'
+import { TaskCafeClient } from './providers/taskcafe-client'
 import { AgentInterpreter, Intent, Action } from './agent/interpreter'
 import { BoardState } from './board-state'
 
@@ -23,7 +23,7 @@ interface ProcessResult {
 }
 
 export class AgentControllerV2 {
-  private kanboard: KanboardClient
+  private taskcafe: TaskCafeClient
   private interpreter: AgentInterpreter
   private boardState: BoardState
   private actionHistory: ActionRecord[] = []
@@ -33,14 +33,14 @@ export class AgentControllerV2 {
 
   constructor() {
     // Initialize components
-    this.kanboard = new KanboardClient({
-      url: process.env.KANBOARD_URL!,
-      username: process.env.KANBOARD_USERNAME!,
-      password: process.env.KANBOARD_PASSWORD!
+    this.taskcafe = new TaskCafeClient({
+      url: process.env.TASKCAFE_URL!,
+      username: process.env.TASKCAFE_USERNAME!,
+      password: process.env.TASKCAFE_PASSWORD!
     })
     
     this.interpreter = new AgentInterpreter()
-    this.boardState = new BoardState(this.kanboard)
+    this.boardState = new BoardState(this.taskcafe)
     
     // Listen to board events
     this.boardState.on('change', (newState, oldState) => {
@@ -63,10 +63,10 @@ export class AgentControllerV2 {
   async initialize() {
     if (this.initialized) return
     
-    // Skip Kanboard initialization in stub mode
+    // Skip taskcafe initialization in stub mode
     if (process.env.WFV3_TEST_STUBS !== '1') {
-      // Initialize kanboard columns
-      await this.kanboard.getColumns(parseInt(process.env.KANBOARD_PROJECT_ID || '1'))
+      // Initialize taskcafe columns
+      await this.taskcafe.getColumns(parseInt(process.env.TASKCAFE_PROJECT_ID || '1'))
       
       // Start state polling
       this.boardState.start()
@@ -230,14 +230,14 @@ export class AgentControllerV2 {
   }
 
   private async executeAction(action: Action): Promise<any> {
-    const projectId = parseInt(process.env.KANBOARD_PROJECT_ID || '1')
+    const projectId = parseInt(process.env.TASKCAFE_PROJECT_ID || '1')
     
     switch (action.type) {
       case 'create_card': {
         // Check for duplicates before creating
         const duplicateWarning = await this.checkForDuplicates(action.title)
         
-        const columns = await this.kanboard.getColumns(projectId)
+        const columns = await this.taskcafe.getColumns(projectId)
         const targetColumn = columns.find((c: any) => 
           c.title.toLowerCase() === action.column.toLowerCase()
         ) || columns[0]
@@ -271,7 +271,7 @@ export class AgentControllerV2 {
           }
         }
         
-        const taskId = await this.kanboard.createTask(
+        const taskId = await this.taskcafe.createTask(
           projectId,
           action.title,
           targetColumn.id,
@@ -303,7 +303,7 @@ export class AgentControllerV2 {
           throw new Error(`Card not found: ${action.identifier}`)
         }
         
-        const columns = await this.kanboard.getColumns(projectId)
+        const columns = await this.taskcafe.getColumns(projectId)
         const targetColumn = columns.find((c: any) =>
           c.title.toLowerCase() === action.toColumn.toLowerCase()
         )
@@ -322,7 +322,7 @@ export class AgentControllerV2 {
         // Track time for Work in progress
         await this.trackTaskTime(resolved.taskId, fromColumn || '', targetColumn.title)
         
-        await this.kanboard.moveTask(resolved.taskId, targetColumn.id, projectId)
+        await this.taskcafe.moveTask(resolved.taskId, targetColumn.id, projectId)
         
         return {
           taskId: resolved.taskId,
@@ -347,9 +347,9 @@ export class AgentControllerV2 {
         }
         
         // Get current values for undo
-        const currentTask = await this.kanboard.getTask(resolved.taskId)
+        const currentTask = await this.taskcafe.getTask(resolved.taskId)
         
-        await this.kanboard.updateTask(resolved.taskId, action.updates)
+        await this.taskcafe.updateTask(resolved.taskId, action.updates)
         
         return {
           taskId: resolved.taskId,
@@ -376,7 +376,7 @@ export class AgentControllerV2 {
           throw new Error(`Card not found: ${action.identifier}`)
         }
         
-        await this.kanboard.assignTask(resolved.taskId, action.assignee)
+        await this.taskcafe.assignTask(resolved.taskId, action.assignee)
         
         return {
           taskId: resolved.taskId,
@@ -395,7 +395,7 @@ export class AgentControllerV2 {
           throw new Error(`Card not found: ${action.identifier}`)
         }
         
-        await this.kanboard.setTaskDueDate(resolved.taskId, action.dueDate)
+        await this.taskcafe.setTaskDueDate(resolved.taskId, action.dueDate)
         
         return {
           taskId: resolved.taskId,
@@ -414,7 +414,7 @@ export class AgentControllerV2 {
           throw new Error(`Card not found: ${action.identifier}`)
         }
         
-        await this.kanboard.addTaskLabel(resolved.taskId, action.label)
+        await this.taskcafe.addTaskLabel(resolved.taskId, action.label)
         
         return {
           taskId: resolved.taskId,
@@ -433,7 +433,7 @@ export class AgentControllerV2 {
           throw new Error(`Card not found: ${action.identifier}`)
         }
         
-        const commentId = await this.kanboard.addTaskComment(resolved.taskId, action.comment)
+        const commentId = await this.taskcafe.addTaskComment(resolved.taskId, action.comment)
         
         return {
           taskId: resolved.taskId,
@@ -453,7 +453,7 @@ export class AgentControllerV2 {
           throw new Error(`Card not found: ${action.identifier}`)
         }
         
-        await this.kanboard.updateTaskScore(resolved.taskId, action.points)
+        await this.taskcafe.updateTaskScore(resolved.taskId, action.points)
         
         return {
           taskId: resolved.taskId,
@@ -473,10 +473,10 @@ export class AgentControllerV2 {
         }
         
         // Get task details for undo
-        const task = await this.kanboard.getTask(resolved.taskId)
+        const task = await this.taskcafe.getTask(resolved.taskId)
         const taskData = this.boardState.findTask(resolved.taskId)
         
-        await this.kanboard.removeTask(resolved.taskId)
+        await this.taskcafe.removeTask(resolved.taskId)
         
         return {
           taskId: resolved.taskId,
@@ -505,7 +505,7 @@ export class AgentControllerV2 {
         const status = action.status || 'all'
         let assignee = action.assignee ? normalize(action.assignee) : ''
         if (assignee === 'me') {
-          const me = (process.env.AGENT_ASSIGNEE_USERNAME || process.env.KANBOARD_USERNAME || '').toLowerCase()
+          const me = (process.env.AGENT_ASSIGNEE_USERNAME || process.env.TASKCAFE_USERNAME || '').toLowerCase()
           assignee = me
         }
         const columnFilter = action.column ? normalize(action.column) : ''
@@ -544,7 +544,7 @@ export class AgentControllerV2 {
         const status = action.status || 'all'
         let assignee = action.assignee ? normalize(action.assignee) : ''
         if (assignee === 'me') {
-          const me = (process.env.AGENT_ASSIGNEE_USERNAME || process.env.KANBOARD_USERNAME || '').toLowerCase()
+          const me = (process.env.AGENT_ASSIGNEE_USERNAME || process.env.TASKCAFE_USERNAME || '').toLowerCase()
           assignee = me
         }
         const columnFilter = action.column ? normalize(action.column) : ''
@@ -595,7 +595,7 @@ export class AgentControllerV2 {
           throw new Error(`Card not found: ${action.identifier}`)
         }
         
-        await this.kanboard.addComment(resolved.taskId, action.comment)
+        await this.taskcafe.addComment(resolved.taskId, action.comment)
         
         return {
           taskId: resolved.taskId,
@@ -623,10 +623,10 @@ export class AgentControllerV2 {
   private async archiveOldDoneTasks() {
     try {
       console.log('🗄️ Checking for old Done tasks to archive...')
-      const projectId = parseInt(process.env.KANBOARD_PROJECT_ID || '1')
+      const projectId = parseInt(process.env.TASKCAFE_PROJECT_ID || '1')
       
       // Get all columns
-      const columns = await this.kanboard.getColumns(projectId)
+      const columns = await this.taskcafe.getColumns(projectId)
       const doneColumn = columns.find((c: any) => c.title.toLowerCase() === 'done')
       const backlogColumn = columns.find((c: any) => c.title.toLowerCase() === 'backlog')
       
@@ -636,7 +636,7 @@ export class AgentControllerV2 {
       }
       
       // Get all tasks in Done column
-      const tasks = await this.kanboard.getTasks(projectId)
+      const tasks = await this.taskcafe.getTasks(projectId)
       const doneTasks = tasks.filter((t: any) => t.column_id === doneColumn.id)
       
       const now = Date.now()
@@ -655,14 +655,14 @@ export class AgentControllerV2 {
           let newTitle = task.title
           if (!newTitle.startsWith('[ARCHIVED]')) {
             newTitle = `[ARCHIVED] ${newTitle}`
-            await this.kanboard.updateTask(task.id, { title: newTitle })
+            await this.taskcafe.updateTask(task.id, { title: newTitle })
           }
           
           // Move to Backlog
-          await this.kanboard.moveTask(task.id, backlogColumn.id, projectId)
+          await this.taskcafe.moveTask(task.id, backlogColumn.id, projectId)
           
           // Add comment explaining the archive
-          await this.kanboard.addComment(
+          await this.taskcafe.addComment(
             task.id,
             '🗄️ Auto-archived: Task was in Done for more than 7 days'
           )
@@ -676,8 +676,8 @@ export class AgentControllerV2 {
 
   private async checkForDuplicates(newTitle: string): Promise<string | null> {
     try {
-      const projectId = parseInt(process.env.KANBOARD_PROJECT_ID || '1')
-      const allTasks = await this.kanboard.getTasks(projectId)
+      const projectId = parseInt(process.env.TASKCAFE_PROJECT_ID || '1')
+      const allTasks = await this.taskcafe.getTasks(projectId)
       
       // Calculate similarity for each existing task
       const similarities: { task: any, similarity: number }[] = []
@@ -880,7 +880,7 @@ export class AgentControllerV2 {
           }
           
           // Get current task description
-          const task = await this.kanboard.getTask(taskId)
+          const task = await this.taskcafe.getTask(taskId)
           if (task) {
             let description = task.description || ''
             
@@ -891,7 +891,7 @@ export class AgentControllerV2 {
             description = description ? `${description}\n${timeText}` : timeText
             
             // Update task with time tracking
-            await this.kanboard.updateTask(taskId, { description })
+            await this.taskcafe.updateTask(taskId, { description })
             console.log(`⏱️ Recorded ${hoursSpent} hours for task #${taskId}`)
           }
           
@@ -918,7 +918,7 @@ export class AgentControllerV2 {
   private async addStatusEmoji(taskId: number, columnName: string) {
     try {
       // Get current task details
-      const task = await this.kanboard.getTask(taskId)
+      const task = await this.taskcafe.getTask(taskId)
       if (!task) return
       
       let description = task.description || ''
@@ -939,7 +939,7 @@ export class AgentControllerV2 {
         description = `${emoji} ${description}`.trim()
         
         // Update task description with emoji
-        await this.kanboard.updateTask(taskId, {
+        await this.taskcafe.updateTask(taskId, {
           description: description
         })
       }

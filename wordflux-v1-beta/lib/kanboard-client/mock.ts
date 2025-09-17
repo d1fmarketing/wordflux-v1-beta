@@ -1,4 +1,4 @@
-// In-memory mock Kanboard client for testing
+// In-memory mock taskcafe client for testing
 // Eliminates SQLite locks and provides instant responses
 
 interface MockTask {
@@ -30,7 +30,7 @@ interface MockColumn {
   project_id: number;
 }
 
-export class InMemoryKanboardClient {
+export class InMemoryTaskCafeClient {
   private taskIdCounter = 1000;
   private commentIdCounter = 1;
   private tasks: Map<number, MockTask> = new Map();

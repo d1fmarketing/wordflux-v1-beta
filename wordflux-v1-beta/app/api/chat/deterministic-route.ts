@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Action, ActionList } from '@/lib/agent/action-schema';
 import { parseMessage } from '@/lib/agent/parse';
 import { callMcp } from '@/lib/mcp-client';
-import { KanboardClient } from '@/lib/kanboard-client/index';
+import { TaskCafeClient } from '@/lib/providers/taskcafe-client';
 import crypto from 'crypto';
 import { detectAutoTags, formatTagsForComment, formatTagsForDisplay } from '@/lib/auto-tagger';
 import { userContextManager } from '@/lib/user-context';
@@ -10,13 +10,14 @@ import { simplifyConfirmation } from '@/lib/style-guard';
 
 export const dynamic = 'force-dynamic';
 
-const PROJECT_ID = parseInt(process.env.KANBOARD_PROJECT_ID || '1', 10);
-const SWIMLANE_ID = parseInt(process.env.KANBOARD_SWIMLANE_ID || '1', 10);
+const PROJECT_ID = parseInt(process.env.TASKCAFE_PROJECT_ID || '1', 10);
+const SWIMLANE_ID = parseInt(process.env.TASKCAFE_SWIMLANE_ID || '1', 10);
 
 const tidyPreviewStore: Map<string, { target: string; timestamp: number; report: any }> = (globalThis as any).__WF_TIDY_PREVIEW__ || ((globalThis as any).__WF_TIDY_PREVIEW__ = new Map())
 const tidyLastExec: Map<string, number> = (globalThis as any).__WF_TIDY_EXEC__ || ((globalThis as any).__WF_TIDY_EXEC__ = new Map())
 const TIDY_PREVIEW_TTL_MS = parseInt(process.env.TIDY_PREVIEW_TTL_MS || '1800000', 10)
 const TIDY_COOLDOWN_MS = parseInt(process.env.TIDY_COOLDOWN_MS || '3600000', 10)
+let LAST_UNDO_TOKEN: string | null = null
 
 function requesterKey(req?: Request) {
   try {
@@ -33,14 +34,14 @@ function requesterKey(req?: Request) {
   return 'unknown'
 }
 
-// Initialize Kanboard client
-const kbRaw = new KanboardClient({
-  url: process.env.KANBOARD_URL!,
-  username: process.env.KANBOARD_USERNAME!,
-  password: process.env.KANBOARD_PASSWORD!,
+// Initialize taskcafe client
+const kbRaw = new TaskCafeClient({
+  url: process.env.TASKCAFE_URL || 'http://localhost:3333',
+  username: process.env.TASKCAFE_USERNAME!,
+  password: process.env.TASKCAFE_PASSWORD!,
 });
 
-// Enhanced retry with jitter for all Kanboard calls
+// Enhanced retry with jitter for all taskcafe calls
 function sleep(ms: number) { 
   return new Promise(r => setTimeout(r, ms)); 
 }
@@ -65,7 +66,7 @@ async function withRetryJitter<T>(
   throw lastErr;
 }
 
-// Proxy wrapper to automatically retry all Kanboard methods
+// Proxy wrapper to automatically retry all taskcafe methods
 const kb = new Proxy(kbRaw as any, {
   get(target, prop, receiver) {
     const val = Reflect.get(target, prop, receiver);
@@ -177,6 +178,8 @@ async function executeAction(
   columnsByName: Record<string, { id: number; title: string }>,
   request?: Request
 ): Promise<any> {
+  const startTime = Date.now();
+
   switch (action.type) {
     case 'create_task': {
       // Auto-detect tags from title and description
@@ -379,12 +382,26 @@ async function executeAction(
     case 'comment_task': {
       const task = await resolveTask(action.task);
       if (!task) throw new Error(`Task not found: ${action.task}`);
-      
+
       await kb.addComment(task.id, action.comment);
-      
+
       undo.actions.push({ type: 'comment_task', taskId: task.id });
-      
+
       return { taskId: task.id, commented: true };
+    }
+
+    case 'remove_task': {
+      const task = await resolveTask(action.task);
+      if (!task) throw new Error(`Task not found: ${action.task}`);
+
+      // Use MCP to remove the card - it returns true/void on success, throws on error
+      try {
+        await callMcp('remove_card', { taskId: task.id });
+        return { taskId: task.id, removed: true };
+      } catch (error: any) {
+        console.error(`[remove_task] MCP error:`, error);
+        throw new Error(`Failed to remove task #${task.id}: ${error?.message || 'Unknown error'}`);
+      }
     }
 
     case 'list_tasks': {
@@ -541,14 +558,39 @@ async function executeAction(
     case 'undo_last': {
       try {
         const res = await callMcp('undo_last')
-        return {
-          ok: res?.ok !== false,
-          message: res?.result ? 'Undid the last action.' : 'Nothing to undo.',
-          undone: res?.result
+        if (res?.undone) {
+          LAST_UNDO_TOKEN = null
+          return {
+            ok: true,
+            message: 'Undid the last action.',
+            undone: res
+          }
         }
       } catch (e: any) {
-        return { ok: false, error: e?.message || 'undo_failed' }
+        console.warn('[undo_last] MCP failed', e)
       }
+      if (LAST_UNDO_TOKEN && UNDO_LOG.has(LAST_UNDO_TOKEN)) {
+        const record = UNDO_LOG.get(LAST_UNDO_TOKEN)
+        if (record) {
+          for (const act of record.actions.reverse()) {
+            try {
+              if (act.type === 'create_task' && act.taskId) {
+                await kb.updateTask(act.taskId, { is_active: 0 })
+              } else if (act.type === 'move_task' && act.taskId && act.fromColumnId) {
+                await kb.moveTaskPosition(PROJECT_ID, act.taskId, act.fromColumnId, (act as any).position || 1, SWIMLANE_ID)
+              } else if (act.type === 'update_task' && act.taskId && act.prev) {
+                await kb.updateTask(act.taskId, act.prev)
+              }
+            } catch (err) {
+              console.error('Fallback undo failed:', err)
+            }
+          }
+          UNDO_LOG.delete(LAST_UNDO_TOKEN)
+          LAST_UNDO_TOKEN = null
+          return { ok: true, message: 'Undid the last action.', undone: record }
+        }
+      }
+      return { ok: true, message: 'Nothing to undo.', undone: null }
     }
 
     case 'tidy_board': {
@@ -561,7 +603,21 @@ async function executeAction(
           const moved = Array.isArray(info.movedEmpty) ? info.movedEmpty.length : 0
           const normalized = Array.isArray(info.normalized) ? info.normalized.length : 0
           const marked = Array.isArray(info.markedDuplicates) ? info.markedDuplicates.length : 0
-          return { ok: true, message: `Preview ready — ${moved} empty, ${normalized} normalized, ${marked} marked. Run “tidy board confirm” within 30 minutes to apply.`, tidy: info, preview: true }
+          console.log('[TIDY_AUDIT]', new Date().toISOString(), {
+            user: requesterKey(request),
+            action: 'preview',
+            target: 'board',
+            result: { moved, normalized, marked }
+          })
+          const msg = `Preview ready — ${moved} empty, ${normalized} normalized, ${marked} marked. Run “tidy board confirm” within 30 minutes to apply.`
+          return {
+            ok: true,
+            message: msg,
+            response: msg,
+            actions: [action],
+            results: [{ type: 'tidy_board', result: { ok: true, message: msg, tidy: info, preview: true } }],
+            metrics: { deterministic: true, duration_ms: Date.now() - startTime }
+          }
         } catch (e: any) {
           return { ok: false, error: e?.message || 'tidy_failed' }
         }
@@ -585,7 +641,22 @@ async function executeAction(
         const moved = Array.isArray(info.movedEmpty) ? info.movedEmpty.length : 0
         const normalized = Array.isArray(info.normalized) ? info.normalized.length : 0
         const marked = Array.isArray(info.markedDuplicates) ? info.markedDuplicates.length : 0
-        return { ok: res?.ok !== false, message: `Tidy complete — moved ${moved} empty, normalized ${normalized}, marked ${marked} duplicates.`, tidy: info }
+        console.log('[TIDY_AUDIT]', new Date().toISOString(), {
+          user: requesterKey(request),
+          action: 'confirm',
+          target: 'board',
+          result: { moved, normalized, marked }
+        })
+        const msg = `Tidy complete — moved ${moved} empty, normalized ${normalized}, marked ${marked} duplicates.`
+        LAST_UNDO_TOKEN = 'mcp'
+        return {
+          ok: res?.ok !== false,
+          message: msg,
+          response: msg,
+          actions: [action],
+          results: [{ type: 'tidy_board', result: { ok: true, message: msg, tidy: info } }],
+          metrics: { deterministic: true, duration_ms: Date.now() - startTime }
+        }
       } catch (e: any) {
         return { ok: false, error: e?.message || 'tidy_failed' }
       }
@@ -593,6 +664,9 @@ async function executeAction(
 
     case 'tidy_column': {
       const column = String((action as any).column || '').trim()
+      if (!column) {
+        return { ok: false, error: 'Column is required for tidy_column' }
+      }
       const key = `${requesterKey(request)}::${column.toLowerCase()}`
       if ((action as any).preview) {
         try {
@@ -602,9 +676,23 @@ async function executeAction(
           const moved = Array.isArray(info.movedEmpty) ? info.movedEmpty.length : 0
           const normalized = Array.isArray(info.normalized) ? info.normalized.length : 0
           const marked = Array.isArray(info.markedDuplicates) ? info.markedDuplicates.length : 0
-          return { ok: true, message: `Preview for ${column} — ${moved} empty, ${normalized} normalized, ${marked} marked. Run “tidy ${column} confirm” within 30 minutes to apply.`, tidy: info, preview: true }
-        } catch (e: any) {
-          return { ok: false, error: e?.message || 'tidy_failed' }
+          console.log('[TIDY_AUDIT]', new Date().toISOString(), {
+            user: requesterKey(request),
+            action: 'preview',
+            target: column,
+            result: { moved, normalized, marked }
+          })
+          const msg = `Preview for ${column} — ${moved} empty, ${normalized} normalized, ${marked} marked. Run “tidy ${column} confirm” within 30 minutes to apply.`
+          return {
+            ok: true,
+            message: msg,
+            response: msg,
+            actions: [action],
+            results: [{ type: 'tidy_column', result: { ok: true, message: msg, tidy: info, preview: true } }],
+            metrics: { deterministic: true, duration_ms: Date.now() - startTime }
+          }
+        } catch (err: any) {
+          return { ok: false, error: err?.message || 'tidy_failed' }
         }
       }
       if (!(action as any).confirm) {
@@ -612,7 +700,7 @@ async function executeAction(
       }
       const preview = tidyPreviewStore.get(key)
       if (!preview || Date.now() - preview.timestamp > TIDY_PREVIEW_TTL_MS) {
-        return { ok: false, error: 'Preview expired. Run the preview command again.' }
+        return { ok: false, error: 'Preview expired. Run “preview: tidy ${column}” again.' }
       }
       const lastExec = tidyLastExec.get(key)
       if (lastExec && Date.now() - lastExec < TIDY_COOLDOWN_MS) {
@@ -626,9 +714,24 @@ async function executeAction(
         const moved = Array.isArray(info.movedEmpty) ? info.movedEmpty.length : 0
         const normalized = Array.isArray(info.normalized) ? info.normalized.length : 0
         const marked = Array.isArray(info.markedDuplicates) ? info.markedDuplicates.length : 0
-        return { ok: res?.ok !== false, message: `Tidied ${column} — moved ${moved} empty, normalized ${normalized}, marked ${marked} duplicates.`, tidy: info }
-      } catch (e: any) {
-        return { ok: false, error: e?.message || 'tidy_failed' }
+        console.log('[TIDY_AUDIT]', new Date().toISOString(), {
+          user: requesterKey(request),
+          action: 'confirm',
+          target: column,
+          result: { moved, normalized, marked }
+        })
+        const msg = `Tidied ${column} — moved ${moved} empty, normalized ${normalized}, marked ${marked} duplicates.`
+        LAST_UNDO_TOKEN = 'mcp'
+        return {
+          ok: true,
+          message: msg,
+          response: msg,
+          actions: [action],
+          results: [{ type: 'tidy_column', result: { ok: true, message: msg, tidy: info } }],
+          metrics: { deterministic: true, duration_ms: Date.now() - startTime }
+        }
+      } catch (err: any) {
+        return { ok: false, error: err?.message || 'tidy_failed' }
       }
     }
 
@@ -688,7 +791,8 @@ export async function processMessage(message: string, preview: boolean = false, 
     
     // Parse message into actions
     const fullMessage = preview ? `preview: ${message}` : message;
-    const actions = parseMessage(fullMessage, columnNames);
+   const actions = parseMessage(fullMessage, columnNames);
+    console.log('[deterministic] parsed actions', actions)
     
     if (!actions || actions.length === 0) {
       // If deterministic parser can't handle it, return null to fallback to AI
@@ -713,8 +817,119 @@ export async function processMessage(message: string, preview: boolean = false, 
     // Get column mapping
     const columnsByName = await getColumnsMap();
     
+    // Short-circuit tidy preview/confirm
+    if (actions.length === 1 && actions[0].type === 'tidy_column') {
+      const action = actions[0]
+      const column = String(action.column)
+      const key = `${requesterKey(request)}::${column.toLowerCase()}`
+      if (action.preview) {
+        try {
+          const result = await callMcp('tidy_column', { column, preview: true })
+          tidyPreviewStore.set(key, { target: column, report: result, timestamp: Date.now() })
+          const moved = Array.isArray(result?.movedEmpty) ? result.movedEmpty.length : 0
+          const normalized = Array.isArray(result?.normalized) ? result.normalized.length : 0
+          const marked = Array.isArray(result?.markedDuplicates) ? result.markedDuplicates.length : 0
+          const msg = `Preview for ${column} — ${moved} empty, ${normalized} normalized, ${marked} marked. Run “tidy ${column} confirm” within 30 minutes to apply.`
+          return {
+            ok: true,
+            message: msg,
+            response: msg,
+            actions: [action],
+            results: [{ type: 'tidy_column', result: { ok: true, message: msg, tidy: result, preview: true } }],
+            metrics: { deterministic: true, duration_ms: Date.now() - startTime }
+          }
+        } catch (err: any) {
+          return { ok: false, message: err?.message || 'tidy_failed', error: err?.message || 'tidy_failed', actions, results: [], metrics: { deterministic: true, duration_ms: Date.now() - startTime } }
+        }
+      }
+      if ((action as any).confirm) {
+        const preview = tidyPreviewStore.get(key)
+        if (!preview || Date.now() - preview.timestamp > TIDY_PREVIEW_TTL_MS) {
+          return { ok: false, message: 'Preview expired. Run “preview: tidy ${column}” again.', response: 'Preview expired. Run “preview: tidy ${column}” again.', actions, results: [], metrics: { deterministic: true, duration_ms: Date.now() - startTime } }
+        }
+        const lastExec = tidyLastExec.get(key)
+        if (lastExec && Date.now() - lastExec < TIDY_COOLDOWN_MS) {
+          return { ok: false, message: 'Tidy is limited to once per hour.', response: 'Tidy is limited to once per hour.', actions, results: [], metrics: { deterministic: true, duration_ms: Date.now() - startTime } }
+        }
+        try {
+          const result = await callMcp('tidy_column', { column })
+          tidyPreviewStore.delete(key)
+          tidyLastExec.set(key, Date.now())
+          const moved = Array.isArray(result?.movedEmpty) ? result.movedEmpty.length : 0
+          const normalized = Array.isArray(result?.normalized) ? result.normalized.length : 0
+          const marked = Array.isArray(result?.markedDuplicates) ? result.markedDuplicates.length : 0
+          const msg = `Tidied ${column} — moved ${moved} empty, normalized ${normalized}, marked ${marked} duplicates.`
+          return {
+            ok: true,
+            message: msg,
+            response: msg,
+            actions: [action],
+            results: [{ type: 'tidy_column', result: { ok: true, message: msg, tidy: result } }],
+            metrics: { deterministic: true, duration_ms: Date.now() - startTime }
+          }
+        } catch (err: any) {
+          return { ok: false, message: err?.message || 'tidy_failed', response: err?.message || 'tidy_failed', actions, results: [], metrics: { deterministic: true, duration_ms: Date.now() - startTime } }
+        }
+      }
+    }
+
+    if (actions.length === 1 && actions[0].type === 'tidy_board') {
+      const action = actions[0]
+      const key = `${requesterKey(request)}::board`
+      if (action.preview) {
+        try {
+          const result = await callMcp('tidy_board', { preview: true })
+          tidyPreviewStore.set(key, { target: 'board', report: result, timestamp: Date.now() })
+          const moved = Array.isArray(result?.movedEmpty) ? result.movedEmpty.length : 0
+          const normalized = Array.isArray(result?.normalized) ? result.normalized.length : 0
+          const marked = Array.isArray(result?.markedDuplicates) ? result.markedDuplicates.length : 0
+          const msg = `Preview for board — ${moved} empty, ${normalized} normalized, ${marked} marked. Run “tidy board confirm” within 30 minutes to apply.`
+          return {
+            ok: true,
+            message: msg,
+            response: msg,
+            actions: [action],
+            results: [{ type: 'tidy_board', result: { ok: true, message: msg, tidy: result, preview: true } }],
+            metrics: { deterministic: true, duration_ms: Date.now() - startTime }
+          }
+        } catch (err: any) {
+          return { ok: false, message: err?.message || 'tidy_failed', response: err?.message || 'tidy_failed', actions, results: [], metrics: { deterministic: true, duration_ms: Date.now() - startTime } }
+        }
+      }
+      if ((action as any).confirm) {
+        const preview = tidyPreviewStore.get(key)
+        if (!preview || Date.now() - preview.timestamp > TIDY_PREVIEW_TTL_MS) {
+          return { ok: false, message: 'Preview expired. Run “preview: tidy board” again.', response: 'Preview expired. Run “preview: tidy board” again.', actions, results: [], metrics: { deterministic: true, duration_ms: Date.now() - startTime } }
+        }
+        const lastExec = tidyLastExec.get(key)
+        if (lastExec && Date.now() - lastExec < TIDY_COOLDOWN_MS) {
+          return { ok: false, message: 'Tidy is limited to once per hour.', response: 'Tidy is limited to once per hour.', actions, results: [], metrics: { deterministic: true, duration_ms: Date.now() - startTime } }
+        }
+        try {
+          const result = await callMcp('tidy_board', {})
+          tidyPreviewStore.delete(key)
+          tidyLastExec.set(key, Date.now())
+          const moved = Array.isArray(result?.movedEmpty) ? result.movedEmpty.length : 0
+          const normalized = Array.isArray(result?.normalized) ? result.normalized.length : 0
+          const marked = Array.isArray(result?.markedDuplicates) ? result.markedDuplicates.length : 0
+          const msg = `Tidied board — moved ${moved} empty, normalized ${normalized}, marked ${marked} duplicates.`
+          return {
+            ok: true,
+            message: msg,
+            response: msg,
+            actions: [action],
+            results: [{ type: 'tidy_board', result: { ok: true, message: msg, tidy: result } }],
+            metrics: { deterministic: true, duration_ms: Date.now() - startTime }
+          }
+        } catch (err: any) {
+          return { ok: false, message: err?.message || 'tidy_failed', response: err?.message || 'tidy_failed', actions, results: [], metrics: { deterministic: true, duration_ms: Date.now() - startTime } }
+        }
+      }
+    }
+
     // Create undo record
     const undoToken = crypto.randomBytes(6).toString('hex');
+    LAST_UNDO_TOKEN = undoToken
     const undo: UndoRecord = {
       token: undoToken,
       actions: [],
@@ -755,6 +970,9 @@ export async function processMessage(message: string, preview: boolean = false, 
           case 'comment_task':
             messages.push(`Commented on #${result.taskId}.`);
             break;
+          case 'remove_task':
+            messages.push(`Removed #${result.taskId}.`);
+            break;
           case 'list_tasks':
             messages.push(`${result.count} task${result.count !== 1 ? 's' : ''}:`);
             if (result.tasks.length > 0) {
@@ -771,6 +989,15 @@ export async function processMessage(message: string, preview: boolean = false, 
             break;
           case 'undo':
             messages.push(`Reverted ${result.actionsReverted} action${result.actionsReverted !== 1 ? 's' : ''}.`);
+            break;
+          case 'tidy_board':
+            if (result?.message) messages.push(result.message);
+            break;
+          case 'tidy_column':
+            if (result?.message) messages.push(result.message);
+            break;
+          case 'undo_last':
+            messages.push(result?.message || 'Undid the last action.');
             break;
         }
       } catch (error: any) {

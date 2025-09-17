@@ -110,12 +110,12 @@ test.describe('Board API Tests', () => {
     const data = await response.json();
     
     expect(data).toHaveProperty('ok');
-    expect(data).toHaveProperty('kanboard');
+    expect(data).toHaveProperty('taskcafe');
     expect(data).toHaveProperty('database');
     expect(data).toHaveProperty('projectAccess');
     
     // All should be healthy
-    expect(data.kanboard.connected).toBeTruthy();
+    expect(data.taskcafe.connected).toBeTruthy();
     expect(data.database.accessible).toBeTruthy();
     expect(data.projectAccess.accessible).toBeTruthy();
   });

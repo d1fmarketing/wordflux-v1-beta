@@ -33,7 +33,8 @@ export default function Chat() {
       else if (hour >= 14 && hour < 17) setSuggestions(['Show overdue', "What's blocking?", 'Team status'])
       else if (hour >= 17 && hour < 19) setSuggestions(['Done today', 'Move to done', "Tomorrow's tasks"])
       else setSuggestions(['Board summary', 'Clear done', 'Plan tomorrow'])
-    } catch {
+    } catch (err) {
+      console.error('[Chat] Failed to set time-based suggestions:', err)
       setSuggestions(['Create task', 'Board summary', 'Show my tasks'])
     }
   }, [])
@@ -78,7 +79,9 @@ export default function Chat() {
             } } });
           }
         }
-      } catch { /* ignore */ }
+      } catch (err) {
+        console.error('[Chat] Failed to show undo toast:', err)
+      }
 
       try {
         if (Array.isArray(data.results)) {
@@ -91,7 +94,9 @@ export default function Chat() {
             if (toast) toast({ text: `Filtered ${ids.length} task(s) — Clear`, action: { label: 'Clear', onClick: () => { window.dispatchEvent(new Event('wf-filter-clear')) } } });
           }
         }
-      } catch { /* noop */ }
+      } catch (err) {
+        console.error('[Chat] Failed to apply filter/highlight:', err)
+      }
 
       if (data.boardUpdated || (Array.isArray(data.actions) && data.actions.length > 0)) window.dispatchEvent(new Event('board-refresh'))
     }
@@ -122,7 +127,9 @@ export default function Chat() {
                 setStatus(evt.message || 'Error')
                 setMessages(prev => [...prev, { id: (Date.now() + 1).toString(), role: 'assistant', content: evt.message || 'Sorry, error. Try again.', timestamp: new Date() }])
               }
-            } catch { /* ignore malformed event */ }
+            } catch (err) {
+              console.error('[Chat] Failed to parse SSE event:', err, 'Payload:', payload)
+            }
           }
         }
         while (true) {
@@ -143,7 +150,8 @@ export default function Chat() {
         const data = await res.json()
         handleResult(data)
       }
-    } catch {
+    } catch (err) {
+      console.error('[Chat] Failed to send message:', err)
       setMessages(prev => [...prev, { id: (Date.now() + 1).toString(), role: 'assistant', content: 'Sorry, error. Try again.', timestamp: new Date() }])
     } finally {
       setLoading(false)

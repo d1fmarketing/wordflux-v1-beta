@@ -1,11 +1,11 @@
 # 📊 System Status Report - WordFlux v1-beta
 
-## Overall Status: ✅ 100% Operational
+## Overall Status: ⚠️ 95% Operational (Minor Issues)
 
-**Last Updated**: 2025-09-12 06:15 UTC  
-**Production URL**: http://52.4.68.118/workspace  
-**Deploy Version**: 21  
-**Uptime**: Stable
+**Last Updated**: 2025-09-17 23:45 UTC
+**Production URL**: http://52.4.68.118/workspace
+**Deploy Version**: 22
+**Uptime**: Stable with known issues
 
 ---
 
@@ -23,14 +23,18 @@
 
 ---
 
-## Recent System Changes (2025-09-12)
+## Recent System Changes (2025-09-17)
 
-### ✅ Completed Fixes:
-1. **Security Enhancement**: Removed 9 publicly exposed Docker containers
-2. **Board State Fix**: Resolved polling errors with null checks
-3. **Backup Script**: Updated for SQLite (was trying PostgreSQL)
-4. **Production Config**: Added Nginx redirect from / to /workspace
-5. **Health Monitoring**: Automated checks via cron
+### ✅ Today's Implementations:
+1. **Delete Command**: Added remove/delete task support via MCP
+2. **MCP Fixes**: Fixed remove_card operation signature
+3. **Board Cleanup**: Successfully removed 22 test cards
+4. **Command Parsing**: Added support for Portuguese commands (apagar)
+
+### ⚠️ Identified Issues:
+1. **Board Refresh Delay**: 4-second polling interval causes UI lag
+2. **Invalid Revalidate**: `export const revalidate = 0` causing PM2 errors
+3. **Missing Event Listener**: Board doesn't listen for 'board-refresh' events
 
 ### Performance Metrics:
 - **Response Time**: < 200ms average
@@ -161,7 +165,24 @@ tail -f /home/ubuntu/logs/health-monitor.log
 
 ## Known Issues
 
-None at this time. All systems operational.
+### 🔴 High Priority:
+1. **Board doesn't refresh immediately**
+   - Impact: UI shows stale data for up to 4 seconds
+   - Fix: Add 'board-refresh' event listener in Board2.tsx
+
+2. **PM2 revalidate error**
+   - Impact: Occasional crash/restart cycles
+   - Fix: Remove `export const revalidate = 0` from workspace/page.tsx
+
+### 🟡 Medium Priority:
+3. **Slow polling interval**
+   - Impact: 4-second delay for updates
+   - Fix: Reduce from 4000ms to 500-1000ms
+
+### 🟢 Low Priority:
+4. **CSS variables missing in some contexts**
+   - Impact: Toast styling may be incorrect
+   - Fix: Ensure brand.css loads properly
 
 ---
 
@@ -182,5 +203,5 @@ None at this time. All systems operational.
 
 ---
 
-*System Status Report Generated: 2025-09-12 06:15 UTC*  
-*Next Automatic Check: 2025-09-12 06:20 UTC*
+*System Status Report Generated: 2025-09-17 23:45 UTC*
+*Next Automatic Check: 2025-09-17 23:50 UTC*

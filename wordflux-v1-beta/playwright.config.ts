@@ -28,7 +28,7 @@ export default defineConfig({
       fullyParallel: false,  // No cross-file parallelism
       use: { 
         baseURL: process.env.BASE_URL || 'http://localhost:3000',
-        // Note: To use mock, set KANBOARD_MOCK=1 when running tests
+        // Note: To use mock, set TASKCAFE_MOCK=1 when running tests
       },
       dependencies: ['setup'],
     },

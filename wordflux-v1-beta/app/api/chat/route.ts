@@ -3,8 +3,9 @@ import { getAgent } from '@/lib/agent/get-agent'
 import { processMessage as processDeterministic } from './deterministic-route'
 import { withRateLimit } from '@/lib/rate-limiter'
 import { chatMessageSchema, validateInput } from '@/lib/validation'
+import { getBoolEnv } from '@/lib/env-config'
 
-const USE_DETERMINISTIC = process.env.USE_DETERMINISTIC_PARSER !== 'false'
+const USE_DETERMINISTIC = getBoolEnv('USE_DETERMINISTIC_PARSER', true)
 
 // ---- Process-persistent idempotency cache (survives HMR in dev) ----
 type IdempRec = { ts: number; payload: any };

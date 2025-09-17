@@ -1,16 +1,12 @@
-import { detectProvider, type BoardProvider } from '../board-provider'
-import { KanboardClient } from '../kanboard-client'
-import { TaskcafeClient } from './taskcafe-client'
+import { type BoardProvider } from '../board-provider'
+import { TaskCafeClient } from './taskcafe-client'
 
 export function getBoardProvider(): BoardProvider {
-  const kind = detectProvider()
-  if (kind === 'taskcafe') {
-    return new TaskcafeClient()
-  }
-  // Default: Kanboard
-  return new KanboardClient({
-    url: process.env.KANBOARD_URL!,
-    username: process.env.KANBOARD_USERNAME!,
-    password: process.env.KANBOARD_PASSWORD!
+  // SEMPRE TASKCAFE, FODA-SE taskcafe
+  return new TaskCafeClient({
+    url: process.env.TASKCAFE_URL || 'http://localhost:3333',
+    username: process.env.TASKCAFE_USERNAME || 'admin',
+    password: process.env.TASKCAFE_PASSWORD || '',
+    projectId: process.env.TASKCAFE_PROJECT_ID
   }) as unknown as BoardProvider
 }

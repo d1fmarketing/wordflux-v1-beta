@@ -1,13 +1,14 @@
 import { EventEmitter } from 'events'
-import { KanboardClient } from './kanboard-client'
+import { TaskCafeClient } from './providers/taskcafe-client'
+import { TASKCAFE_URL, TASKCAFE_USERNAME, TASKCAFE_PASSWORD, TASKCAFE_PROJECT_ID, getBoolEnv } from './env-config'
 
 export interface BoardState {
   columns: Array<{
-    id: number
+    id: string
     title: string
     position: number
     tasks: Array<{
-      id: number
+      id: string
       title: string
       description?: string
       assignee?: string
@@ -15,7 +16,7 @@ export interface BoardState {
       tags?: string[]
       createdAt?: Date
       updatedAt?: Date
-      column_id?: number
+      column_id?: string
       position?: number
     }>
   }>
@@ -24,7 +25,7 @@ export interface BoardState {
 }
 
 export class BoardStateManager extends EventEmitter {
-  private client: KanboardClient
+  private client: TaskCafeClient
   private state: BoardState | null = null
   private pollInterval = 3000
   private pollTimer: NodeJS.Timeout | null = null
@@ -32,19 +33,19 @@ export class BoardStateManager extends EventEmitter {
 
   constructor() {
     super()
-    this.client = new KanboardClient({
-      url: process.env.KANBOARD_URL || 'http://localhost:8080/jsonrpc.php',
-      username: process.env.KANBOARD_USERNAME || 'admin',
-      password: process.env.KANBOARD_PASSWORD || 'admin'
+    this.client = new TaskCafeClient({
+      url: TASKCAFE_URL,
+      username: TASKCAFE_USERNAME,
+      password: TASKCAFE_PASSWORD
     })
   }
 
   private stubState(): BoardState {
     return {
       columns: [
-        { id: 1, title: 'Backlog', position: 1, tasks: [] },
-        { id: 2, title: 'In Progress', position: 2, tasks: [] },
-        { id: 3, title: 'Done', position: 3, tasks: [] }
+        { id: 'backlog', title: 'Backlog', position: 1, tasks: [] },
+        { id: 'in-progress', title: 'In Progress', position: 2, tasks: [] },
+        { id: 'done', title: 'Done', position: 3, tasks: [] }
       ],
       lastSync: new Date(),
       syncCount: ++this.syncCount
@@ -67,9 +68,9 @@ export class BoardStateManager extends EventEmitter {
   }
 
   async sync() {
-    const projectId = parseInt(process.env.KANBOARD_PROJECT_ID || '1')
+    const projectId = Number(TASKCAFE_PROJECT_ID || 1)
     // Stub mode or missing creds: return stub immediately to keep UI responsive
-    if (process.env.WFV3_TEST_STUBS === '1' || !process.env.KANBOARD_URL) {
+    if (getBoolEnv('WFV3_TEST_STUBS', false) || !TASKCAFE_URL) {
       this.state = this.stubState()
       return this.state
     }
@@ -78,16 +79,16 @@ export class BoardStateManager extends EventEmitter {
       const normalized = await this.client.getBoardState(projectId)
       const newState: BoardState = {
         columns: (normalized.columns || []).map((c: any) => ({
-          id: Number(c.id),
+          id: String(c.id),
           title: String(c.name || c.title || ''),
           position: Number(c.position || 1),
           tasks: (c.cards || []).map((t: any) => ({
-            id: Number(t.id),
+            id: String(t.id),
             title: String(t.title || ''),
             description: t.description || undefined,
             assignee: Array.isArray(t.assignees) && t.assignees[0] ? String(t.assignees[0]) : undefined,
             priority: (t as any).priority,
-            tags: Array.isArray(t.tags) ? t.tags : undefined,
+            tags: Array.isArray(t.tags) ? t.tags.map((tag: any) => typeof tag === 'string' ? tag : (tag?.name || String(tag))) : undefined,
           }))
         })),
         lastSync: new Date(),
@@ -107,19 +108,19 @@ export class BoardStateManager extends EventEmitter {
           columns: cols
             .sort((a: any, b: any) => a.position - b.position)
             .map((col: any) => ({
-              id: col.id,
+              id: String(col.id),
               title: col.title,
               position: col.position,
               tasks: tasks
-                .filter((t: any) => t.column_id === col.id)
+                .filter((t: any) => String(t.column_id) === String(col.id))
                 .sort((a: any, b: any) => a.position - b.position)
                 .map((t: any) => ({
-                  id: t.id,
+                  id: String(t.id),
                   title: t.title,
                   description: t.description || '',
                   createdAt: t.date_creation ? new Date(Number(t.date_creation) * 1000) : undefined,
                   updatedAt: t.date_modification ? new Date(Number(t.date_modification) * 1000) : undefined,
-                  column_id: t.column_id,
+                  column_id: String(t.column_id),
                   position: t.position
                 }))
             })),
@@ -146,7 +147,7 @@ export class BoardStateManager extends EventEmitter {
   getState() { return this.state }
 
   async createTask(title: string, columnTitle: string, description?: string) {
-    const projectId = parseInt(process.env.KANBOARD_PROJECT_ID || '1')
+    const projectId = Number(TASKCAFE_PROJECT_ID || 1)
     const cols = await this.client.getColumns(projectId)
     const col = cols.find((c: any) => String(c.title) === columnTitle)
     if (!col) throw new Error(`Column not found: ${columnTitle}`)
@@ -156,7 +157,7 @@ export class BoardStateManager extends EventEmitter {
   }
 
   async moveTask(taskId: number, toColumnTitle: string) {
-    const projectId = parseInt(process.env.KANBOARD_PROJECT_ID || '1')
+    const projectId = Number(TASKCAFE_PROJECT_ID || 1)
     const cols = await this.client.getColumns(projectId)
     const col = cols.find((c: any) => String(c.title) === toColumnTitle)
     if (!col) throw new Error(`Column not found: ${toColumnTitle}`)

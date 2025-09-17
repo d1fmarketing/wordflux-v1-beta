@@ -142,7 +142,12 @@ export function parseMessage(msg: string, columns: string[]): Action[] {
   {
     const match = body.match(/^undo\s+([A-Za-z0-9\-_]+)/i);
     if (match) {
-      return [{ type: 'undo', token: match[1] }];
+      const token = match[1].toLowerCase();
+      if (token === 'last') {
+        actions.push({ type: 'undo_last' });
+      } else {
+        return [{ type: 'undo', token: match[1] }];
+      }
     }
   }
 
@@ -339,10 +344,10 @@ export function parseMessage(msg: string, columns: string[]): Action[] {
     }
   }
 
-  if (actions.length === 0) {
-    const previewMatch = body.match(/^\s*preview:\s*tidy\s+(.*)$/i)
-    if (previewMatch) {
-      const target = previewMatch[1].trim()
+  if (isPreview && actions.length === 0) {
+    const tidyPreview = body.match(/^tidy\s+(.*)$/i)
+    if (tidyPreview) {
+      const target = tidyPreview[1].trim()
       if (!target || target.toLowerCase() === 'board' || target.toLowerCase() === 'quadro') {
         actions.push({ type: 'tidy_board', preview: true })
       } else {
@@ -353,7 +358,7 @@ export function parseMessage(msg: string, columns: string[]): Action[] {
     }
   }
 
-  if (actions.length === 0) {
+  if (!isPreview && actions.length === 0) {
     const tidyMatch = body.match(/^tidy\s+(.*)$/i)
     if (tidyMatch) {
       let target = tidyMatch[1].trim()
@@ -387,6 +392,32 @@ export function parseMessage(msg: string, columns: string[]): Action[] {
         add: operation === 'add' ? tags : [],
         remove: operation === 'remove' ? tags : []
       });
+    }
+  }
+
+  // Remove/Delete task: "remove #123", "delete #456", "delete task 789"
+  if (actions.length === 0) {
+    const patterns = [
+      /^(remove|delete|apagar?|excluir?|remover?)\s+(task\s+)?#?(\d+)$/i,
+      /^(remove|delete|apagar?|excluir?|remover?)\s+(task\s+)?["'](.+?)["']$/i,
+    ];
+
+    for (const pattern of patterns) {
+      const match = body.match(pattern);
+      if (match) {
+        let taskRef = match[3];
+
+        // If it's the quoted pattern and we have preserved text, use it
+        if (pattern.source.includes('["\'"]') && quotedTexts.length > 0) {
+          taskRef = quotedTexts[0];
+        }
+
+        const maybeId = parseId(taskRef);
+        const task = maybeId || taskRef;
+
+        actions.push({ type: 'remove_task', task });
+        break;
+      }
     }
   }
 
@@ -530,7 +561,10 @@ export function parseMessage(msg: string, columns: string[]): Action[] {
 
   // If preview mode, wrap actions
   if (isPreview && actions.length > 0) {
-    return [{ type: 'preview', actions }];
+    const allTidy = actions.every(a => a.type === 'tidy_board' || a.type === 'tidy_column')
+    if (!allTidy) {
+      return [{ type: 'preview', actions }];
+    }
   }
 
   // Validate actions if any were parsed

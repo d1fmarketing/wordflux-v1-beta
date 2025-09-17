@@ -16,8 +16,8 @@ export async function POST(request: Request) {
 
     const provider = getBoardProvider()
 
-    const projectId = Number(process.env.KANBOARD_PROJECT_ID || 1)
-    const swimlaneId = Number(process.env.KANBOARD_SWIMLANE_ID || 1)
+    const projectId = Number(process.env.TASKCAFE_PROJECT_ID || 1)
+    const swimlaneId = Number(process.env.TASKCAFE_SWIMLANE_ID || 1)
     
     const result = await provider.moveTask(projectId, taskId, toColumnId, position)
 

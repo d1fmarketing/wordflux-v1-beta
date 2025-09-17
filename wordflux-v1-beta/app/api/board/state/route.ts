@@ -18,14 +18,38 @@ function mapColumns(columns: any[]) {
     const raw = String(col?.name || '')
     const lower = raw.toLowerCase()
     let canonical = raw
-    if (backlogSyn.test(lower)) canonical = 'Backlog'
-    else if (reviewSyn.test(lower)) canonical = 'Review'
-    else if (doneSyn.test(lower)) canonical = 'Done'
-    else if (inProgressSyn.test(lower)) canonical = 'In Progress'
-    else if (!hasBacklog && readySyn.test(lower)) canonical = 'Backlog'
-    else if (readySyn.test(lower)) canonical = 'Ready'
+    if (backlogSyn.test(lower)) {
+      canonical = 'Backlog'
+    } else if (readySyn.test(lower)) {
+      // Treat any "Ready" style column as Backlog-equivalent to avoid redundant lanes
+      canonical = 'Backlog'
+    } else if (inProgressSyn.test(lower)) {
+      canonical = 'In Progress'
+    } else if (reviewSyn.test(lower)) {
+      canonical = 'Review'
+    } else if (doneSyn.test(lower)) {
+      canonical = 'Done'
+    }
     return { ...col, name: canonical }
   })
+
+  const grouped = new Map<string, any>()
+  for (const col of normalized) {
+    const key = col.name
+    if (!grouped.has(key)) {
+      grouped.set(key, {
+        ...col,
+        id: typeof col.name === 'string' ? `agg-${col.name.toLowerCase().replace(/\s+/g, '-')}` : col.id,
+        cards: Array.isArray(col.cards) ? [...col.cards] : []
+      })
+    } else {
+      const existing = grouped.get(key)
+      const cards = Array.isArray(col.cards) ? col.cards : []
+      existing.cards.push(...cards)
+    }
+  }
+
+  const merged = Array.from(grouped.values())
 
   const orderWeight = (name: string) => {
     const n = (name || '').toLowerCase()
@@ -36,24 +60,25 @@ function mapColumns(columns: any[]) {
     return 999
   }
 
-  const filtered = normalized.filter(col => col.name !== 'Ready')
-  return filtered.sort((a,b) => orderWeight(a.name) - orderWeight(b.name))
+  return merged.sort((a,b) => orderWeight(a.name) - orderWeight(b.name))
 }
 
 async function getBoardState() {
   try {
     const provider = getBoardProvider()
 
-    const projectId = Number(process.env.KANBOARD_PROJECT_ID || 1)
+    const projectId = Number(process.env.TASKCAFE_PROJECT_ID || 1)
     console.log('Fetching board state for project:', projectId)
     
     const boardState = await provider.getBoardState(projectId)
-    const columns = Array.isArray(boardState?.columns) ? mapColumns(boardState.columns) : []
+    const columns = Array.isArray(boardState?.columns)
+      ? (detectProvider() === 'taskcafe' ? boardState.columns : mapColumns(boardState.columns))
+      : []
     console.log('Board state columns:', columns.map(c => ({ name: c.name, cards: c.cards?.length || 0 })))
     return NextResponse.json({ ...(boardState || {}), columns })
   } catch (error) {
     console.error('Board state error:', error)
-    return NextResponse.json({ columns: [], error: 'Failed to fetch board', detail: (error as any)?.message || String(error) })
+    return NextResponse.json({ columns: [] })
   }
 }
 

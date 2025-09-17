@@ -33,10 +33,10 @@ function colKey(id: string | number) { return `col-${idOf(id)}` }
 function columnWeight(name: string): number {
   const n = name.toLowerCase();
   if (/backlog|todo|inbox|ideas|analysis|planning|intake|icebox/.test(n)) return 10;
-  if (/ready|up next|queued|planned/.test(n)) return 20;
-  if (/in progress|work in progress|wip|doing|active|current|dev|coding|building|implementing/.test(n)) return 30;
-  if (/review|qa|qc|verify|validation|testing|staging|uat|verification|check/.test(n)) return 40;
-  if (/done|complete|finished|closed|shipped|deployed|live|released|published|archived/.test(n)) return 50;
+  if (/ready|up next|queued|planned/.test(n)) return 15;
+  if (/in progress|work in progress|wip|doing|active|current|dev|coding|building|implementing/.test(n)) return 20;
+  if (/review|qa|qc|verify|validation|testing|staging|uat|verification|check/.test(n)) return 30;
+  if (/done|complete|finished|closed|shipped|deployed|live|released|published|archived/.test(n)) return 40;
   return 999;
 }
 
@@ -48,7 +48,7 @@ export default function Board2() {
   const { data, isLoading, mutate } = useSWR<{ columns: BoardColumn[]; error?: string }>(
     '/api/board/state',
     fetcher,
-    { refreshInterval: 4000 }
+    { refreshInterval: 1000 }
   )
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
@@ -95,6 +95,15 @@ export default function Board2() {
     window.addEventListener('wf-highlight' as any, onHighlight)
     return () => window.removeEventListener('wf-highlight' as any, onHighlight)
   }, [])
+
+  // Add board-refresh listener to update UI after MCP operations
+  useEffect(() => {
+    const handleRefresh = () => {
+      mutate()
+    }
+    window.addEventListener('board-refresh' as any, handleRefresh)
+    return () => window.removeEventListener('board-refresh' as any, handleRefresh)
+  }, [mutate])
 
   function findColumnByCardId(cardId: string | number) { return cols.find(c => c.cards.some(card => idOf(card.id) === idOf(cardId))) }
 
@@ -190,7 +199,7 @@ export default function Board2() {
 
   if (isLoading) return <div style={{ padding: 16 }}>Loading board…</div>
 
-  const base = cols.filter(c => !/^(ready|up next|queued|planned)$/i.test(String(c.name)))
+  const base = cols
 
   const unknown = base.filter(c => columnWeight(String(c.name)) === 999)
   if (unknown.length && !(globalThis as any).__WF_UNKNOWN_LOGGED) {

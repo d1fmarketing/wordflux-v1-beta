@@ -89,7 +89,7 @@ export default function WorkingBoard() {
     <div style={{ padding: 16 }}>
       <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
-          <h2 style={{ fontSize: 18, fontWeight: 600, margin: 0 }}>Real Kanboard</h2>
+          <h2 style={{ fontSize: 18, fontWeight: 600, margin: 0 }}>Real taskcafe</h2>
           <p style={{ fontSize: 12, color: '#6b7280', margin: '4px 0 0 0' }}>
             Sync #{syncCount} • {lastSync?.toLocaleTimeString() || 'Never'}
           </p>

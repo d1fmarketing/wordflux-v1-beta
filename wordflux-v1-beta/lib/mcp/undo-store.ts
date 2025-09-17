@@ -21,9 +21,15 @@ async function getRedisClient() {
   if (redisPromise) return redisPromise
   redisPromise = (async () => {
     try {
-      const pkg = 'redis'
-      const redis = await import(pkg)
-      const client = (redis as any).createClient({ url: REDIS_URL })
+      // Try to load redis if available, otherwise gracefully fail
+      let redis: any
+      try {
+        redis = eval('require')('redis')  // Use eval to prevent webpack from bundling
+      } catch (e) {
+        console.log('[MCP undo] Redis not available, using JSON storage')
+        return null
+      }
+      const client = redis.createClient({ url: REDIS_URL })
       client.on('error', (err: any) => console.error('[MCP undo] redis error', err))
       await client.connect()
       return client

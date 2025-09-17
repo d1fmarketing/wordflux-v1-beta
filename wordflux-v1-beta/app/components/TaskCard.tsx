@@ -73,7 +73,8 @@ function formatDue(d: string) {
     const date = new Date(d)
     if (Number.isNaN(date.getTime())) return null
     return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
-  } catch {
+  } catch (err) {
+    console.error('[TaskCard] Failed to format due date:', err)
     return null
   }
 }

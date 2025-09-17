@@ -15,9 +15,9 @@ async function test() {
     }
   });
   
-  console.log('\n\nTesting Kanboard directly...');
+  console.log('\n\nTesting taskcafe directly...');
   
-  const kanboardResponse = await fetch('http://localhost:8090/jsonrpc.php', {
+  const taskcafeResponse = await fetch('http://localhost:8090/jsonrpc.php', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -31,9 +31,9 @@ async function test() {
     })
   });
   
-  const kanboardData = await kanboardResponse.json();
-  console.log('\nKanboard columns:');
-  kanboardData.result[0].columns.forEach(col => {
+  const taskcafeData = await taskcafeResponse.json();
+  console.log('\ntaskcafe columns:');
+  taskcafeData.result[0].columns.forEach(col => {
     console.log(`- ${col.title}: ${col.tasks.length} tasks`);
     col.tasks.forEach(task => {
       console.log(`  #${task.id}: ${task.title}`);

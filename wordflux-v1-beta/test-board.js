@@ -1,7 +1,7 @@
-const { KanboardClient } = require('./.next/server/chunks/827.js');
+const { TaskCafeClient } = require('./.next/server/chunks/827.js');
 
 async function test() {
-  const client = new KanboardClient({
+  const client = new TaskCafeClient({
     url: 'http://localhost:8090/jsonrpc.php',
     username: 'jsonrpc',
     password: 'wordflux-api-token-2025'

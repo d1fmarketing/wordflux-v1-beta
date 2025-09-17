@@ -16,7 +16,7 @@ export async function POST(request: Request) {
 
     const provider = getBoardProvider()
 
-    const projectId = Number(process.env.KANBOARD_PROJECT_ID || 1)
+    const projectId = Number(process.env.TASKCAFE_PROJECT_ID || 1)
     
     const taskId = await provider.createTask(projectId, title, columnId ? columnId : undefined, description)
 

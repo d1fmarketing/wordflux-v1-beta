@@ -13,6 +13,13 @@ WordFlux v1-beta combines Kanboard (MIT-licensed kanban board) with a GPT-5-mini
 - **Process Manager**: PM2 (wf-v1-beta)
 - **Reverse Proxy**: Nginx
 
+### MCP (Model Context Protocol) Architecture
+- **Agent-First Design**: The system is designed for AI agents to control the board
+- **Unified Protocol**: Both chat commands AND drag-and-drop use the same MCP backend
+- **Operations**: create_card, move_card, update_card, remove_card, bulk operations
+- **Board as View**: The board UI is a read-only view of agent-controlled state
+- **Event System**: Changes trigger events for immediate UI updates
+
 ## Features
 - Natural language task management through chat (GPT‑5)
 - Real-time board with optimistic updates (create/move)
@@ -132,11 +139,12 @@ KANBOARD_SWIMLANE_ID=1
 
 ## Chat Commands
 - Create: "Create a new task called [title] in [column]"
-- Move: "Move #[id] to [column]"
+- Move: "Move #[id] to [column]" or "done #[id]" or "start task name"
 - Update: "Update #[id] description to [text]"
-- Delete: "Delete #[id]"
+- Delete: "Delete #[id]" or "remove task name" or "apagar #[id]" (Portuguese)
 - List: "List all tasks" or "Show tasks in Ready status active"
 - Search: "Search auth in Ready done" or "Search for [keyword]"
+- Summary: "board summary" or "daily summary" or "whats in progress"
 
 Notes
 - Status filter maps to Kanboard `is_active` (active=1, done=0)
@@ -156,6 +164,9 @@ Shapes
 
 // update
 { "type": "update_card", "identifier": "#ID or title", "updates": { "title?": "string", "description?": "string" } }
+
+// delete/remove
+{ "type": "remove_task", "task": "#ID or title" }
 
 // delete
 { "type": "delete_card", "identifier": "#ID or title" }

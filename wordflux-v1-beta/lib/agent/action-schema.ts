@@ -29,6 +29,11 @@ export const UpdateTask = z.object({
   tags: z.array(z.string()).optional(), // additive
 });
 
+export const RemoveTask = z.object({
+  type: z.literal('remove_task'),
+  task: TaskRef,
+});
+
 export const AssignTask = z.object({
   type: z.literal('assign_task'),
   task: TaskRef,
@@ -98,6 +103,7 @@ export const Action = z.discriminatedUnion('type', [
   CreateTask,
   MoveTask,
   UpdateTask,
+  RemoveTask,
   AssignTask,
   TagTask,
   CommentTask,
