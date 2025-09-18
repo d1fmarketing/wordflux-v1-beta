@@ -1,0 +1,34 @@
+services:
+  postgres:
+    image: postgres:15
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: taskcafe
+      POSTGRES_PASSWORD: taskcafe
+      POSTGRES_DB: taskcafe
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    networks: [internal]
+
+  web:
+    image: taskcafe/taskcafe:latest
+    restart: unless-stopped
+    depends_on:
+      - postgres
+    environment:
+      TASKCAFE_DATABASE_HOST: postgres
+      TASKCAFE_DATABASE_USER: taskcafe
+      TASKCAFE_DATABASE_PASSWORD: taskcafe
+      TASKCAFE_DATABASE_NAME: taskcafe
+      TASKCAFE_DATABASE_PORT: 5432
+      TASKCAFE_MIGRATE: "true"
+    ports:
+      - "127.0.0.1:3333:3333"
+    networks: [internal]
+
+volumes:
+  db_data:
+
+networks:
+  internal:
+    driver: bridge

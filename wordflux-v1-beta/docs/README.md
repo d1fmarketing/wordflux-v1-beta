@@ -6,8 +6,8 @@
   - docs/board-api.md
 - Environment Setup
   - docs/environment-setup.md
-- Kanboard JSON-RPC Cheat Sheet
-  - docs/kanboard-jsonrpc-cheatsheet.md
+- TaskCafe JSON-RPC Cheat Sheet
+  - docs/TaskCafe-jsonrpc-cheatsheet.md
 - QA Checklist
   - docs/qa-checklist.md
 - Deployment (production)

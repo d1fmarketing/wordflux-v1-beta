@@ -29,6 +29,11 @@ export const UpdateTask = z.object({
   tags: z.array(z.string()).optional(), // additive
 });
 
+export const RemoveTask = z.object({
+  type: z.literal('remove_task'),
+  task: TaskRef,
+});
+
 export const AssignTask = z.object({
   type: z.literal('assign_task'),
   task: TaskRef,
@@ -64,21 +69,51 @@ export const UndoAction = z.object({
   token: z.string().min(6),
 });
 
+export const UndoLastAction = z.object({
+  type: z.literal('undo_last'),
+});
+
+export const TidyBoardAction = z.object({
+  type: z.literal('tidy_board'),
+  preview: z.boolean().optional(),
+  confirm: z.boolean().optional()
+});
+
+export const TidyColumnAction = z.object({
+  type: z.literal('tidy_column'),
+  column: ColumnName,
+  preview: z.boolean().optional(),
+  confirm: z.boolean().optional()
+});
+
 export const PreviewAction = z.object({
   type: z.literal('preview'),
   actions: z.array(z.any()),
+});
+
+export const SetDue = z.object({
+  type: z.literal('set_due'),
+  when: z.string().min(1),
+  ids: z.array(TaskRef).optional(),
+  first: z.number().optional(),
+  column: ColumnName.optional(),
 });
 
 export const Action = z.discriminatedUnion('type', [
   CreateTask,
   MoveTask,
   UpdateTask,
+  RemoveTask,
   AssignTask,
   TagTask,
   CommentTask,
+  SetDue,
   ListTasks,
   SearchTasks,
   UndoAction,
+  UndoLastAction,
+  TidyBoardAction,
+  TidyColumnAction,
   PreviewAction,
 ]);
 
@@ -89,8 +124,12 @@ export type UpdateTaskAction = z.infer<typeof UpdateTask>;
 export type AssignTaskAction = z.infer<typeof AssignTask>;
 export type TagTaskAction = z.infer<typeof TagTask>;
 export type CommentTaskAction = z.infer<typeof CommentTask>;
+export type SetDueAction = z.infer<typeof SetDue>;
 export type ListTasksAction = z.infer<typeof ListTasks>;
 export type SearchTasksAction = z.infer<typeof SearchTasks>;
 export type UndoActionType = z.infer<typeof UndoAction>;
+export type UndoLastActionType = z.infer<typeof UndoLastAction>;
+export type TidyBoardActionType = z.infer<typeof TidyBoardAction>;
+export type TidyColumnActionType = z.infer<typeof TidyColumnAction>;
 
 export const ActionList = z.array(Action).min(1);

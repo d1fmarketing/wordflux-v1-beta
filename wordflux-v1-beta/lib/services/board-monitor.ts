@@ -181,16 +181,16 @@ export class BoardMonitor extends EventEmitter {
         
         // Move to blocked
         const blockedColumnId = 2 // Assuming Blocked is column 2
-        await this.controller.kanboard.moveTask(
+        await this.controller.taskcafe.moveTask(
           task.id,
           blockedColumnId,
-          parseInt(process.env.KANBOARD_PROJECT_ID!),
+          parseInt(process.env.TASKCAFE_PROJECT_ID!),
           1,
-          parseInt(process.env.KANBOARD_SWIMLANE_ID || '1')
+          parseInt(process.env.TASKCAFE_SWIMLANE_ID || '1')
         )
         
         // Add automated comment
-        await this.controller.kanboard.addComment(
+        await this.controller.taskcafe.addComment(
           task.id,
           `🤖 Auto-moved: This task has been in progress for ${this.config.thresholds.staleHours}+ hours without updates. 
           Possible actions:
@@ -229,12 +229,12 @@ export class BoardMonitor extends EventEmitter {
         console.log(`⚡ Auto-prioritizing urgent task: ${task.title} (due in ${Math.round(hoursUntilDue)}h)`)
         
         // Update color to red to indicate urgency
-        await this.controller.kanboard.updateTask(task.id, {
+        await this.controller.taskcafe.updateTask(task.id, {
           color_id: 'red'
         })
         
         // Add urgency notification
-        await this.controller.kanboard.addComment(
+        await this.controller.taskcafe.addComment(
           task.id,
           `🚨 AUTO-PRIORITY: This task is due in ${Math.round(hoursUntilDue)} hours!
           
@@ -249,12 +249,12 @@ export class BoardMonitor extends EventEmitter {
         // If very urgent and not in progress, move it
         if (hoursUntilDue < 24 && task.column_id !== 3) { // Assuming 3 is "In Progress"
           const inProgressColumnId = 3 // Assuming In Progress is column 3
-          await this.controller.kanboard.moveTask(
+          await this.controller.taskcafe.moveTask(
             task.id,
             inProgressColumnId,
-            parseInt(process.env.KANBOARD_PROJECT_ID!),
+            parseInt(process.env.TASKCAFE_PROJECT_ID!),
             1,
-            parseInt(process.env.KANBOARD_SWIMLANE_ID || '1')
+            parseInt(process.env.TASKCAFE_SWIMLANE_ID || '1')
           )
           
           this.emit('task:emergency-move', {
@@ -292,7 +292,7 @@ export class BoardMonitor extends EventEmitter {
           
           Detected by AI Duplicate Analysis.`
           
-          await this.controller.kanboard.addComment(
+          await this.controller.taskcafe.addComment(
             dup.task1.id,
             message
           )
@@ -353,14 +353,14 @@ export class BoardMonitor extends EventEmitter {
           console.log(`📦 Auto-archiving old task: ${task.title}`)
           
           // Add archive comment
-          await this.controller.kanboard.addComment(
+          await this.controller.taskcafe.addComment(
             task.id,
             `📦 Auto-archived: This task has been completed for ${this.config.thresholds.archiveDays}+ days.
             Task will remain searchable but removed from active board view.`
           )
           
           // Close the task (archives it)
-          await this.controller.kanboard.updateTask(task.id, {
+          await this.controller.taskcafe.updateTask(task.id, {
             is_active: 0
           })
           

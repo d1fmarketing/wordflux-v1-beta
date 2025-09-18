@@ -1,0 +1,120 @@
+{
+  "columns": [
+    {
+      "id": "ea2839eb-fc25-4b5f-ad7b-4a922e2d773a",
+      "name": "Ready",
+      "cards": [
+        {
+          "id": "8e83059a-cf82-4ab5-b560-d804425b3823",
+          "title": "[smoke] 1758001304638",
+          "description": "",
+          "position": 999999,
+          "assignees": [],
+          "tags": [],
+          "due_date": null
+        },
+        {
+          "id": "58da68b9-aa96-4911-a76f-96411e960406",
+          "title": "[smoke] 1758002053147",
+          "description": "",
+          "position": 999999,
+          "assignees": [],
+          "tags": [],
+          "due_date": null
+        },
+        {
+          "id": "a789cac6-2118-4695-9f76-a7605d6e6262",
+          "title": "[smoke] 1758002107477",
+          "description": "",
+          "position": 999999,
+          "assignees": [],
+          "tags": [],
+          "due_date": null
+        },
+        {
+          "id": "5fc44440-c730-48d3-aa83-a9c2cf6c4c52",
+          "title": "[smoke] 1758002260713",
+          "description": "",
+          "position": 999999,
+          "assignees": [],
+          "tags": [],
+          "due_date": null
+        },
+        {
+          "id": "14430094-ec86-4a5a-a3c9-baebec1e7f4c",
+          "title": "[smoke] 1758039713845",
+          "description": "",
+          "position": 999999,
+          "assignees": [],
+          "tags": [],
+          "due_date": null
+        },
+        {
+          "id": "b2b21e76-7387-43d0-8264-66d3626036f5",
+          "title": "   ",
+          "description": "",
+          "position": 1,
+          "assignees": [],
+          "tags": [],
+          "due_date": null
+        },
+        {
+          "id": "3c988730-e1e5-4ab3-bb9f-70afec610927",
+          "title": "   ",
+          "description": "",
+          "position": 1,
+          "assignees": [],
+          "tags": [],
+          "due_date": null
+        }
+      ]
+    },
+    {
+      "id": "415feef2-af76-4adc-8cdb-a60528b999c2",
+      "name": "In Progress",
+      "cards": []
+    },
+    {
+      "id": "56fead83-d9c0-4444-b708-85c02c2e524f",
+      "name": "Done",
+      "cards": [
+        {
+          "id": "9300b635-befa-4f74-8df1-6689c4a2b186",
+          "title": "   ",
+          "description": "",
+          "position": 999999,
+          "assignees": [],
+          "tags": [],
+          "due_date": null
+        },
+        {
+          "id": "a519179b-2fb8-4877-924e-7a9eac84a48d",
+          "title": "   ",
+          "description": "",
+          "position": 999999,
+          "assignees": [],
+          "tags": [],
+          "due_date": null
+        },
+        {
+          "id": "6b1fb243-9c89-489b-a6c7-9194cc1e5507",
+          "title": "Duplicate",
+          "description": "",
+          "position": 999999,
+          "assignees": [],
+          "tags": [],
+          "due_date": null
+        },
+        {
+          "id": "119190d1-7f0e-405b-973c-bf2d69768eb6",
+          "title": "Duplicate",
+          "description": "",
+          "position": 999999,
+          "assignees": [],
+          "tags": [],
+          "due_date": null
+        }
+      ]
+    }
+  ]
+}

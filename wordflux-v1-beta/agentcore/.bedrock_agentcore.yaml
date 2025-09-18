@@ -1,0 +1,30 @@
+default_agent: wordflux_mcp
+agents:
+  wordflux_mcp:
+    name: wordflux_mcp
+    entrypoint: mcp_server.py
+    platform: linux/arm64
+    container_runtime: docker
+    aws:
+      execution_role: arn:aws:iam::330140023537:role/AmazonBedrockAgentCoreSDKRuntime-us-east-1-cddd47f9ab
+      execution_role_auto_create: false
+      account: '330140023537'
+      region: us-east-1
+      ecr_repository: 330140023537.dkr.ecr.us-east-1.amazonaws.com/bedrock-agentcore-wordflux_mcp
+      ecr_auto_create: false
+      network_configuration:
+        network_mode: PUBLIC
+      protocol_configuration:
+        server_protocol: MCP
+      observability:
+        enabled: true
+    bedrock_agentcore:
+      agent_id: wordflux_mcp-LRqppkDkta
+      agent_arn: arn:aws:bedrock-agentcore:us-east-1:330140023537:runtime/wordflux_mcp-LRqppkDkta
+      agent_session_id: ad069b9a-1be0-499a-b131-80979d529f9d
+    codebuild:
+      project_name: bedrock-agentcore-wordflux_mcp-builder
+      execution_role: arn:aws:iam::330140023537:role/AmazonBedrockAgentCoreSDKCodeBuild-us-east-1-cddd47f9ab
+      source_bucket: bedrock-agentcore-codebuild-sources-330140023537-us-east-1
+    authorizer_configuration: null
+    oauth_configuration: null

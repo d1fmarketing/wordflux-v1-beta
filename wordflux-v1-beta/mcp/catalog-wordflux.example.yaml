@@ -1,0 +1,28 @@
+version: 2
+name: wordflux
+displayName: WordFlux Custom Catalog
+registry:
+  taskcafe:
+    type: server
+    title: TaskCafe Board Automation
+    description: Automate WordFlux review moves against the TaskCafe backend.
+    image: taskcafe-mcp:latest
+    tools:
+      - name: approve_card
+      - name: reject_card
+      - name: needs_work
+      - name: move_card
+      - name: create_card
+      - name: list_cards
+    env:
+      - name: TASKCAFE_URL
+        value: http://172.17.0.1:3333
+      - name: TASKCAFE_USERNAME
+        value: admin
+      - name: TASKCAFE_PASSWORD
+        value: admin123
+      - name: TASKCAFE_PROJECT_ID
+        value: 0fb053f0-9b4c-4edd-8ca1-607882bc2360
+    metadata:
+      category: wordflux
+      tags: [taskcafe, kanban]

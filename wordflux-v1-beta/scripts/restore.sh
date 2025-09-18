@@ -47,7 +47,7 @@ tar -czf "${BACKUP_DIR}/pre-restore-$(date +%Y%m%d_%H%M%S).tar.gz" \
 if [ -f "${BACKUP_DIR}/db-${TIMESTAMP}.sql.gz" ]; then
   echo -e "${YELLOW}→ Restoring database...${NC}"
   if docker ps --format '{{.Names}}' | grep -q '^wordflux-postgres$'; then
-    gunzip -c "${BACKUP_DIR}/db-${TIMESTAMP}.sql.gz" | docker exec -i wordflux-postgres psql -U kanboard kanboard
+    gunzip -c "${BACKUP_DIR}/db-${TIMESTAMP}.sql.gz" | docker exec -i wordflux-postgres psql -U TaskCafe TaskCafe
   else
     echo -e "${RED}⚠ Postgres container not found — skipping DB restore${NC}"
   fi

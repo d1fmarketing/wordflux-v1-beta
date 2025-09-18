@@ -1,0 +1,11 @@
+[
+  {
+    "id": "c2f65499-3a88-4d66-ab2a-2caffd9da736",
+    "title": "Alpha – urgent open parts",
+    "priority": "urgent",
+    "points": 8,
+    "openParts": 2,
+    "slaOver": false,
+    "idleOver": false
+  }
+]

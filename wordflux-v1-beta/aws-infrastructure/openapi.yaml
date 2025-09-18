@@ -1,0 +1,37 @@
+openapi: 3.0.0
+info:
+  title: WordFlux Board API
+  version: 1.0.0
+servers:
+  - url: https://api.wordflux.com
+paths:
+  /cards/approve:
+    post:
+      operationId: approveCard
+      summary: Approve a card and move to Done
+      parameters:
+        - name: cardId
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Card approved
+  /cards/reject:
+    post:
+      operationId: rejectCard
+      summary: Reject a card and move to Backlog
+      parameters:
+        - name: cardId
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: reason
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Card rejected

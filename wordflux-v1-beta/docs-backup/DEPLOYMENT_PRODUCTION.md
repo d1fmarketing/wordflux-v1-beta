@@ -58,7 +58,7 @@ sudo docker ps
 
 # Should show:
 # - wordflux-postgres (port 5432)
-# - wordflux-kanboard (port 8080) 
+# - wordflux-TaskCafe (port 8080) 
 # - wordflux-redis (port 6379)
 ```
 
@@ -68,9 +68,9 @@ sudo docker ps
 - [ ] Running on PM2, not `npm run dev`
 - [ ] All Docker containers healthy
 - [ ] Environment variables in .env.local
-- [ ] KANBOARD_URL points to JSON-RPC endpoint (…/jsonrpc.php)
-- [ ] KANBOARD_USERNAME / KANBOARD_PASSWORD set
-- [ ] KANBOARD_PROJECT_ID and KANBOARD_SWIMLANE_ID set
+- [ ] TaskCafe_URL points to JSON-RPC endpoint (…/jsonrpc.php)
+- [ ] TaskCafe_USERNAME / TaskCafe_PASSWORD set
+- [ ] TaskCafe_PROJECT_ID and TaskCafe_SWIMLANE_ID set
 - [ ] Cloudflare tunnel running
 - [ ] Public URL accessible
 

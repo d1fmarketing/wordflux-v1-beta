@@ -24,7 +24,8 @@ export default function Board({ refreshKey }: BoardProps) {
       const data = await res.json()
       setColumns(data.state?.columns || [])
       setError(null)
-    } catch {
+    } catch (err) {
+      console.error('[Board] Failed to fetch board state:', err)
       setColumns([])
       setError('Failed to load board')
     } finally {

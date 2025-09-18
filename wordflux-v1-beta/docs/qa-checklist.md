@@ -1,8 +1,8 @@
 # QA Checklist (WordFlux v3)
 
 ## Preflight
-- [ ] `.env.local` configured (OpenAI + Kanboard JSON-RPC + project/swimlane)
-- [ ] Docker containers healthy (kanboard, postgres)
+- [ ] `.env.local` configured (OpenAI + TaskCafe JSON-RPC + project/swimlane)
+- [ ] Docker containers healthy (TaskCafe, postgres)
 - [ ] Build done (`npm run build`) and running via PM2
 - [ ] Cloudflare Tunnel active and public URL reachable
 
@@ -38,11 +38,11 @@ curl -s -X POST $BASE/api/board/move -H 'Content-Type: application/json' \
 
 ## Cloudflare URL
 - [ ] `/` loads chat + board
-- [ ] `/api/health/detailed` returns status (OpenAI, Kanboard, Redis if present)
+- [ ] `/api/health/detailed` returns status (OpenAI, TaskCafe, Redis if present)
 - [ ] `/api/board/state` accessible and fresh (no-cache)
 
 ## Regression Watchouts
-- Kanboard URL must be JSON-RPC endpoint (`.../jsonrpc.php`)
+- TaskCafe URL must be JSON-RPC endpoint (`.../jsonrpc.php`)
 - `moveTaskPosition` requires `project_id` and `swimlane_id`
 - Browser should never call `localhost:8080` directly (use server routes)
 

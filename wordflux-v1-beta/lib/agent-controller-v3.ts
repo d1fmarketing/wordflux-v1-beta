@@ -1,4 +1,4 @@
-import { KanboardClient } from './kanboard-client'
+import { TaskCafeClient } from './providers/taskcafe-client'
 import { AgentInterpreter } from './agent/interpreter'
 import { BoardState } from './board-state'
 
@@ -49,7 +49,7 @@ interface AutomationRule {
 }
 
 export class AgentControllerV3 {
-  public kanboard: KanboardClient
+  public taskcafe: TaskCafeClient
   private interpreter: AgentInterpreter
   public boardState: BoardState
   private actionHistory: any[] = []
@@ -66,14 +66,14 @@ export class AgentControllerV3 {
   }
 
   constructor() {
-    this.kanboard = new KanboardClient({
-      url: process.env.KANBOARD_URL!,
-      username: process.env.KANBOARD_USERNAME!,
-      password: process.env.KANBOARD_PASSWORD!
+    this.taskcafe = new TaskCafeClient({
+      url: process.env.TASKCAFE_URL!,
+      username: process.env.TASKCAFE_USERNAME!,
+      password: process.env.TASKCAFE_PASSWORD!
     })
     
     this.interpreter = new AgentInterpreter()
-    this.boardState = new BoardState(this.kanboard)
+    this.boardState = new BoardState(this.taskcafe)
     
     this.initializeAutomationRules()
   }
@@ -115,7 +115,7 @@ Return as JSON with this structure:
       const response = await this.callGPT(prompt)
       const breakdown = JSON.parse(response)
       
-      // Create tasks in Kanboard
+      // Create tasks in taskcafe
       for (const task of breakdown.tasks) {
         const created = await this.createTaskWithDependencies(task)
         task.id = created.taskId
@@ -139,8 +139,8 @@ Return as JSON with this structure:
 
   private async createTaskWithDependencies(task: Task): Promise<any> {
     // Create the main task
-    const projectId = parseInt(process.env.KANBOARD_PROJECT_ID || '1')
-    const taskId = await this.kanboard.createTask(
+    const projectId = parseInt(process.env.TASKCAFE_PROJECT_ID || '1')
+    const taskId = await this.taskcafe.createTask(
       projectId,
       task.title,
       undefined, // Let it use default column
@@ -149,17 +149,17 @@ Return as JSON with this structure:
     
     // Add metadata as comments
     if (task.estimatedHours) {
-      await this.kanboard.addComment(taskId, 
+      await this.taskcafe.addComment(taskId, 
         `⏱️ Estimated: ${task.estimatedHours} hours`)
     }
     
     if (task.dependencies?.length) {
-      await this.kanboard.addComment(taskId,
+      await this.taskcafe.addComment(taskId,
         `🔗 Dependencies: ${task.dependencies.join(', ')}`)
     }
     
     if (task.tags?.length) {
-      await this.kanboard.addComment(taskId,
+      await this.taskcafe.addComment(taskId,
         `🏷️ Tags: ${task.tags.join(' ')}`)
     }
     
@@ -290,16 +290,16 @@ Return as JSON with this structure:
     
     // Move to blocked column
     const columnId = 2 // Assuming Blocked is column 2
-    await this.kanboard.moveTask(
+    await this.taskcafe.moveTask(
       parseInt(task.id!),
       columnId,
-      parseInt(process.env.KANBOARD_PROJECT_ID!),
+      parseInt(process.env.TASKCAFE_PROJECT_ID!),
       1,
-      parseInt(process.env.KANBOARD_SWIMLANE_ID || '1')
+      parseInt(process.env.TASKCAFE_SWIMLANE_ID || '1')
     )
     
     // Add explanation comment
-    await this.kanboard.addComment(
+    await this.taskcafe.addComment(
       parseInt(task.id!),
       '🤖 Auto-moved to Blocked: No activity for 72+ hours. Need assistance?'
     )
@@ -317,12 +317,12 @@ Return as JSON with this structure:
     console.log(`⚡ Prioritizing urgent task: ${task.title}`)
     
     // Update color to red to indicate urgency
-    await this.kanboard.updateTask(parseInt(task.id!), {
+    await this.taskcafe.updateTask(parseInt(task.id!), {
       color_id: 'red'
     })
     
     // Add urgency comment
-    await this.kanboard.addComment(
+    await this.taskcafe.addComment(
       parseInt(task.id!),
       `🚨 Auto-prioritized: Due in less than 48 hours!`
     )
@@ -435,7 +435,7 @@ Return selected task IDs with total estimated hours.`
   private async suggestMergeTasks(task1: Task, task2: Task) {
     console.log(`🔄 Suggesting merge: "${task1.title}" and "${task2.title}"`)
     
-    await this.kanboard.addComment(
+    await this.taskcafe.addComment(
       parseInt(task1.id!),
       `🤖 Possible duplicate detected: This task is similar to #${task2.id} "${task2.title}". Consider merging?`
     )
@@ -546,17 +546,17 @@ Return selected task IDs with total estimated hours.`
       case 'auto_move_stale':
         // Move task back to In Progress
         const inProgressColumnId = 3 // Assuming In Progress is column 3
-        await this.kanboard.moveTask(
+        await this.taskcafe.moveTask(
           lastAction.taskId,
           inProgressColumnId,
-          parseInt(process.env.KANBOARD_PROJECT_ID!),
+          parseInt(process.env.TASKCAFE_PROJECT_ID!),
           1,
-          parseInt(process.env.KANBOARD_SWIMLANE_ID || '1')
+          parseInt(process.env.TASKCAFE_SWIMLANE_ID || '1')
         )
         break
       case 'auto_prioritize':
         // Reset color
-        await this.kanboard.updateTask(lastAction.taskId, { color_id: 'blue' })
+        await this.taskcafe.updateTask(lastAction.taskId, { color_id: 'blue' })
         break
       // Add more undo cases
     }

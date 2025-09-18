@@ -1,39 +1,56 @@
 import { NextResponse } from 'next/server'
-import { KanboardClient } from '@/lib/kanboard-client'
+import { getBoardProvider } from '@/lib/providers'
+import { getBoardStateManager } from '@/lib/board-state-manager'
+import { resolveLegacyColumn, resolveLegacyTask } from '@/lib/board-legacy'
 
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const { taskId, toColumnId, position = 1 } = body
+    const taskInput = body.taskId ?? body.task_id ?? body.id
+    const columnInput = body.toColumnId ?? body.column_id ?? body.columnId ?? body.column
+    const position = body.position ?? body.order ?? 1
 
-    if (!taskId || !toColumnId) {
+    if (!taskInput) {
       return NextResponse.json({
         ok: false,
-        error: 'Missing required parameters'
+        error: 'taskId is required'
       }, { status: 400 })
     }
 
-    const client = new KanboardClient({
-      url: process.env.KANBOARD_URL,
-      username: process.env.KANBOARD_USERNAME,
-      password: process.env.KANBOARD_PASSWORD
-    })
+    const provider = getBoardProvider()
+    const manager = getBoardStateManager()
 
-    const projectId = Number(process.env.KANBOARD_PROJECT_ID || 1)
-    const swimlaneId = Number(process.env.KANBOARD_SWIMLANE_ID || 1)
-    
-    const result = await client.moveTask(
-      projectId,
-      taskId,
-      toColumnId,
-      position,
-      swimlaneId
-    )
+    const taskResolution = await resolveLegacyTask(taskInput, manager)
+    if (!taskResolution) {
+      return NextResponse.json({
+        ok: false,
+        error: 'Task not found'
+      }, { status: 404 })
+    }
+
+    const columnResolution = columnInput !== undefined
+      ? await resolveLegacyColumn(columnInput, manager)
+      : taskResolution.column
+
+    if (!columnResolution) {
+      return NextResponse.json({
+        ok: false,
+        error: 'Target column not found'
+      }, { status: 400 })
+    }
+
+    const projectId = Number(process.env.TASKCAFE_PROJECT_ID || 1)
+    await provider.moveTask(projectId, taskResolution.remoteId, columnResolution.remoteId, position)
+
+    manager.sync().catch(err => console.warn('[board/move] sync refresh failed', err))
 
     return NextResponse.json({
       ok: true,
-      taskId,
-      toColumnId,
+      taskId: taskResolution.legacyId,
+      remoteTaskId: taskResolution.remoteId,
+      toColumnId: columnResolution.legacyId,
+      remoteColumnId: columnResolution.remoteId,
+      column: columnResolution.canonicalTitle,
       position
     })
   } catch (error) {

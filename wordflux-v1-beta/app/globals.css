@@ -2,6 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Global box sizing */
+html { box-sizing: border-box; }
+*, *::before, *::after { box-sizing: inherit; }
+
 @layer base {
   :root {
     /* Brand Colors */
@@ -33,6 +37,37 @@
     --input: 214.3 31.8% 91.4%;
     --ring: 15 100% 60%;
     --radius: 0.75rem;  /* 12px default radius */
+
+    /* Layout Tokens (mirror of TS tokens for CSS usage) */
+    --chat-min: 320px;
+    --chat-preferred: 376px;
+    --chat-max: 420px;
+    --header-height: 56px;
+
+    /* Base page background */
+    --bg: #FCFCFE;
+
+    /* Neutrals */
+    --ink-900: #0B0E1A;
+    --ink-700: #344054;
+    --ink-500: #667085;
+    --line: #EDEEF2;
+    --surface: #FFFFFF;
+    --surface-subtle: #F3F4F6;
+
+    /* Radii & Spacing */
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --radius-pill: 9999px;
+    --space-xs: 8px;
+    --space-sm: 12px;
+    --space-md: 16px;
+    --space-lg: 24px;
+
+    /* Brand deep tones for gradients (CSS mirror of tokens) */
+    --brand-600: #C2185B; /* BRAND_600 */
+    --brand-700: #B00020; /* BRAND_700 */
   }
 
   .dark {
@@ -64,10 +99,67 @@
   }
   body {
     @apply text-foreground;
-    background: linear-gradient(180deg, #fff9f9 0%, #fff5f0 100%);
-    color: var(--brand-navy);
+    background: var(--bg);
+    color: var(--ink-900);
     font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     min-height: 100vh;
+  }
+
+  /* Dark mode support */
+  .dark body {
+    background: #0B0E1A;
+    color: #F3F4F6;
+  }
+
+  .dark {
+    --brand-white: #0B0E1A;
+    --surface: #1a1a2e;
+    --surface-subtle: #2a2a3e;
+    --line: #3a3a4e;
+    --ink-900: #F3F4F6;
+    --ink-700: #D1D5DB;
+    --ink-500: #9CA3AF;
+  }
+
+  /* Responsive utilities */
+  .only-mobile {
+    display: none;
+  }
+
+  @media (max-width: 1024px) {
+    .only-mobile {
+      display: block;
+    }
+  }
+
+  /* Smooth scrolling */
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* Focus visible only for keyboard navigation */
+  *:focus {
+    outline: none;
+  }
+
+  *:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(194, 24, 91, .18);
+  }
+
+  button:focus-visible,
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible,
+  a:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(194, 24, 91, .18);
+  }
+
+  input[type="search"]:focus-visible {
+    outline: none;
+    border-color: var(--brand-600);
+    box-shadow: 0 0 0 3px rgba(194, 24, 91, .18);
   }
 }
 
@@ -143,15 +235,6 @@
   border: 1px solid rgba(0, 0, 35, 0.1);
 }
 
-/* Focus States */
-*:focus {
-  outline: 2px solid var(--brand-orange);
-  outline-offset: 2px;
-}
-
-*:focus:not(:focus-visible) {
-  outline: none;
-}
 
 /* Animations */
 @keyframes fadeIn {
@@ -177,3 +260,52 @@
   outline: 1px dashed rgba(255, 102, 51, 0.35);
   outline-offset: -1px;
 }
+
+/* Responsive helpers */
+@media (min-width: 1025px) {
+  .only-mobile { display: none !important; }
+}
+@media (max-width: 1024px) {
+  .hide-mobile { display: none !important; }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+}
+
+
+/* ============================================ */
+/* Surgical removal of skeleton/shimmer only - preserves functionality */
+
+/* Target ONLY skeleton/shimmer animations specifically */
+@keyframes shimmer { to { transform: none !important; } }
+@keyframes skeleton { to { opacity: 1 !important; } }
+@keyframes loading { to { opacity: 1 !important; } }
+
+/* Destroy ONLY elements that are actually skeletons */
+*[class*="skeleton"],
+*[class*="Skeleton"],
+*[class*="shimmer"],
+*[class*="Shimmer"],
+*[class*="loading-overlay"],
+*[class*="LoadingOverlay"] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  position: fixed !important;
+  left: -999999px !important;
+  z-index: -999999 !important;
+}
+
+/* Kill animations ONLY in board columns to prevent overlays */
+.column *[class*="skeleton"],
+.column *[class*="shimmer"],
+.tasks *[class*="skeleton"],
+.tasks *[class*="shimmer"] {
+  animation: none !important;
+  display: none !important;
+}
+
+@import "./styles/tokens.css";

@@ -19,18 +19,18 @@ npm install
 cp .env.example .env.local
 # Edit .env.local
 # - OPENAI_API_KEY=...
-# - KANBOARD_URL=http://localhost:8080/jsonrpc.php
-# - KANBOARD_USERNAME=admin
-# - KANBOARD_PASSWORD=admin
-# - KANBOARD_PROJECT_ID=1
-# - KANBOARD_SWIMLANE_ID=1
+# - TaskCafe_URL=http://localhost:8080/jsonrpc.php
+# - TaskCafe_USERNAME=admin
+# - TaskCafe_PASSWORD=admin
+# - TaskCafe_PROJECT_ID=1
+# - TaskCafe_SWIMLANE_ID=1
 ```
 
-3) Start Kanboard (Docker)
+3) Start TaskCafe (Docker)
 ```bash
 cd docker
 sudo docker compose up -d
-sudo docker ps   # verify kanboard + postgres are up
+sudo docker ps   # verify TaskCafe + postgres are up
 ```
 
 4) Dev or Prod
@@ -66,7 +66,7 @@ curl -s -X POST http://localhost:3001/api/chat \
 ## Tips & Troubleshooting
 - GPT‑5 temperature: model enforces default (1). Don’t override.
 - Move task RPC requires `project_id` and `swimlane_id`. Missing either → "Invalid params".
-- Browser cannot call `localhost:8080`; always fetch Kanboard through server routes (e.g., `/api/board/state`).
+- Browser cannot call `localhost:8080`; always fetch TaskCafe through server routes (e.g., `/api/board/state`).
 - If PM2 app binds to 3001, use that for tunnels and curls.
-- White/blank iframe: Kanboard sets `X-Frame-Options`. Use our native board UI instead of iframes.
+- White/blank iframe: TaskCafe sets `X-Frame-Options`. Use our native board UI instead of iframes.
 

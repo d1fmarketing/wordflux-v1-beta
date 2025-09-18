@@ -1,7 +1,8 @@
 import OpenAI from 'openai'
-import { KanboardClient } from '../kanboard-client'
+import { TaskCafeClient } from '../providers/taskcafe-client'
 import { BoardState } from '../board-state'
 import { tools } from './tools'
+import { callMcp } from '../mcp-client'
 import { UserMemory } from './memory'
 import { enforceStyle, formatOutput, detectOutputType } from '../style-guard'
 
@@ -15,7 +16,7 @@ interface ProcessResult {
 
 export class FunctionAgent {
   private openai: OpenAI
-  private kanboard: KanboardClient
+  private taskcafe: TaskCafeClient
   private boardState: BoardState
   private memory: UserMemory
   private systemPrompt: string
@@ -25,13 +26,13 @@ export class FunctionAgent {
       apiKey: process.env.OPENAI_API_KEY
     })
 
-    this.kanboard = new KanboardClient({
-      url: process.env.KANBOARD_URL!,
-      username: process.env.KANBOARD_USERNAME!,
-      password: process.env.KANBOARD_PASSWORD!
+    this.taskcafe = new TaskCafeClient({
+      url: process.env.TASKCAFE_URL!,
+      username: process.env.TASKCAFE_USERNAME!,
+      password: process.env.TASKCAFE_PASSWORD!
     })
 
-    this.boardState = new BoardState(this.kanboard)
+    this.boardState = new BoardState(this.taskcafe)
     this.memory = new UserMemory()
 
     this.systemPrompt = `You are WordFlux Board Orchestrator. Your job is to turn messages into board actions with zero fluff.
@@ -183,32 +184,23 @@ Never output anything outside these formats.`
   private async executeToolCall(toolCall: OpenAI.Chat.ChatCompletionMessageToolCall): Promise<any> {
     const functionName = toolCall.function.name
     const args = JSON.parse(toolCall.function.arguments)
-    const projectId = parseInt(process.env.KANBOARD_PROJECT_ID || '1')
+    const projectId = parseInt(process.env.TASKCAFE_PROJECT_ID || '1')
 
     try {
       switch (functionName) {
         case 'kb_create_task': {
-          const columns = await this.kanboard.getColumns(projectId)
+          const columns = await this.taskcafe.getColumns(projectId)
           const targetColumn = columns.find((c: any) => 
             c.title.toLowerCase() === args.column.toLowerCase()
           ) || columns[0]
-
-          const taskId = await this.kanboard.createTask(
-            projectId,
-            args.title,
-            targetColumn.id,
-            args.description,
-            {
-              owner_id: args.assignee ? await this.getUserId(args.assignee) : undefined,
-              date_due: args.dueDate,
-              tags: args.labels,
-              score: args.points
-            }
-          )
-
+          const result = await callMcp('create_card', {
+            title: args.title,
+            columnId: targetColumn.id,
+            description: args.description
+          })
           return {
             success: true,
-            taskId,
+            taskId: result?.taskId,
             title: args.title,
             column: targetColumn.title
           }
@@ -216,7 +208,7 @@ Never output anything outside these formats.`
 
         case 'kb_move_task': {
           const taskId = await this.resolveTaskId(args.taskId)
-          const columns = await this.kanboard.getColumns(projectId)
+          const columns = await this.taskcafe.getColumns(projectId)
           const targetColumn = columns.find((c: any) => 
             c.title.toLowerCase() === args.toColumn.toLowerCase()
           )
@@ -225,7 +217,7 @@ Never output anything outside these formats.`
             throw new Error(`Column not found: ${args.toColumn}`)
           }
 
-          await this.kanboard.moveTask(taskId, targetColumn.id, projectId, args.position)
+          await callMcp('move_card', { taskId, toColumnId: targetColumn.id, position: args.position })
 
           return {
             success: true,
@@ -236,7 +228,7 @@ Never output anything outside these formats.`
 
         case 'kb_assign_task': {
           const taskId = await this.resolveTaskId(args.taskId)
-          await this.kanboard.assignTask(taskId, args.assignee)
+          await callMcp('assign_card', { taskId, assignee: args.assignee })
 
           return {
             success: true,
@@ -248,7 +240,7 @@ Never output anything outside these formats.`
         case 'kb_set_due_date': {
           const taskId = await this.resolveTaskId(args.taskId)
           const dueDate = this.parseDueDate(args.date)
-          await this.kanboard.setTaskDueDate(taskId, dueDate)
+          await callMcp('set_due', { taskId, when: args.date })
 
           return {
             success: true,
@@ -259,7 +251,7 @@ Never output anything outside these formats.`
 
         case 'kb_add_label': {
           const taskId = await this.resolveTaskId(args.taskId)
-          await this.kanboard.addTaskLabel(taskId, args.label)
+          await callMcp('add_label', { taskId, label: args.label })
 
           return {
             success: true,
@@ -270,18 +262,18 @@ Never output anything outside these formats.`
 
         case 'kb_add_comment': {
           const taskId = await this.resolveTaskId(args.taskId)
-          const commentId = await this.kanboard.addTaskComment(taskId, args.content)
+          const result = await callMcp('add_comment', { taskId, content: args.content })
 
           return {
             success: true,
             taskId,
-            commentId
+            commentId: result?.commentId
           }
         }
 
         case 'kb_set_points': {
           const taskId = await this.resolveTaskId(args.taskId)
-          await this.kanboard.updateTaskScore(taskId, args.points)
+          await callMcp('set_points', { taskId, points: args.points })
 
           return {
             success: true,
@@ -291,7 +283,14 @@ Never output anything outside these formats.`
         }
 
         case 'kb_search_tasks': {
-          const tasks = await this.searchTasks(args.query)
+          const result = await callMcp('list_cards')
+          const columns = Array.isArray(result?.columns) ? result.columns : []
+          const query = String(args.query || '').toLowerCase()
+          const tasks = columns.flatMap((col: any) => (col.cards || []).filter((card: any) => {
+            const title = String(card.title || '').toLowerCase()
+            const desc = String(card.description || '').toLowerCase()
+            return title.includes(query) || desc.includes(query)
+          }).map((card: any) => ({ id: card.id, title: card.title, column_id: col.id, column: col.name })))
           return {
             success: true,
             tasks,
@@ -299,6 +298,16 @@ Never output anything outside these formats.`
           }
         }
 
+
+        case 'kb_update_task': {
+          const taskId = await this.resolveTaskId(args.taskId)
+          await callMcp('update_card', { taskId, title: args.updates?.title, description: args.updates?.description, points: args.updates?.points })
+          return {
+            success: true,
+            taskId,
+            updates: args.updates
+          }
+        }
         case 'kb_get_board_summary': {
           const summary = await this.getBoardSummary(args.detailed)
           return {
@@ -316,13 +325,11 @@ Never output anything outside these formats.`
           }
 
           const taskId = await this.resolveTaskId(args.taskId)
-          const task = await this.kanboard.getTask(taskId)
-          await this.kanboard.removeTask(taskId)
+          await callMcp('remove_card', { taskId })
 
           return {
             success: true,
-            taskId,
-            title: task.title
+            taskId
           }
         }
 
@@ -334,7 +341,7 @@ Never output anything outside these formats.`
             }
           }
 
-          const columns = await this.kanboard.getColumns(projectId)
+          const columns = await this.taskcafe.getColumns(projectId)
           const targetColumn = columns.find((c: any) => 
             c.title.toLowerCase() === args.toColumn.toLowerCase()
           )
@@ -347,7 +354,7 @@ Never output anything outside these formats.`
           for (const taskRef of args.taskIds) {
             try {
               const taskId = await this.resolveTaskId(taskRef)
-              await this.kanboard.moveTask(taskId, targetColumn.id, projectId)
+              await callMcp('move_card', { taskId, toColumnId: targetColumn.id })
               results.push({ taskId, success: true })
             } catch (error) {
               results.push({ taskId: taskRef, success: false, error: error.message })
@@ -403,7 +410,7 @@ Never output anything outside these formats.`
     }
 
     try {
-      const users = await this.kanboard.request('getAllUsers', {})
+      const users = await this.taskcafe.request('getAllUsers', {})
       const user = users.find((u: any) => 
         u.username === username || u.name === username
       )
@@ -601,7 +608,10 @@ Never output anything outside these formats.`
       'kb_remove_label',
       'kb_add_comment',
       'kb_set_points',
-      'kb_bulk_move'
+      'kb_bulk_move',
+      'kb_tidy_board',
+      'kb_tidy_column',
+      'kb_undo_last'
     ]
     
     return modifyingActions.includes(toolName)

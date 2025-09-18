@@ -1,10 +1,14 @@
 import { NextResponse } from 'next/server'
-import { KanboardClient } from '@/lib/kanboard-client'
+import { getBoardProvider } from '@/lib/providers'
+import { getBoardStateManager } from '@/lib/board-state-manager'
+import { resolveLegacyColumn, numericHash } from '@/lib/board-legacy'
 
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const { title, columnId, description } = body
+    const title: string | undefined = body.title
+    const description: string | undefined = body.description
+    const columnInput = body.columnId ?? body.column_id ?? body.column ?? body.columnName ?? body.column_legacy_id
 
     if (!title) {
       return NextResponse.json({
@@ -13,26 +17,35 @@ export async function POST(request: Request) {
       }, { status: 400 })
     }
 
-    const client = new KanboardClient({
-      url: process.env.KANBOARD_URL,
-      username: process.env.KANBOARD_USERNAME,
-      password: process.env.KANBOARD_PASSWORD
-    })
+    const provider = getBoardProvider()
+    const manager = getBoardStateManager()
 
-    const projectId = Number(process.env.KANBOARD_PROJECT_ID || 1)
-    
-    const taskId = await client.createTask(
-      projectId,
-      title,
-      columnId ? Number(columnId) : undefined,
-      description
-    )
+    const columnResolution = await resolveLegacyColumn(columnInput, manager)
+    if (!columnResolution) {
+      return NextResponse.json({
+        ok: false,
+        error: 'Column not found'
+      }, { status: 400 })
+    }
 
-    console.log('Task created:', { taskId, title, columnId })
+    const projectId = Number(process.env.TASKCAFE_PROJECT_ID || 1)
+    const taskId = await provider.createTask(projectId, title, columnResolution.remoteId, description)
+
+    // Refresh board state asynchronously to keep /api/board/sync updated
+    manager.sync().catch(err => console.warn('[board/create] sync refresh failed', err))
+
+    const legacyTaskId = numericHash(`${taskId}:${columnResolution.remoteId}`)
 
     return NextResponse.json({
       ok: true,
-      taskId
+      task: {
+        id: legacyTaskId,
+        remoteId: String(taskId),
+        title,
+        columnId: columnResolution.legacyId,
+        column: columnResolution.canonicalTitle,
+        columnOriginal: columnResolution.originalTitle
+      }
     })
   } catch (error) {
     console.error('Create task error:', error)

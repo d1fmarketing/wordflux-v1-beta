@@ -3,22 +3,29 @@
 ## 🚀 Production Status: LIVE at http://52.4.68.118
 
 ## Overview
-WordFlux v1-beta combines Kanboard (MIT-licensed kanban board) with a GPT-5-mini powered chat interface to create an intelligent task management system. Currently running in production on AWS EC2.
+WordFlux v1-beta combines TaskCafe (MIT-licensed kanban board) with a GPT-5-mini powered chat interface to create an intelligent task management system. Currently running in production on AWS EC2.
 
 ## Architecture
-- **Backend**: Kanboard with JSON-RPC API (Docker container on localhost:8090)
+- **Backend**: TaskCafe with JSON-RPC API (Docker container on localhost:8090)
 - **Frontend**: Next.js 14.2.5 with TypeScript
 - **AI**: OpenAI GPT-5-mini for natural language processing
-- **Database**: SQLite (embedded in Kanboard container)
+- **Database**: SQLite (embedded in TaskCafe container)
 - **Process Manager**: PM2 (wf-v1-beta)
 - **Reverse Proxy**: Nginx
+
+### MCP (Model Context Protocol) Architecture
+- **Agent-First Design**: The system is designed for AI agents to control the board
+- **Unified Protocol**: Both chat commands AND drag-and-drop use the same MCP backend
+- **Operations**: create_card, move_card, update_card, remove_card, bulk operations
+- **Board as View**: The board UI is a read-only view of agent-controlled state
+- **Event System**: Changes trigger events for immediate UI updates
 
 ## Features
 - Natural language task management through chat (GPT‑5)
 - Real-time board with optimistic updates (create/move)
 - Filters in UI: search, column, status (All/Active/Done)
 - Drag & drop between columns and reordering
-- JSON‑RPC integration with Kanboard
+- JSON‑RPC integration with TaskCafe
 - Responsive 2‑pane layout (Chat + Board)
 
 ## Final UI Spec (v1-beta)
@@ -26,7 +33,7 @@ WordFlux v1-beta combines Kanboard (MIT-licensed kanban board) with a GPT-5-mini
 - Single screen: Workspace = Board + Chat (chat on the left, fixed 384px; board on the right, flexible)
 - Chat drives all actions (create/move/delete); board auto‑syncs; no board buttons.
 - Board header sticky at the top of the board pane; no horizontal scroll at 1024×600, 1366×768, 1920×1080.
-- Health/fallback: if Kanboard is down, the server returns a stub board (3 columns). The UI never breaks.
+- Health/fallback: if TaskCafe is down, the server returns a stub board (3 columns). The UI never breaks.
 
 Tokens
 - HEADER_HEIGHT_REM=3.5, CHAT_FIXED_PX=384, SPACE_SM=12, SPACE_MD=16, RADIUS_MD=8
@@ -55,11 +62,11 @@ Behaviors
 # 1. Install dependencies
 npm install
 
-# 2. Start Kanboard container
-docker run -d --name wordflux-kanboard \
+# 2. Start TaskCafe container
+docker run -d --name wordflux-TaskCafe \
   -p 127.0.0.1:8090:80 \
-  kanboard/kanboard:latest
-> If using a remote Kanboard, configure `.env.local` to point to it (see `.env.example`).
+  TaskCafe/TaskCafe:latest
+> If using a remote TaskCafe, configure `.env.local` to point to it (see `.env.example`).
 
 # 3. Configure environment
 cp .env.example .env.local
@@ -94,18 +101,18 @@ Host-built runner (Docker, no npm in Docker)
 OPENAI_API_KEY=your_key_here
 OPENAI_MODEL=gpt-5-mini
 
-# Kanboard (JSON-RPC)
-KANBOARD_URL=http://localhost:8090/jsonrpc.php
-KANBOARD_USERNAME=jsonrpc
-KANBOARD_PASSWORD=your_token_here
-KANBOARD_PROJECT_ID=1
-KANBOARD_SWIMLANE_ID=1
+# TaskCafe (JSON-RPC)
+TaskCafe_URL=http://localhost:8090/jsonrpc.php
+TaskCafe_USERNAME=jsonrpc
+TaskCafe_PASSWORD=your_token_here
+TaskCafe_PROJECT_ID=1
+TaskCafe_SWIMLANE_ID=1
 
 > Validate connectivity from the server:
 > ```bash
-> curl -s -X POST $KANBOARD_URL \
+> curl -s -X POST $TaskCafe_URL \
 >   -H 'Content-Type: application/json' \
->   -u "$KANBOARD_USERNAME:$KANBOARD_PASSWORD" \
+>   -u "$TaskCafe_USERNAME:$TaskCafe_PASSWORD" \
 >   -d '{"jsonrpc":"2.0","method":"getVersion","id":1}'
 > ```
 
@@ -132,14 +139,15 @@ KANBOARD_SWIMLANE_ID=1
 
 ## Chat Commands
 - Create: "Create a new task called [title] in [column]"
-- Move: "Move #[id] to [column]"
+- Move: "Move #[id] to [column]" or "done #[id]" or "start task name"
 - Update: "Update #[id] description to [text]"
-- Delete: "Delete #[id]"
+- Delete: "Delete #[id]" or "remove task name" or "apagar #[id]" (Portuguese)
 - List: "List all tasks" or "Show tasks in Ready status active"
 - Search: "Search auth in Ready done" or "Search for [keyword]"
+- Summary: "board summary" or "daily summary" or "whats in progress"
 
 Notes
-- Status filter maps to Kanboard `is_active` (active=1, done=0)
+- Status filter maps to TaskCafe `is_active` (active=1, done=0)
 - Assignee filter supports plain usernames; `me` is reserved (identity mapping TBD)
 
 ## Agent Intents (Schemas + Examples)
@@ -156,6 +164,9 @@ Shapes
 
 // update
 { "type": "update_card", "identifier": "#ID or title", "updates": { "title?": "string", "description?": "string" } }
+
+// delete/remove
+{ "type": "remove_task", "task": "#ID or title" }
 
 // delete
 { "type": "delete_card", "identifier": "#ID or title" }
@@ -199,10 +210,10 @@ wordflux-v3/
 │   ├── components/   # React components
 │   └── page.tsx      # Main page
 ├── lib/
-│   ├── kanboard-client.ts  # Kanboard API client
+│   ├── TaskCafe-client.ts  # TaskCafe API client
 │   └── agent-controller.ts # GPT-5 agent logic
 ├── docker/
-│   └── docker-compose.yml  # Kanboard + PostgreSQL
+│   └── docker-compose.yml  # TaskCafe + PostgreSQL
 └── ecosystem.config.js     # PM2 configuration
 ```
 
@@ -248,7 +259,7 @@ MIT
 ## Support
 For issues and questions, check the logs:
 - PM2 logs: `pm2 logs wordflux-v3`
-- Docker logs: `sudo docker logs wordflux-kanboard`
+- Docker logs: `sudo docker logs wordflux-TaskCafe`
 
 ---
-Built with ❤️ using Kanboard, Next.js, and GPT-5
+Built with ❤️ using TaskCafe, Next.js, and GPT-5

@@ -1,5 +1,5 @@
 import { EventEmitter } from 'events'
-import { KanboardClient } from './kanboard-client'
+import { TaskCafeClient } from './providers/taskcafe-client'
 import crypto from 'crypto'
 
 interface BoardData {
@@ -23,16 +23,16 @@ interface BoardData {
 }
 
 export class BoardState extends EventEmitter {
-  private client: KanboardClient
+  private client: TaskCafeClient
   private pollInterval: number
   private state: BoardData | null = null
   private polling = false
   private pollTimer: NodeJS.Timeout | null = null
   private lastHash: string | null = null
 
-  constructor(kanboardClient: KanboardClient, pollInterval = 3000) {
+  constructor(TaskCafeClient: TaskCafeClient, pollInterval = 3000) {
     super()
-    this.client = kanboardClient
+    this.client = TaskCafeClient
     this.pollInterval = pollInterval
   }
 
@@ -95,7 +95,7 @@ export class BoardState extends EventEmitter {
 
   // Fetch current board state
   private async fetchBoardState(): Promise<BoardData> {
-    const projectId = parseInt(process.env.KANBOARD_PROJECT_ID || '1')
+    const projectId = parseInt(process.env.TASKCAFE_PROJECT_ID || '1')
     
     // Validate project ID
     if (!projectId || isNaN(projectId)) {

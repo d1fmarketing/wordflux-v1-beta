@@ -343,6 +343,42 @@ export const tools = [
         required: ['taskId']
       }
     }
+  },
+  {
+    type: 'function' as const,
+    function: {
+      name: 'kb_undo_last',
+      description: 'Undo the last board mutation',
+      parameters: {
+        type: 'object',
+        properties: {},
+        required: []
+      }
+    }
+  },
+  {
+    type: 'function' as const,
+    function: {
+      name: 'kb_tidy_board',
+      description: 'Tidy the board (move empty cards, normalize titles, remove duplicates)',
+      parameters: {
+        type: 'object',
+        properties: {},
+        required: []
+      }
+    }
+  },
+  {
+    type: 'function' as const,
+    function: {
+      name: 'kb_tidy_column',
+      description: 'Tidy a single column (move empty cards back, normalize titles, remove duplicates)',
+      parameters: {
+        type: 'object',
+        properties: { column: { type: 'string', description: 'Column name to tidy' } },
+        required: ['column']
+      }
+    }
   }
 ]
 

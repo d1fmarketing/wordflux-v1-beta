@@ -1,0 +1,60 @@
+.btn {
+  appearance: none;
+  border: 0;
+  border-radius: 12px;
+  padding: 8px 12px;
+  font: 600 14px/1.2 Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  cursor: pointer;
+  transition: transform .12s ease, box-shadow .16s ease, filter .16s ease;
+  outline: none;
+}
+.btn:focus-visible { box-shadow: 0 0 0 3px rgba(194,24,91,.18); }
+
+.primary {
+  color: #fff;
+  background: linear-gradient(135deg, var(--brand-700), var(--brand-600));
+  box-shadow: 0 1px 1px rgba(0,0,0,.04), 0 6px 16px rgba(176,0,32,.18);
+}
+.primary:hover { filter: brightness(1.02); transform: translateY(-1px); }
+.primary:active { transform: translateY(0); }
+
+.secondary {
+  background: #F6F7FA;
+  border: 1px solid var(--line);
+  color: var(--ink-700);
+}
+.secondary:hover { background: #F3F4F6; }
+
+.ghost {
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--ink-700);
+}
+
+.icon {
+  border-radius: 9999px;
+  width: 36px;
+  height: 36px;
+  display: inline-grid;
+  place-items: center;
+  background: #F6F7FA;
+  border: 1px solid var(--line);
+  color: var(--ink-700);
+}
+.icon:hover { background: #F3F4F6; }
+
+.spinner {
+  width: 14px;
+  height: 14px;
+  margin-right: 8px;
+  border-radius: 50%;
+  border: 2px solid rgba(255,255,255,.55);
+  border-top-color: #fff;
+  animation: btnspin .8s linear infinite;
+  display: inline-block;
+}
+
+@keyframes btnspin {
+  to { transform: rotate(360deg); }
+}
+

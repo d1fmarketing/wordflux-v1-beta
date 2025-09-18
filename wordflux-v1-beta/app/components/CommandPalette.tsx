@@ -200,6 +200,24 @@ export function CommandPalette({ isOpen, onClose, onExecute, suggestions = [] }:
     }
   }, [isOpen])
 
+  // Focus trap to keep tabbing within the palette while open
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleTab = (e: KeyboardEvent) => {
+      if (e.key !== 'Tab' || !containerRef.current) return;
+      const focusables = Array.from(
+        containerRef.current.querySelectorAll<HTMLElement>("input, [tabindex='0'], button, [href], select, textarea")
+      );
+      if (focusables.length === 0) return;
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      if (e.shiftKey && (document.activeElement === first)) { e.preventDefault(); (last as HTMLElement).focus(); } else if (!e.shiftKey && (document.activeElement === last)) { e.preventDefault(); (first as HTMLElement).focus(); }
+    };
+    window.addEventListener('keydown', handleTab);
+    return () => window.removeEventListener('keydown', handleTab);
+  }, [isOpen]);
+
+
   const handleExecute = async (command: Command) => {
     setIsProcessing(true)
     try {
@@ -213,7 +231,7 @@ export function CommandPalette({ isOpen, onClose, onExecute, suggestions = [] }:
   if (!isOpen) return null
 
   return createPortal(
-    <div
+    <div role="dialog" aria-modal="true" aria-label="Command Palette"
       className="command-palette-overlay"
       onClick={(e) => e.target === e.currentTarget && onClose()}
       style={{
@@ -264,7 +282,7 @@ export function CommandPalette({ isOpen, onClose, onExecute, suggestions = [] }:
           />
         </div>
 
-        <div style={{
+        <div role="listbox" aria-label="Command list" style={{
           maxHeight: 400,
           overflowY: 'auto',
           padding: 8
@@ -280,7 +298,7 @@ export function CommandPalette({ isOpen, onClose, onExecute, suggestions = [] }:
             </div>
           ) : (
             filteredCommands.map((cmd, index) => (
-              <div
+              <div role="option" aria-selected={index === selectedIndex} tabIndex={0}
                 key={cmd.id}
                 onClick={() => handleExecute(cmd)}
                 style={{

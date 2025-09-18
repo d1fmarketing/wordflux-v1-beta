@@ -1,0 +1,45 @@
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--surface, #fff);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 12px;
+  padding: 14px 16px;
+  cursor: pointer;
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.card:hover {
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.1);
+  transform: translateY(-2px);
+}
+
+.card:focus-visible {
+  outline: 2px solid rgba(59, 130, 246, 0.4);
+  outline-offset: 2px;
+}
+
+.title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.description {
+  margin: 0;
+  font-size: 13px;
+  color: #4b5563;
+  line-height: 1.45;
+}
+
+.due {
+  font-size: 12px;
+  color: #475569;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}

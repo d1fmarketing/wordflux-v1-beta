@@ -1,22 +1,22 @@
 #!/usr/bin/env node
 
 import he from 'he'
-import { KanboardClient } from '../lib/kanboard-client'
+import { TaskCafeClient } from '../lib/providers/taskcafe-client'
 import dotenv from 'dotenv'
 import path from 'path'
 
 // Load environment variables
 dotenv.config({ path: path.join(__dirname, '..', '.env.local') })
 
-const PROJECT_ID = Number(process.env.KANBOARD_PROJECT_ID || 1)
+const PROJECT_ID = Number(process.env.TASKCAFE_PROJECT_ID || 1)
 
 async function fixEncodedTitles() {
   console.log('🔧 Starting HTML entity fix for task titles...\n')
   
-  const client = new KanboardClient({
-    url: process.env.KANBOARD_URL || 'http://localhost:8090/jsonrpc.php',
-    username: process.env.KANBOARD_USERNAME || 'jsonrpc',
-    password: process.env.KANBOARD_PASSWORD || 'wordflux-api-token-2025'
+  const client = new TaskCafeClient({
+    url: process.env.TASKCAFE_URL || 'http://localhost:8090/jsonrpc.php',
+    username: process.env.TASKCAFE_USERNAME || 'jsonrpc',
+    password: process.env.TASKCAFE_PASSWORD || 'wordflux-api-token-2025'
   })
 
   try {

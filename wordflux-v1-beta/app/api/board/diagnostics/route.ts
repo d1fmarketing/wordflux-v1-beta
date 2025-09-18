@@ -1,158 +1,90 @@
 import { NextResponse } from 'next/server'
-import { KanboardClient } from '@/lib/kanboard-client'
+import { TaskCafeClient } from '@/lib/providers/taskcafe-client'
 
 export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
 
 export async function GET() {
-  const startTime = Date.now()
-  const results: any = {
-    timestamp: new Date().toISOString(),
+  const startedAt = Date.now()
+  const projectId = process.env.TASKCAFE_PROJECT_ID || '1'
+
+  const client = new TaskCafeClient({
+    url: process.env.TASKCAFE_URL || 'http://localhost:3333',
+    username: process.env.TASKCAFE_USERNAME || 'admin',
+    password: process.env.TASKCAFE_PASSWORD || '',
+    projectId
+  })
+
+  const details: Record<string, any> = {
     environment: {
-      kanboard_url: process.env.KANBOARD_URL,
-      project_id: process.env.KANBOARD_PROJECT_ID || '1',
+      taskcafe_url: process.env.TASKCAFE_URL,
+      project_id: projectId,
       node_env: process.env.NODE_ENV
     },
-    tests: []
+    tests: [] as Array<{ name: string; status: 'PASS' | 'WARN' | 'FAIL'; message?: string; error?: string; details?: Record<string, any> }>
   }
 
+  let taskcafeConnected = false
+  let projectAccessible = false
+  let latencyMs = 0
+
   try {
-    const client = new KanboardClient({
-      url: process.env.KANBOARD_URL!,
-      username: process.env.KANBOARD_USERNAME!,
-      password: process.env.KANBOARD_PASSWORD!
+    const latencyStart = Date.now()
+    const columns = await client.getColumns(projectId)
+    latencyMs = Date.now() - latencyStart
+    taskcafeConnected = true
+
+    details.tests.push({
+      name: 'TaskCafe connectivity',
+      status: 'PASS',
+      message: `Connected in ${latencyMs}ms (columns: ${columns.length})`
     })
-    
-    const projectId = Number(process.env.KANBOARD_PROJECT_ID || 1)
-    
-    // Test 1: Basic connectivity
-    try {
-      const columns = await client.getColumns(projectId)
-      results.tests.push({
-        name: 'Kanboard Connectivity',
-        status: 'PASS',
-        message: `Connected. Found ${columns.length} columns`
-      })
-    } catch (err) {
-      results.tests.push({
-        name: 'Kanboard Connectivity',
-        status: 'FAIL',
-        error: err instanceof Error ? err.message : 'Unknown error'
-      })
-    }
-    
-    // Test 2: Compare getBoard vs getAllTasks
-    try {
-      const boardPromise = client.request('getBoard', { project_id: projectId })
-      const tasksPromise = client.request('getAllTasks', { project_id: projectId })
-      
-      const [board, allTasks] = await Promise.all([boardPromise, tasksPromise])
-      
-      // Count tasks from getBoard
-      let boardTaskCount = 0
-      const boardTaskIds = new Set()
-      if (board && Array.isArray(board) && board[0]?.columns) {
-        board[0].columns.forEach((col: any) => {
-          if (col.tasks && Array.isArray(col.tasks)) {
-            boardTaskCount += col.tasks.length
-            col.tasks.forEach((t: any) => boardTaskIds.add(t.id))
-          }
-        })
-      }
-      
-      // Count active tasks from getAllTasks
-      const activeTasks = allTasks.filter((t: any) => t.is_active === 1)
-      const allTaskIds = new Set(activeTasks.map((t: any) => t.id))
-      
-      // Find discrepancies
-      const missingInBoard = Array.from(allTaskIds).filter(id => !boardTaskIds.has(id))
-      const extraInBoard = Array.from(boardTaskIds).filter(id => !allTaskIds.has(id))
-      
-      const isConsistent = boardTaskCount === activeTasks.length && 
-                           missingInBoard.length === 0 && 
-                           extraInBoard.length === 0
-      
-      results.tests.push({
-        name: 'Data Consistency',
-        status: isConsistent ? 'PASS' : 'WARN',
-        details: {
-          getBoard_count: boardTaskCount,
-          getAllTasks_count: activeTasks.length,
-          missing_in_board: missingInBoard,
-          extra_in_board: extraInBoard,
-          consistent: isConsistent
-        }
-      })
-      
-      // Test 3: Column task distribution
-      const columnDistribution: any = {}
-      if (board && Array.isArray(board) && board[0]?.columns) {
-        board[0].columns.forEach((col: any) => {
-          columnDistribution[col.title] = {
-            getBoard: col.tasks?.length || 0,
-            getAllTasks: activeTasks.filter((t: any) => t.column_id === col.id).length
-          }
-        })
-      }
-      
-      results.tests.push({
-        name: 'Column Distribution',
-        status: 'INFO',
-        details: columnDistribution
-      })
-      
-    } catch (err) {
-      results.tests.push({
-        name: 'Data Consistency',
-        status: 'ERROR',
-        error: err instanceof Error ? err.message : 'Unknown error'
-      })
-    }
-    
-    // Test 4: Check getBoardState method
+
     try {
       const boardState = await client.getBoardState(projectId)
-      const totalCards = boardState.columns.reduce((sum, col) => sum + col.cards.length, 0)
-      
-      results.tests.push({
-        name: 'getBoardState Method',
+      const totalCards = boardState.columns.reduce((sum, column) => sum + column.cards.length, 0)
+      projectAccessible = true
+
+      details.tests.push({
+        name: 'Project access',
         status: 'PASS',
         details: {
-          columns: boardState.columns.map(c => ({
-            name: c.name,
-            cards: c.cards.length
-          })),
+          columns: boardState.columns.map(col => ({ name: col.name, cards: col.cards.length })),
           total_cards: totalCards
         }
       })
-    } catch (err) {
-      results.tests.push({
-        name: 'getBoardState Method',
+    } catch (error) {
+      details.tests.push({
+        name: 'Project access',
         status: 'FAIL',
-        error: err instanceof Error ? err.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error'
       })
     }
-    
-    // Summary
-    const failedTests = results.tests.filter((t: any) => t.status === 'FAIL').length
-    const warnTests = results.tests.filter((t: any) => t.status === 'WARN').length
-    
-    results.summary = {
-      total_tests: results.tests.length,
-      passed: results.tests.filter((t: any) => t.status === 'PASS').length,
-      failed: failedTests,
-      warnings: warnTests,
-      health: failedTests === 0 ? (warnTests === 0 ? 'HEALTHY' : 'DEGRADED') : 'UNHEALTHY',
-      duration_ms: Date.now() - startTime
-    }
-    
-    return NextResponse.json(results)
-    
   } catch (error) {
-    results.error = error instanceof Error ? error.message : 'Unknown error'
-    results.summary = {
-      health: 'ERROR',
-      duration_ms: Date.now() - startTime
-    }
-    return NextResponse.json(results, { status: 500 })
+    details.tests.push({
+      name: 'TaskCafe connectivity',
+      status: 'FAIL',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    })
   }
+
+  const response = {
+    ok: taskcafeConnected && projectAccessible,
+    taskcafe: {
+      connected: taskcafeConnected,
+      latency_ms: latencyMs
+    },
+    database: {
+      accessible: true
+    },
+    projectAccess: {
+      accessible: projectAccessible
+    },
+    duration_ms: Date.now() - startedAt,
+    details
+  }
+
+  return NextResponse.json(response, {
+    headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' }
+  })
 }

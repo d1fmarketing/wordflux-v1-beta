@@ -7,11 +7,15 @@ import ClientErrorTap from './ClientErrorTap'
 import CommandHintsBar from './CommandHintsBar'
 import { TaskTitle } from './TaskTitle'
 import { BoardFilters } from './BoardFilters'
+import Button from '../ui/Button'
 import { CommandPalette } from './CommandPalette'
 import { AgentStrip } from './AgentStrip'
 import { TaskPanel } from './TaskPanel'
 import { AnalyzeDrawer, Suggestion } from './AnalyzeDrawer'
-import { AnalysisBanner } from './AnalysisBanner'
+import ChatMessage from './ChatMessage'
+import BoardColumn from './BoardColumn'
+import ThemeToggle from './ThemeToggle'
+import { i18n } from '../ui/i18n'
 import {
   INK_900, INK_700, INK_500, LINE, BG, SURFACE_WHITE,
   BRAND_600, BRAND_700, GRADIENT_BRAND,
@@ -20,8 +24,9 @@ import {
   SPACE_SM, SPACE_MD, SPACE_LG,
   RADIUS_MD, RADIUS_LG, RADIUS_PILL,
   SHADOW_CARD, SHADOW_CARD_HOVER,
-  CHAT_PREFERRED_PX
+  CHAT_MIN_PX, CHAT_PREFERRED_PX, CHAT_MAX_PX, POLL_FOREGROUND_MS, POLL_BACKGROUND_MS
 } from '../ui/tokens'
+import styles from './workspace.module.css'
 
 interface Message {
   id: string
@@ -50,9 +55,17 @@ export default function SafeWorkspace() {
   const [deployCount, setDeployCount] = useState<number>(0)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
+  const [chatOpen, setChatOpen] = useState(true)
 
   useEffect(() => {
     setMounted(true)
+  }, [])
+
+  // Initialize chat open state based on viewport (open on desktop by default)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setChatOpen(window.innerWidth >= 1024)
+    }
   }, [])
 
   // Fetch deployment count
@@ -98,8 +111,19 @@ export default function SafeWorkspace() {
     }
 
     fetchBoard()
-    const interval = setInterval(fetchBoard, 5000)
-    return () => clearInterval(interval)
+    let intervalId: any
+    const setTimer = () => {
+      if (intervalId) clearInterval(intervalId)
+      const delay = (typeof document !== 'undefined' && document.hidden) ? POLL_BACKGROUND_MS : POLL_FOREGROUND_MS
+      intervalId = setInterval(fetchBoard, delay)
+    }
+    setTimer()
+    const onVis = () => setTimer()
+    if (typeof document !== 'undefined') document.addEventListener('visibilitychange', onVis)
+    return () => {
+      if (intervalId) clearInterval(intervalId)
+      if (typeof document !== 'undefined') document.removeEventListener('visibilitychange', onVis)
+    }
   }, [mounted])
 
   const handleCommandSelect = (command: string) => {
@@ -313,18 +337,9 @@ export default function SafeWorkspace() {
           setSuggestions([])
         }}
       />
-      <div style={{ display: 'flex', height: '100vh', background: BG }}>
+      <div className={styles.workspace}>
         {/* Chat Panel - The Remote */}
-      <div style={{
-        width: CHAT_PREFERRED_PX,
-        height: '100vh',
-        background: SURFACE_WHITE,
-        borderRight: `1px solid ${LINE}`,
-        display: 'flex',
-        flexDirection: 'column',
-        position: 'relative',
-        zIndex: 10
-      }}>
+      <div className={[styles.chatPanel, chatOpen ? '' : styles.chatPanelHidden].join(" ")} aria-hidden={!chatOpen}>
         {/* Chat Header */}
         <div style={{
           padding: `${SPACE_MD}px ${SPACE_LG}px`,
@@ -336,32 +351,24 @@ export default function SafeWorkspace() {
             fontWeight: WEIGHT_SEMIBOLD,
             color: INK_900,
             margin: 0
-          }}>WordFlux AI</h2>
+          }}>{i18n.chat.title}</h2>
           <p style={{
             fontSize: FONT_SM,
             color: INK_500,
             margin: '4px 0 0 0'
-          }}>Type what you want and I'll organize your board.</p>
+          }}>{i18n.chat.subtitle}</p>
         </div>
         
-        <div style={{
-          flex: 1,
-          overflowY: 'auto',
-          padding: '20px 24px',
-          paddingBottom: 100,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 16
-        }}>
+        <div className={styles.messagesArea} aria-live="polite">
           {messages.length === 0 && (
             <div>
               <div style={{
                 fontSize: FONT_MD,
                 fontWeight: WEIGHT_MEDIUM,
                 color: INK_700,
-                marginBottom: 14
+                marginBottom: 12
               }}>
-                Type what you want and I'll organize your board.
+                Digite o que quer e eu organizo seu quadro.
               </div>
               {actionLog.length > 0 && (
                 <div style={{ marginTop: 16 }}>
@@ -381,49 +388,26 @@ export default function SafeWorkspace() {
                   </div>
                 </div>
               )}
-              <div style={{
-                marginTop: 14,
-                padding: SPACE_SM,
-                backgroundColor: '#F9FAFB',
-                borderRadius: RADIUS_MD,
-                fontSize: FONT_MD,
-                color: INK_500
-              }}>
-                <strong>Tip:</strong> Use ⌘K for quick commands
+              <div style={{ marginTop: 12 }}>
+                <div style={{ fontSize: FONT_SM, marginBottom: 8, color: INK_500, fontWeight: WEIGHT_SEMIBOLD }}>Dicas:</div>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  <Button variant="ghost" onClick={() => handleCommandExecute('Plan tomorrow from Ready')}>
+                    ✦ Planejar amanhã do Ready
+                  </Button>
+                  <Button variant="ghost" onClick={() => handleCommandExecute('Show my tasks')}>
+                    👤 Mostrar minhas tarefas
+                  </Button>
+                  <Button variant="ghost" onClick={() => handleCommandExecute('Board summary')}>
+                    📝 Resumo do quadro
+                  </Button>
+                </div>
               </div>
             </div>
           )}
           {messages.map(msg => (
-            <div key={msg.id} style={{
-              alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start',
-              maxWidth: '68ch',
-              background: msg.role === 'user' ? GRADIENT_BRAND : '#F3F4F6',
-              color: msg.role === 'user' ? 'white' : INK_900,
-              padding: '10px 14px',
-              borderRadius: 18,
-              fontSize: FONT_MD,
-              lineHeight: 1.5,
-              boxShadow: msg.role === 'user' ? '0 2px 8px rgba(176, 0, 32, 0.15)' : 'none'
-            }}>
-              {msg.content}
-            </div>
+            <ChatMessage key={msg.id} role={msg.role === 'user' ? 'user' : 'assistant'} content={msg.content} />
           ))}
-          {loading && (
-            <div style={{
-              alignSelf: 'flex-start',
-              display: 'flex',
-              gap: 6,
-              padding: '12px 18px',
-              background: '#f3f4f6',
-              borderRadius: '20px',
-              fontSize: 14,
-              color: 'rgba(0, 0, 35, 0.5)'
-            }}>
-              <span style={{ animation: 'pulse 1.5s infinite' }}>●</span>
-              <span style={{ animation: 'pulse 1.5s infinite 0.2s' }}>●</span>
-              <span style={{ animation: 'pulse 1.5s infinite 0.4s' }}>●</span>
-            </div>
-          )}
+          {loading && (<ChatMessage role="assistant" typing />)}
         </div>
 
         {showCommandHints && (
@@ -432,17 +416,8 @@ export default function SafeWorkspace() {
             compact={true}
           />
         )}
-        
-        {/* Composer */}
-        <div style={{
-          position: 'absolute',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          padding: SPACE_MD,
-          background: SURFACE_WHITE,
-          borderTop: `1px solid ${LINE}`
-        }}>
+        {/* Footer input */}
+        <div className={styles.chatFooter}>
           {lastUndoToken && (
             <div style={{
               marginBottom: 12,
@@ -491,22 +466,14 @@ export default function SafeWorkspace() {
               </button>
             </div>
           )}
-
-          <div style={{
-            background: '#F8F8F8',
-            borderRadius: RADIUS_PILL,
-            padding: 4,
-            display: 'flex',
-            alignItems: 'center',
-            height: 44
-          }}>
+          <div className={styles.chatInputInner}>
             <input
               ref={inputRef}
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleInputKeyDown}
-              placeholder="⌘K for quick commands"
+              placeholder={i18n.chat.placeholder}
               style={{
                 flex: 1,
                 border: 'none',
@@ -517,8 +484,17 @@ export default function SafeWorkspace() {
                 fontWeight: WEIGHT_MEDIUM,
                 color: INK_900
               }}
+              onFocus={(e) => {
+                const parent = e.currentTarget.parentElement
+                if (parent) parent.style.boxShadow = '0 0 0 3px rgba(194, 24, 91, .18)'
+              }}
+              onBlur={(e) => {
+                const parent = e.currentTarget.parentElement
+                if (parent) parent.style.boxShadow = 'none'
+              }}
             />
             <button
+              aria-label="Send message"
               onClick={sendMessage}
               disabled={!input.trim() || loading}
               style={{
@@ -532,9 +508,24 @@ export default function SafeWorkspace() {
                 alignItems: 'center',
                 justifyContent: 'center',
                 cursor: input.trim() && !loading ? 'pointer' : 'not-allowed',
-                transition: 'all 0.16s ease',
+                transition: 'transform 0.12s ease, box-shadow 0.16s ease',
                 fontSize: 16,
-                fontWeight: WEIGHT_BOLD
+                fontWeight: WEIGHT_BOLD,
+                outline: 'none'
+              }}
+              onFocus={(e) => {
+                if (input.trim() && !loading) {
+                  e.currentTarget.style.boxShadow = '0 0 0 3px rgba(194, 24, 91, .18)'
+                }
+              }}
+              onBlur={(e) => {
+                e.currentTarget.style.boxShadow = 'none'
+              }}
+              onMouseEnter={(e) => {
+                if (input.trim() && !loading) e.currentTarget.style.transform = 'scale(1.02)'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'scale(1)'
               }}
             >
               →
@@ -544,195 +535,159 @@ export default function SafeWorkspace() {
       </div>
 
       {/* Board Panel */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        {/* Analysis Banner - only shows when analyzing */}
-        <AnalysisBanner
-          isAnalyzing={isAnalyzing}
-          suggestionsCount={suggestions.length}
-          onViewSuggestions={() => setShowAnalyzeDrawer(true)}
-        />
+      <div className={styles.boardWrap}>
+        {/* Analysis banner removed — keep spinner inside CTA only */}
 
-        {/* Simplified header without Auto-analisar */}
-        <AgentStrip />
-        <div style={{
-          flex: 1,
-          padding: `${SPACE_LG}px`,
-          overflowX: 'auto',
-          background: BG
-        }}>
-        <div style={{ marginBottom: SPACE_MD }}>
+        {/* Simplified header with Auto-analisar and mobile chat toggle */}
+        <AgentStrip onToggleChat={() => setChatOpen(o => !o)} onAnalyze={async () => {
+          try {
+            setIsAnalyzing(true)
+            const res = await fetch('/api/ai/analyze-board', { method: 'POST' })
+            const data = await res.json()
+            const newSuggestions: Suggestion[] = []
+
+            if (data?.insights) {
+              const insights = data.insights
+              if (Array.isArray(insights.staleTasks)) {
+                for (const t of insights.staleTasks) {
+                  newSuggestions.push({
+                    id: `stale-${t.id}`,
+                    action: `Mover "${t.title}" para Blocked`,
+                    reason: 'Sem atividade por 72+ horas',
+                    execute: async () => {
+                      const stateRes = await fetch('/api/board/state')
+                      const state = await stateRes.json()
+                      const blocked = state?.columns?.find((c: any) => (c.name || c.title) === 'Blocked')
+                      if (blocked) {
+                        await fetch('/api/board/move', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ taskId: Number(t.id), toColumnId: Number(blocked.id), position: 1 })
+                        })
+                      }
+                    }
+                  })
+                }
+              }
+
+              if (Array.isArray(insights.bottlenecks)) {
+                for (const b of insights.bottlenecks) {
+                  if (b.count >= 10) {
+                    newSuggestions.push({
+                      id: `bottleneck-${b.column}`,
+                      action: `Revisar gargalo em "${b.column}" (${b.count})`,
+                      reason: 'Muitas tarefas neste estágio',
+                      execute: async () => {}
+                    })
+                  }
+                }
+              }
+
+              if (Array.isArray(insights.duplicates)) {
+                for (const d of insights.duplicates.slice(0, 5)) {
+                  newSuggestions.push({
+                    id: `dup-${d.task1?.id}-${d.task2?.id}`,
+                    action: `Possível duplicado: "${d.task1?.title}" ~ "${d.task2?.title}"`,
+                    reason: `Similaridade ${(d.similarity * 100).toFixed(0)}%`,
+                    execute: async () => {}
+                  })
+                }
+              }
+            }
+
+            setSuggestions(newSuggestions)
+          } catch (e) {
+            console.error('Analyze error', e)
+          } finally {
+            setIsAnalyzing(false)
+          }
+        }} />
+        <div className={styles.boardScroll}>
+        <div className={styles.searchRow}>
           <BoardFilters onChange={setBoardFilters} />
         </div>
 
         <div style={{ display: 'flex', gap: SPACE_MD, minWidth: 'fit-content' }}>
-          {columns.map(col => (
-            <div key={col.id} style={{
-              width: 300,
-              backgroundColor: SURFACE_WHITE,
-              borderRadius: RADIUS_LG,
-              border: `1px solid ${LINE}`,
-              display: 'flex',
-              flexDirection: 'column',
-              maxHeight: 'calc(100vh - 140px)'
-            }}>
+          {columns.length === 0 ? (
+            // Simple loading state - no animations, no overlays
+            <>
               <div style={{
-                position: 'sticky',
-                top: 0,
-                background: SURFACE_WHITE,
-                padding: `${SPACE_SM}px ${SPACE_MD}px`,
-                borderBottom: `1px solid ${LINE}`,
-                borderRadius: `${RADIUS_LG}px ${RADIUS_LG}px 0 0`,
-                zIndex: 2
+                width: 300,
+                padding: '16px',
+                background: 'var(--surface)',
+                border: '1px solid var(--line)',
+                borderRadius: 'var(--radius-lg)',
+                textAlign: 'center',
+                color: 'var(--ink-500)'
               }}>
-                <h3 style={{
-                  margin: 0,
-                  fontSize: FONT_LG,
-                  fontWeight: WEIGHT_SEMIBOLD,
-                  color: INK_900,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8
-                }}>
-                  {col.title === 'Work in progress' ? 'In Progress' : col.title}
-                  <span style={{
-                    fontSize: FONT_SM,
-                    fontWeight: WEIGHT_SEMIBOLD,
-                    padding: '2px 8px',
-                    borderRadius: RADIUS_PILL,
-                    background: `rgba(${parseInt(BRAND_600.slice(1,3), 16)}, ${parseInt(BRAND_600.slice(3,5), 16)}, ${parseInt(BRAND_600.slice(5,7), 16)}, 0.1)`,
-                    color: BRAND_600
-                  }}>
-                    {col.tasks?.length || 0}
-                  </span>
-                </h3>
+                Carregando...
               </div>
-              
               <div style={{
-                flex: 1,
-                overflowY: 'auto',
-                padding: '10px 14px 14px',
-                scrollbarWidth: 'thin',
-                scrollbarColor: 'rgba(0, 0, 35, 0.1) transparent'
+                width: 300,
+                padding: '16px',
+                background: 'var(--surface)',
+                border: '1px solid var(--line)',
+                borderRadius: 'var(--radius-lg)',
+                textAlign: 'center',
+                color: 'var(--ink-500)'
               }}>
-                {col.tasks?.map(task => {
-                  const isUrgent = task.priority && task.priority >= 3
-                  return (
-                  <div key={task.id} onClick={() => {
-                    setSelectedTask({...task, column: col.title})
-                    setShowTaskPanel(true)
-                  }} style={{
-                    backgroundColor: SURFACE_WHITE,
-                    padding: '10px 12px',
-                    borderRadius: RADIUS_MD,
-                    marginBottom: 8,
-                    transition: 'box-shadow 0.16s ease, transform 0.16s ease',
-                    cursor: 'pointer',
-                    border: `1px solid ${LINE}`,
-                    borderLeft: isUrgent ? `3px solid ${BRAND_600}` : `1px solid ${LINE}`,
-                    background: isUrgent ? `linear-gradient(90deg, rgba(194,24,91,0.07), rgba(255,255,255,0) 18px)` : SURFACE_WHITE,
-                    boxShadow: 'none'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = 'translateY(-1px)'
-                    e.currentTarget.style.boxShadow = SHADOW_CARD_HOVER
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = 'translateY(0)'
-                    e.currentTarget.style.boxShadow = 'none'
-                  }}
-                  >
-                    <div style={{
-                      fontSize: FONT_MD,
-                      fontWeight: WEIGHT_SEMIBOLD,
-                      lineHeight: 1.3,
-                      color: INK_900
-                    }}>
-                      <TaskTitle title={task.title} />
-                    </div>
-                  
-                  {task.description && (
-                    <div style={{
-                      fontSize: FONT_SM,
-                      color: INK_500,
-                      marginTop: 6,
-                      lineHeight: 1.4,
-                      overflow: 'hidden',
-                      display: '-webkit-box',
-                      WebkitLineClamp: 2,
-                      WebkitBoxOrient: 'vertical',
-                      textOverflow: 'ellipsis'
-                    }}>
-                      {task.description}
-                    </div>
-                  )}
-                  
-                    {task.tags && task.tags.length > 0 && (
-                      <div style={{ display: 'flex', gap: 4, marginTop: 6, flexWrap: 'wrap' }}>
-                        {task.tags.slice(0, 2).map((tag, i) => (
-                          <span key={i} style={{
-                            fontSize: FONT_SM,
-                            padding: '2px 8px',
-                            borderRadius: RADIUS_PILL,
-                            background: '#F7F8FB',
-                            border: `1px solid ${LINE}`,
-                            color: INK_700,
-                            fontWeight: WEIGHT_MEDIUM
-                          }}>
-                            {tag}
-                          </span>
-                        ))}
-                        {task.tags.length > 2 && (
-                          <span style={{
-                            fontSize: FONT_SM,
-                            padding: '2px 8px',
-                            borderRadius: RADIUS_PILL,
-                            background: '#F7F8FB',
-                            border: `1px solid ${LINE}`,
-                            color: INK_500,
-                            fontWeight: WEIGHT_MEDIUM
-                          }}>
-                            +{task.tags.length - 2}
-                          </span>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )})}
-                
-                {(!col.tasks || col.tasks.length === 0) && (
-                  <div style={{
-                    color: INK_500,
-                    fontSize: FONT_MD,
-                    textAlign: 'center',
-                    padding: 40
-                  }}>
-                    No tasks
-                  </div>
-                )}
+                Carregando...
               </div>
-            </div>
-          ))}
+              <div style={{
+                width: 300,
+                padding: '16px',
+                background: 'var(--surface)',
+                border: '1px solid var(--line)',
+                borderRadius: 'var(--radius-lg)',
+                textAlign: 'center',
+                color: 'var(--ink-500)'
+              }}>
+                Carregando...
+              </div>
+            </>
+          ) : (
+            columns.map(col => (
+              <BoardColumn
+                key={col.id}
+                id={col.id}
+                title={col.title}
+                tasks={col.tasks?.map(task => ({
+                  id: task.id,
+                  title: task.title,
+                  name: (task as any).name,
+                  description: task.description,
+                  dueDate: (task as any).dueDate ?? task.date_due ?? null,
+                })) || []}
+                onTaskClick={(task) => {
+                  setSelectedTask({ ...task, column: col.title })
+                  setShowTaskPanel(true)
+                }}
+              />
+            ))
+          )}
         </div>
         </div>
       </div>
 
-      {/* Subtle version indicator */}
-      <div style={{
-        position: 'fixed',
-        bottom: 12,
-        right: 12,
-        background: 'rgba(255, 255, 255, 0.7)',
-        borderRadius: 14,
-        padding: '4px 10px',
-        fontSize: 10,
-        fontWeight: 500,
-        color: 'rgba(0, 0, 35, 0.3)',
-        boxShadow: '0 1px 4px rgba(0, 0, 35, 0.05)',
-        zIndex: 100,
-        backdropFilter: 'blur(8px)'
-      }}>
-        v{deployCount}
-      </div>
+      {/* Subtle version indicator - only in development */}
+      {process.env.NODE_ENV !== 'production' && (
+        <div style={{
+          position: 'fixed',
+          bottom: 12,
+          right: 12,
+          background: 'rgba(255, 255, 255, 0.7)',
+          borderRadius: 14,
+          padding: '4px 10px',
+          fontSize: 10,
+          fontWeight: 500,
+          color: 'rgba(0, 0, 35, 0.3)',
+          boxShadow: '0 1px 4px rgba(0, 0, 35, 0.05)',
+          zIndex: 100,
+          backdropFilter: 'blur(8px)'
+        }}>
+          v{deployCount}
+        </div>
+      )}
 
       {/* ARIA Live Region for Screen Readers */}
       <div

@@ -22,6 +22,10 @@ export function buildColumnMap(columns: string[]): ColumnMap {
       map['inbox'] = col;
       map['new'] = col;
       map['ideas'] = col;
+      map['analysis'] = col;
+      map['planning'] = col;
+      map['intake'] = col;
+      map['icebox'] = col;
     }
     if (/ready/.test(key)) {
       map['ready'] = col;
@@ -41,6 +45,10 @@ export function buildColumnMap(columns: string[]): ColumnMap {
       map['working'] = col;
       map['active'] = col;
       map['current'] = col;
+      map['dev'] = col;
+      map['coding'] = col;
+      map['building'] = col;
+      map['implementing'] = col;
       map['ongoing'] = col;
       map['started'] = col;
     }
@@ -55,6 +63,9 @@ export function buildColumnMap(columns: string[]): ColumnMap {
       map['test'] = col;
       map['validation'] = col;
       map['checking'] = col;
+      map['staging'] = col;
+      map['uat'] = col;
+      map['verification'] = col;
     }
     if (/done|complete|finished/.test(key)) {
       map['done'] = col;
@@ -66,6 +77,9 @@ export function buildColumnMap(columns: string[]): ColumnMap {
       map['shipped'] = col;
       map['deployed'] = col;
       map['live'] = col;
+      map['released'] = col;
+      map['published'] = col;
+      map['archived'] = col;
     }
     if (/block/.test(key)) {
       map['blocked'] = col;
@@ -128,7 +142,12 @@ export function parseMessage(msg: string, columns: string[]): Action[] {
   {
     const match = body.match(/^undo\s+([A-Za-z0-9\-_]+)/i);
     if (match) {
-      return [{ type: 'undo', token: match[1] }];
+      const token = match[1].toLowerCase();
+      if (token === 'last') {
+        actions.push({ type: 'undo_last' });
+      } else {
+        return [{ type: 'undo', token: match[1] }];
+      }
     }
   }
 
@@ -288,6 +307,76 @@ export function parseMessage(msg: string, columns: string[]): Action[] {
     }
   }
 
+
+  // Set due dates: "set due <when> for #ids" or PT: "coloque prazo <quando> para #ids"
+  if (actions.length === 0) {
+    let m = body.match(/^(set|coloc(a|e)|defin(a|ir))\s+(due|prazo)\s+(.+?)\s+(for|para)\s+(.+)$/i);
+    if (m) {
+      const when = m[5].trim();
+      const idsRaw = m[7];
+      const ids = Array.from(idsRaw.matchAll(/#?(\d+)/g)).map(x=>Number(x[1]));
+      if (ids.length>0) actions.push({ type: 'set_due', when, ids });
+    }
+  }
+  // Set due for first N in column: "set due <when> for first N in Backlog" or PT "nos 3 primeiros do Backlog"
+  if (actions.length === 0) {
+    let m = body.match(/^(set|coloc(a|e)|defin(a|ir))\s+(due|prazo)\s+(.+?)\s+(for\s+first\s+(\d+)\s+in\s+(.+)|nos?\s+(\d+)\s+primeiros?\s+do\s+(.+))$/i);
+    if (m) {
+      const when = m[5].trim();
+      const first = Number(m[7] || m[9] || 0);
+      const column = (m[8] || m[10] || '').trim();
+      if (first>0 && column) actions.push({ type: 'set_due', when, first, column });
+    }
+  }
+  // Quick urgent: "mark #id urgent" / "marcar #id urgente" / "tirar urgente #id"
+  if (actions.length === 0) {
+    let m = body.match(/^mark\s+#(\d+)\s+urgent$/i) || body.match(/^marc(ar|ar)\s+#(\d+)\s+urgent(e)?$/i);
+    if (m) { const id = Number(m[1] || m[2]); actions.push({ type: 'update_task', task: id, priority: 'high' }); }
+  }
+  if (actions.length === 0) {
+    let m = body.match(/^(remove|tirar)\s+urgent(e)?\s+#(\d+)$/i);
+    if (m) { const id = Number(m[3]); actions.push({ type: 'update_task', task: id, priority: 'normal' }); }
+  }
+
+  if (actions.length === 0) {
+    if (/^(undo|undo last|desfazer|voltar)$/i.test(body.trim())) {
+      actions.push({ type: 'undo_last' })
+    }
+  }
+
+  if (isPreview && actions.length === 0) {
+    const tidyPreview = body.match(/^tidy\s+(.*)$/i)
+    if (tidyPreview) {
+      const target = tidyPreview[1].trim()
+      if (!target || target.toLowerCase() === 'board' || target.toLowerCase() === 'quadro') {
+        actions.push({ type: 'tidy_board', preview: true })
+      } else {
+        const columnKey = normalize(target)
+        const column = colMap[columnKey] || target
+        actions.push({ type: 'tidy_column', column, preview: true })
+      }
+    }
+  }
+
+  if (!isPreview && actions.length === 0) {
+    const tidyMatch = body.match(/^tidy\s+(.*)$/i)
+    if (tidyMatch) {
+      let target = tidyMatch[1].trim()
+      let confirm = false
+      if (/\bconfirm$/i.test(target)) {
+        confirm = true
+        target = target.replace(/\bconfirm$/i, '').trim()
+      }
+      if (!target || target.toLowerCase() === 'board' || target.toLowerCase() === 'quadro') {
+        actions.push({ type: 'tidy_board', confirm, preview: false })
+      } else {
+        const columnKey = normalize(target)
+        const column = colMap[columnKey] || target
+        actions.push({ type: 'tidy_column', column, confirm, preview: false })
+      }
+    }
+  }
+
   // Tag task: "tag #21 add urgent, ai" or "tag #21 remove urgent"
   if (actions.length === 0) {
     const match = body.match(/^tag\s+(.+?)\s+(add|remove)\s+(.+)$/i);
@@ -303,6 +392,32 @@ export function parseMessage(msg: string, columns: string[]): Action[] {
         add: operation === 'add' ? tags : [],
         remove: operation === 'remove' ? tags : []
       });
+    }
+  }
+
+  // Remove/Delete task: "remove #123", "delete #456", "delete task 789"
+  if (actions.length === 0) {
+    const patterns = [
+      /^(remove|delete|apagar?|excluir?|remover?)\s+(task\s+)?#?(\d+)$/i,
+      /^(remove|delete|apagar?|excluir?|remover?)\s+(task\s+)?["'](.+?)["']$/i,
+    ];
+
+    for (const pattern of patterns) {
+      const match = body.match(pattern);
+      if (match) {
+        let taskRef = match[3];
+
+        // If it's the quoted pattern and we have preserved text, use it
+        if (pattern.source.includes('["\'"]') && quotedTexts.length > 0) {
+          taskRef = quotedTexts[0];
+        }
+
+        const maybeId = parseId(taskRef);
+        const task = maybeId || taskRef;
+
+        actions.push({ type: 'remove_task', task });
+        break;
+      }
     }
   }
 
@@ -364,10 +479,45 @@ export function parseMessage(msg: string, columns: string[]): Action[] {
   }
 
   // Search tasks: "search login bug" or "find authentication"
+
+  // Natural filters: "blocked", "overdue", "due today", "today", "my tasks"
+  if (actions.length === 0) {
+    if (/^blocked$/.test(body) || /what'?s?\s+blocked/.test(body)) {
+      actions.push({ type: 'list_tasks', filter: 'blocked' });
+    } else if (/^(overdue|past\s+due)$/.test(body)) {
+      actions.push({ type: 'list_tasks', filter: 'overdue' });
+    } else if (/^(due\s+today|today)$/.test(body)) {
+      actions.push({ type: 'list_tasks', filter: 'today' });
+    } else if (/^(my\s+tasks|mine)$/.test(body)) {
+      actions.push({ type: 'list_tasks', filter: 'mine' });
+    }
+  }
   if (actions.length === 0) {
     const match = body.match(/^(search|find)\s+(.+)$/i);
     if (match) {
       actions.push({ type: 'search_tasks', query: match[2].trim() });
+    }
+  }
+
+
+  // Summarize specific scope: "summarize ready", "summarize overdue", "summarize my tasks"
+  if (actions.length === 0) {
+    const m = body.match(/^(summary|summarize|resumo|resumir)\s+(.+)$/i);
+    if (m) {
+      const scope = m[2].trim().toLowerCase();
+      if (/(overdue|past\s+due|atrasad)/.test(scope)) {
+        actions.push({ type: 'list_tasks', filter: 'overdue' });
+      } else if (/(today|hoje)/.test(scope)) {
+        actions.push({ type: 'list_tasks', filter: 'today' });
+      } else if (/(mine|my\s+tasks|minhas)/.test(scope)) {
+        actions.push({ type: 'list_tasks', filter: 'mine' });
+      } else if (/(blocked|bloquead|stuck)/.test(scope)) {
+        actions.push({ type: 'list_tasks', filter: 'blocked' });
+      } else {
+        const columnKey = normalize(scope);
+        const column = colMap[columnKey] || m[2];
+        actions.push({ type: 'list_tasks', column });
+      }
     }
   }
 
@@ -377,7 +527,9 @@ export function parseMessage(msg: string, columns: string[]): Action[] {
     
     // Board status commands
     if (/^(board\s+)?(status|summary|overview)$/.test(lowerBody)) {
-      actions.push({ type: 'list_tasks' });
+      actions.push({ type: 'list_tasks', column: 'Work in progress' });
+      actions.push({ type: 'list_tasks', column: 'Ready' });
+      actions.push({ type: 'list_tasks', filter: 'overdue' });
     }
     
     // Quick done command: "done #123" or "done 'task title'"
@@ -409,7 +561,10 @@ export function parseMessage(msg: string, columns: string[]): Action[] {
 
   // If preview mode, wrap actions
   if (isPreview && actions.length > 0) {
-    return [{ type: 'preview', actions }];
+    const allTidy = actions.every(a => a.type === 'tidy_board' || a.type === 'tidy_column')
+    if (!allTidy) {
+      return [{ type: 'preview', actions }];
+    }
   }
 
   // Validate actions if any were parsed

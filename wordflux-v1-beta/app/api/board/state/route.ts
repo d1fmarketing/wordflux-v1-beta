@@ -1,35 +1,30 @@
 import { NextResponse } from 'next/server'
-import { KanboardClient } from '@/lib/kanboard-client'
+import { TaskCafeClient } from '@/lib/providers/taskcafe-client'
+import { mapColumnsToLegacy } from '@/lib/board-legacy'
 
 export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
+
+function createTaskCafeClient() {
+  return new TaskCafeClient({
+    url: process.env.TASKCAFE_URL || 'http://localhost:3333',
+    username: process.env.TASKCAFE_USERNAME || 'admin',
+    password: process.env.TASKCAFE_PASSWORD || '',
+    projectId: process.env.TASKCAFE_PROJECT_ID,
+  })
+}
 
 async function getBoardState() {
   try {
-    const client = new KanboardClient({
-      url: process.env.KANBOARD_URL,
-      username: process.env.KANBOARD_USERNAME,
-      password: process.env.KANBOARD_PASSWORD
-    })
-
-    const projectId = Number(process.env.KANBOARD_PROJECT_ID || 1)
-    console.log('Fetching board state for project:', projectId)
-    
-    const boardState = await client.getBoardState(projectId)
-    
-    // Debug log
-    console.log('Board state columns:', boardState.columns.map(c => ({
-      name: c.name,
-      cards: c.cards.length
-    })))
-    
-    // Return the board state directly with columns array
-    return NextResponse.json(boardState || { columns: [] })
+    const client = createTaskCafeClient()
+    const { columns, members } = await client.getBoardState(process.env.TASKCAFE_PROJECT_ID)
+    const normalizedColumns = mapColumnsToLegacy(columns)
+    const payload: Record<string, any> = { ok: true, columns: normalizedColumns }
+    if (Array.isArray(members)) payload.members = members
+    return NextResponse.json(payload)
   } catch (error) {
-    console.error('Board state error:', error)
-    return NextResponse.json({
-      columns: [],
-      error: 'Failed to fetch board'
-    })
+    console.error('[board/state] TaskCafe error', error)
+    return NextResponse.json({ ok: false, columns: [] })
   }
 }
 

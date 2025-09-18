@@ -29,11 +29,11 @@ export default defineConfig({
   ],
 
   webServer: {
-    command: 'KANBOARD_MOCK=1 npm run dev',
+    command: 'TASKCAFE_MOCK=1 npm run dev',
     port: 3000,
     reuseExistingServer: !process.env.CI,
     env: {
-      KANBOARD_MOCK: '1',
+      TASKCAFE_MOCK: '1',
       USE_DETERMINISTIC_PARSER: 'true',
     },
   },

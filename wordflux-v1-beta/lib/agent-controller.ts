@@ -1,17 +1,17 @@
 import OpenAI from 'openai'
-import { KanboardClient } from './kanboard-client'
+import { TaskCafeClient } from './providers/taskcafe-client'
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 })
 
-const kanboard = new KanboardClient({
-  url: process.env.KANBOARD_URL!,
-  username: process.env.KANBOARD_USERNAME!,
-  password: process.env.KANBOARD_PASSWORD!
+const taskcafe = new TaskCafeClient({
+  url: process.env.TASKCAFE_URL!,
+  username: process.env.TASKCAFE_USERNAME!,
+  password: process.env.TASKCAFE_PASSWORD!
 })
 
-const PROJECT_ID = parseInt(process.env.KANBOARD_PROJECT_ID || '1')
+const PROJECT_ID = parseInt(process.env.TASKCAFE_PROJECT_ID || '1')
 
 export interface AgentCommand {
   action: 'create' | 'move' | 'update' | 'delete' | 'list' | 'search' | 'help'
@@ -125,9 +125,9 @@ export class AgentController {
     try {
       switch (command.action) {
         case 'create':
-          const columns = await kanboard.getColumns(PROJECT_ID)
+          const columns = await taskcafe.getColumns(PROJECT_ID)
           const backlogColumn = columns.find(c => c.title.toLowerCase().includes('backlog')) || columns[0]
-          const taskId = await kanboard.createTask(
+          const taskId = await taskcafe.createTask(
             PROJECT_ID,
             command.title || 'New Task',
             backlogColumn.id,
@@ -139,19 +139,19 @@ export class AgentController {
           if (!command.taskId || !command.columnName) {
             return { success: false, message: 'Need task ID and column name' }
           }
-          const cols = await kanboard.getColumns(PROJECT_ID)
+          const cols = await taskcafe.getColumns(PROJECT_ID)
           const targetCol = cols.find(c => 
             c.title.toLowerCase().includes(command.columnName.toLowerCase())
           )
           if (!targetCol) {
             return { success: false, message: `Column "${command.columnName}" not found` }
           }
-          await kanboard.moveTask(command.taskId, targetCol.id)
+          await taskcafe.moveTask(command.taskId, targetCol.id)
           return { success: true, message: `Moved task #${command.taskId} to ${targetCol.title}` }
 
         case 'list':
-          const tasks = await kanboard.getTasks(PROJECT_ID)
-          const listColumns = await kanboard.getColumns(PROJECT_ID)
+          const tasks = await taskcafe.getTasks(PROJECT_ID)
+          const listColumns = await taskcafe.getColumns(PROJECT_ID)
           const grouped = listColumns.map(col => ({
             column: col.title,
             tasks: tasks.filter(t => t.column_id === col.id).map(t => ({
@@ -162,7 +162,7 @@ export class AgentController {
           return { success: true, data: grouped }
 
         case 'search':
-          const results = await kanboard.searchTasks(PROJECT_ID, command.query || '')
+          const results = await taskcafe.searchTasks(PROJECT_ID, command.query || '')
           return { 
             success: true, 
             data: results.map(t => ({ id: t.id, title: t.title })),
@@ -173,7 +173,7 @@ export class AgentController {
           if (!command.taskId) {
             return { success: false, message: 'Need task ID to delete' }
           }
-          await kanboard.removeTask(command.taskId)
+          await taskcafe.removeTask(command.taskId)
           return { success: true, message: `Deleted task #${command.taskId}` }
 
         case 'update':
@@ -183,7 +183,7 @@ export class AgentController {
           const updates: any = {}
           if (command.title) updates.title = command.title
           if (command.description) updates.description = command.description
-          await kanboard.updateTask(command.taskId, updates)
+          await taskcafe.updateTask(command.taskId, updates)
           return { success: true, message: `Updated task #${command.taskId}` }
 
         default:

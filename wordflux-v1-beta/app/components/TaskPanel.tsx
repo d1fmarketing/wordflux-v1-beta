@@ -554,17 +554,6 @@ export function TaskPanel({ task, isOpen, onClose, onUpdate, onAction }: TaskPan
           )}
         </div>
       </div>
-
-      <style jsx>{`
-        @keyframes slideInRight {
-          from {
-            transform: translateX(100%);
-          }
-          to {
-            transform: translateX(0);
-          }
-        }
-      `}</style>
     </div>,
     document.body
   )

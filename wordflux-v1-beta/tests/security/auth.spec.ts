@@ -127,7 +127,7 @@ test.describe('Security and Authentication Tests', () => {
       expect(text).not.toContain('password');
       expect(text).not.toContain('OPENAI_API_KEY');
       expect(text).not.toContain('sk-');
-      expect(text).not.toContain('KANBOARD_PASSWORD');
+      expect(text).not.toContain('TASKCAFE_PASSWORD');
       expect(text).not.toContain('NEXTAUTH_SECRET');
       expect(text).not.toContain('Bearer ');
     }

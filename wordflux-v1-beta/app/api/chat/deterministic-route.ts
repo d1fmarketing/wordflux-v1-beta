@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Action, ActionList } from '@/lib/agent/action-schema';
 import { parseMessage } from '@/lib/agent/parse';
-import { KanboardClient } from '@/lib/kanboard-client/index';
+import { callMcp } from '@/lib/mcp-client';
+import { TaskCafeClient } from '@/lib/providers/taskcafe-client';
 import crypto from 'crypto';
 import { detectAutoTags, formatTagsForComment, formatTagsForDisplay } from '@/lib/auto-tagger';
 import { userContextManager } from '@/lib/user-context';
@@ -9,17 +10,50 @@ import { simplifyConfirmation } from '@/lib/style-guard';
 
 export const dynamic = 'force-dynamic';
 
-const PROJECT_ID = parseInt(process.env.KANBOARD_PROJECT_ID || '1', 10);
-const SWIMLANE_ID = parseInt(process.env.KANBOARD_SWIMLANE_ID || '1', 10);
+const PROJECT_ID = parseInt(process.env.TASKCAFE_PROJECT_ID || '1', 10);
+const SWIMLANE_ID = parseInt(process.env.TASKCAFE_SWIMLANE_ID || '1', 10);
 
-// Initialize Kanboard client
-const kbRaw = new KanboardClient({
-  url: process.env.KANBOARD_URL!,
-  username: process.env.KANBOARD_USERNAME!,
-  password: process.env.KANBOARD_PASSWORD!,
+const tidyPreviewStore: Map<string, { target: string; timestamp: number; report: any }> = (globalThis as any).__WF_TIDY_PREVIEW__ || ((globalThis as any).__WF_TIDY_PREVIEW__ = new Map())
+const tidyLastExec: Map<string, number> = (globalThis as any).__WF_TIDY_EXEC__ || ((globalThis as any).__WF_TIDY_EXEC__ = new Map())
+const TIDY_PREVIEW_TTL_MS = parseInt(process.env.TIDY_PREVIEW_TTL_MS || '1800000', 10)
+const TIDY_COOLDOWN_MS = parseInt(process.env.TIDY_COOLDOWN_MS || '3600000', 10)
+let LAST_UNDO_TOKEN: string | null = null
+
+function normalizeColumnName(input?: string | null) {
+  if (!input) return ''
+  return input
+    .toLowerCase()
+    .replace(/[^a-z0-9\s#-]/g, '')
+    .replace(/\b(move|put|send|drop|shift)\s+(the\s+)?/g, '')
+    .replace(/\b(in|into|to)\s+(the\s+)?/g, '')
+    .replace(/\b(the|a|an)\s+/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+function requesterKey(req?: Request) {
+  try {
+    const headers: any = (req as any)?.headers
+    if (headers?.get) {
+      const forwarded = headers.get('x-forwarded-for')
+      const realIp = headers.get('x-real-ip')
+      const ip = forwarded?.split(',')[0]?.trim() || realIp || 'unknown'
+      return ip
+    }
+  } catch (e) {
+    console.warn('[tidy] requester key error', e)
+  }
+  return 'unknown'
+}
+
+// Initialize taskcafe client
+const kbRaw = new TaskCafeClient({
+  url: process.env.TASKCAFE_URL || 'http://localhost:3333',
+  username: process.env.TASKCAFE_USERNAME!,
+  password: process.env.TASKCAFE_PASSWORD!,
 });
 
-// Enhanced retry with jitter for all Kanboard calls
+// Enhanced retry with jitter for all taskcafe calls
 function sleep(ms: number) { 
   return new Promise(r => setTimeout(r, ms)); 
 }
@@ -44,7 +78,7 @@ async function withRetryJitter<T>(
   throw lastErr;
 }
 
-// Proxy wrapper to automatically retry all Kanboard methods
+// Proxy wrapper to automatically retry all taskcafe methods
 const kb = new Proxy(kbRaw as any, {
   get(target, prop, receiver) {
     const val = Reflect.get(target, prop, receiver);
@@ -89,28 +123,58 @@ async function withRetry<T>(
   return withRetryJitter(fn, tries, baseMs);
 }
 
-async function getColumnsMap(): Promise<Record<string, { id: number; title: string }>> {
-  const columns = await kb.getColumns(PROJECT_ID);
-  const map: Record<string, { id: number; title: string }> = {};
+async function getColumnsMap(): Promise<Record<string, { id: number; title: string; tasks: any[] }>> {
+  const state = await kb.getBoardState(PROJECT_ID);
+  const columns = Array.isArray(state?.columns) ? state.columns : [];
+  const map: Record<string, { id: number; title: string; tasks: any[] }> = {};
   
   for (const col of columns) {
-    const key = col.title.toLowerCase();
-    map[key] = { id: col.id, title: col.title };
-    
+    const label = String(col.title ?? col.name ?? '').trim();
+    const entry = {
+      id: col.id,
+      title: label || String(col.name ?? col.title ?? ''),
+      tasks: Array.isArray((col as any).cards)
+        ? (col as any).cards
+        : Array.isArray((col as any).tasks)
+          ? (col as any).tasks
+          : []
+    };
+
+    if (label) {
+      const key = label.toLowerCase();
+      map[key] = entry;
+
+      const normalized = normalizeColumnName(label);
+      if (normalized && !map[normalized]) {
+        map[normalized] = entry;
+      }
+    }
+
     // Also map common variations
-    if (key.includes('backlog')) {
-      map['backlog'] = { id: col.id, title: col.title };
+    const normalizedKey = label.toLowerCase();
+    if (normalizedKey.includes('backlog')) {
+      map['backlog'] = entry;
+      map['the backlog'] = entry;
     }
-    if (key.includes('ready')) {
-      map['ready'] = { id: col.id, title: col.title };
+    if (normalizedKey.includes('ready')) {
+      map['ready'] = entry;
+      map['the ready'] = entry;
     }
-    if (key.includes('progress')) {
-      map['in progress'] = { id: col.id, title: col.title };
-      map['wip'] = { id: col.id, title: col.title };
+    if (normalizedKey.includes('progress')) {
+      map['in progress'] = entry;
+      map['wip'] = entry;
+      map['the work in progress'] = entry;
     }
-    if (key.includes('done')) {
-      map['done'] = { id: col.id, title: col.title };
-      map['complete'] = { id: col.id, title: col.title };
+    if (normalizedKey.includes('done')) {
+      map['done'] = entry;
+      map['complete'] = entry;
+    }
+    // Index by raw column id for direct lookups
+    if (col.id !== undefined && col.id !== null) {
+      const idKey = String(col.id).toLowerCase();
+      if (!map[idKey]) {
+        map[idKey] = entry;
+      }
     }
   }
   
@@ -122,14 +186,80 @@ async function resolveTask(ref: number | string): Promise<any> {
     return await kb.getTask(ref);
   }
   
+  const raw = String(ref).trim();
+  if (!(globalThis as any).__WF_DEBUG_RESOLVE_TASK__) {
+    (globalThis as any).__WF_DEBUG_RESOLVE_TASK__ = true
+    console.debug('[deterministic] resolveTask raw', raw)
+  }
+  const cleaned = raw
+    .replace(/^task\s+/i, '')
+    .replace(/^card\s+/i, '')
+    .replace(/^["'#]+|["'#]+$/g, '')
+    .trim();
+  if (!(globalThis as any).__WF_DEBUG_RESOLVE_TASK_CLEANED__) {
+    (globalThis as any).__WF_DEBUG_RESOLVE_TASK_CLEANED__ = true
+    console.debug('[deterministic] resolveTask cleaned', cleaned)
+  }
+  
+  if (/^#?\d+$/.test(cleaned)) {
+    const numericId = cleaned.replace(/^#/, '');
+    const direct = await kb.getTask(numericId);
+    if (direct) return direct;
+  }
+
   // Search by title
-  const tasks = await kb.searchTasks(PROJECT_ID, String(ref));
+  const tasks = await kb.searchTasks(PROJECT_ID, cleaned || raw);
   if (!tasks || tasks.length === 0) {
+    const columnsByName = await getColumnsMap();
+    for (const entry of Object.values(columnsByName)) {
+      const tasksInColumn = entry?.tasks || [];
+      for (const task of tasksInColumn) {
+        const title = String(task?.title || '').toLowerCase();
+        if (title === cleaned.toLowerCase() || title.includes(cleaned.toLowerCase())) {
+          return {
+            id: task.id,
+            title: task.title,
+            description: task.description,
+            column_id: entry.id
+          };
+        }
+      }
+    }
+    try {
+      const snapshot = await callMcp('list_cards', {} as any);
+      const columns = Array.isArray(snapshot?.columns) ? snapshot.columns : [];
+      for (const column of columns) {
+        for (const card of column.cards || []) {
+          if (!card) continue;
+          const title = String(card.title || '').trim().toLowerCase();
+          if (title === cleaned.toLowerCase() || title.includes(cleaned.toLowerCase())) {
+            return {
+              id: card.id,
+              title: card.title,
+              description: card.description,
+              column_id: column.id
+            };
+          }
+        }
+      }
+    } catch (fallbackError) {
+      console.warn('[deterministic] board snapshot fallback failed', fallbackError);
+    }
     throw new Error(`Task not found: "${ref}"`);
   }
   
   // Handle ambiguity
   if (tasks.length > 1) {
+    const normalizedTitle = cleaned.toLowerCase()
+    const exactMatches = tasks.filter(t => String(t.title || '').toLowerCase() === normalizedTitle)
+    if (exactMatches.length === 1) {
+      return exactMatches[0]
+    }
+
+    if (tasks.every(t => String(t.title || '').toLowerCase() === String(tasks[0].title || '').toLowerCase())) {
+      return tasks[0]
+    }
+
     const suggestions = tasks.slice(0, 5).map(t => ({
       id: t.id,
       title: t.title,
@@ -156,6 +286,8 @@ async function executeAction(
   columnsByName: Record<string, { id: number; title: string }>,
   request?: Request
 ): Promise<any> {
+  const startTime = Date.now();
+
   switch (action.type) {
     case 'create_task': {
       // Auto-detect tags from title and description
@@ -176,43 +308,45 @@ async function executeAction(
         ? `${formatTagsForDisplay(autoTags)} ${action.title}`
         : action.title;
         
+      // Determine target column (explicit or remembered default)
+      let columnName = action.column;
+
+      if (!columnName && request) {
+        const defaultCol = userContextManager.getDefaultColumn(request);
+        if (defaultCol) columnName = defaultCol;
+      }
+
+      if (!columnName) columnName = 'Backlog';
+
+      if (columnName && /(ready|up next|queued|planned)/i.test(String(columnName))) {
+        columnName = 'Backlog';
+      }
+
+      if (!(globalThis as any).__WF_DEBUG_CREATE__) {
+        (globalThis as any).__WF_DEBUG_CREATE__ = true
+        console.debug('[deterministic] executing create_task', { columnName, action })
+      }
+
+      const columnLookupKey = String(columnName).toLowerCase();
+      const normalizedKey = normalizeColumnName(columnName) || columnLookupKey;
+      const col = columnsByName[normalizedKey] || columnsByName[columnLookupKey];
+      if (!col) {
+        throw new Error(`Column not found: ${columnName}`);
+      }
+
       const taskId = await withRetry(() =>
         kb.createTask(
           PROJECT_ID,
           titleWithEmojis,
-          undefined, // column_id will be set via move
+          col.id,
           action.description
         )
       ) as number;
-      
-      // Determine target column (explicit or remembered default)
-      let col = undefined;
-      let columnName = action.column;
-      
-      if (!columnName && request) {
-        // Try to use remembered default column
-        const defaultCol = userContextManager.getDefaultColumn(request);
-        if (defaultCol) {
-          columnName = defaultCol;
-        }
+
+      if (request && columnName) {
+        userContextManager.setLastUsedColumn(request, col.title);
       }
-      
-      // Default to Backlog if no column specified
-      if (!columnName) {
-        columnName = 'Backlog';
-      }
-      
-      // Move to the target column
-      col = columnsByName[columnName.toLowerCase()];
-      if (col) {
-        await kb.moveTaskPosition(PROJECT_ID, taskId, col.id, 1, SWIMLANE_ID);
-        
-        // Remember this column for next time
-        if (request && action.column) {
-          userContextManager.setLastUsedColumn(request, col.title);
-        }
-      }
-      
+
       // Track task creation
       if (request) {
         userContextManager.incrementTaskCount(request);
@@ -242,7 +376,7 @@ async function executeAction(
       return { 
         taskId, 
         title: action.title,
-        column: col?.title || action.column || 'Backlog'  // Return canonical name
+        column: col.title
       };
     }
 
@@ -250,7 +384,8 @@ async function executeAction(
       const task = await resolveTask(action.task);
       if (!task) throw new Error(`Task not found: ${action.task}`);
       
-      const toColumn = columnsByName[action.column.toLowerCase()];
+      const targetName = /(ready|up next|queued|planned)/i.test(String(action.column)) ? 'Review' : action.column;
+      const toColumn = columnsByName[normalizeColumnName(targetName) || targetName.toLowerCase()];
       if (!toColumn) throw new Error(`Column not found: ${action.column}`);
       
       const fromColumnId = task.column_id;
@@ -355,34 +490,62 @@ async function executeAction(
     case 'comment_task': {
       const task = await resolveTask(action.task);
       if (!task) throw new Error(`Task not found: ${action.task}`);
-      
+
       await kb.addComment(task.id, action.comment);
-      
+
       undo.actions.push({ type: 'comment_task', taskId: task.id });
-      
+
       return { taskId: task.id, commented: true };
+    }
+
+    case 'remove_task': {
+      const task = await resolveTask(action.task);
+      if (!task) throw new Error(`Task not found: ${action.task}`);
+
+      // Use MCP to remove the card - it returns true/void on success, throws on error
+      try {
+        await callMcp('remove_card', { taskId: task.id });
+        return { taskId: task.id, removed: true };
+      } catch (error: any) {
+        console.error(`[remove_task] MCP error:`, error);
+        throw new Error(`Failed to remove task #${task.id}: ${error?.message || 'Unknown error'}`);
+      }
     }
 
     case 'list_tasks': {
       const tasks = await kb.listProjectTasks(PROJECT_ID);
-      
       let filtered = tasks;
       if (action.column) {
-        const col = columnsByName[action.column.toLowerCase()];
-        if (col) {
-          filtered = tasks.filter(t => t.column_id === col.id);
+        const col = columnsByName[normalizeColumnName(action.column) || action.column.toLowerCase()];
+        if (col) filtered = filtered.filter((t: any) => t.column_id === col.id);
+      }
+      if ((action as any).filter) {
+        const f = String((action as any).filter).toLowerCase();
+        const now = new Date();
+        const start = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()/1000; // seconds
+        const end = start + 86400;
+        if (f === 'today') {
+          filtered = filtered.filter((t: any) => t.date_due && t.date_due >= start && t.date_due < end);
+        } else if (f === 'overdue') {
+          filtered = filtered.filter((t: any) => t.date_due && t.date_due < Math.floor(Date.now()/1000) && t.is_active === 1);
+        } else if (f === 'blocked') {
+          filtered = filtered.filter((t: any) => {
+            const title = String(t.title||'').toLowerCase();
+            const cat = String((t as any).category||'').toLowerCase();
+            const tags = Array.isArray((t as any).tags)? (t as any).tags.map((x:any)=>String(x).toLowerCase()): [];
+            return title.includes('block') || title.includes('stuck') || cat.includes('block') || tags.includes('blocked') || tags.includes('blocker');
+          });
+        } else if (f === 'mine') {
+          // Heuristic: if API exposes owner_id, keep those with an owner
+          filtered = filtered.filter((t: any) => t.owner_id && Number(t.owner_id) > 0);
         }
       }
-      
       return {
         count: filtered.length,
-        tasks: filtered.slice(0, 10).map(t => ({
-          id: t.id,
-          title: t.title,
-          column_id: t.column_id
-        }))
+        tasks: filtered.slice(0, 20).map((t: any) => ({ id: t.id, title: t.title, column_id: t.column_id }))
       };
     }
+
 
     case 'search_tasks': {
       const tasks = await kb.searchTasks(PROJECT_ID, action.query);
@@ -395,6 +558,289 @@ async function executeAction(
           column_id: t.column_id
         }))
       };
+    }
+
+    case 'set_due': {
+      const parseWhenSimple = (input: string): number => {
+        let s = String(input || '').toLowerCase().replace(/[h,:]/g, ' ').trim()
+        const now = new Date()
+
+        function ts(d: Date) { return Math.floor(d.getTime() / 1000) }
+
+        // today / tomorrow / hoje / amanhã
+        if (/^(today|hoje)$/.test(s)) {
+          const d = new Date(now)
+          d.setHours(17, 0, 0, 0)
+          return ts(d)
+        }
+        if (/^(tomorrow|amanhã)$/.test(s)) {
+          const d = new Date(now)
+          d.setDate(d.getDate() + 1)
+          d.setHours(17, 0, 0, 0)
+          return ts(d)
+        }
+
+        // weekday names
+        const map: Record<string, number> = {
+          sun: 0,
+          mon: 1,
+          tue: 2,
+          wed: 3,
+          thu: 4,
+          fri: 5,
+          sat: 6,
+          domingo: 0,
+          segunda: 1,
+          terca: 2,
+          terça: 2,
+          quarta: 3,
+          quinta: 4,
+          sexta: 5,
+          sabado: 6,
+          sábado: 6
+        }
+
+        const weekdayMatch = s.match(/(sun|mon|tue|wed|thu|fri|sat|domingo|segunda|ter[çc]a|quarta|quinta|sexta|s[áa]bado)/)
+        let hh = 17
+        let mm = 0
+        const timeMatch = s.match(/(\d{1,2})(?::(\d{2}))?/)
+        if (timeMatch) {
+          hh = parseInt(timeMatch[1], 10)
+          mm = timeMatch[2] ? parseInt(timeMatch[2], 10) : 0
+        }
+
+        if (weekdayMatch) {
+          const target = map[weekdayMatch[1]]
+          const cur = now.getDay()
+          let delta = (target - cur) % 7
+          if (delta <= 0) delta += 7
+          const d = new Date(now)
+          d.setDate(now.getDate() + delta)
+          d.setHours(hh, mm, 0, 0)
+          return ts(d)
+        }
+
+        // ISO date
+        const d = new Date(s)
+        if (!isNaN(d.getTime())) return ts(d)
+
+        const fallback = new Date(now)
+        fallback.setDate(now.getDate() + 1)
+        fallback.setHours(17, 0, 0, 0)
+        return ts(fallback)
+      }
+
+      const whenTs = parseWhenSimple((action as any).when || 'tomorrow 17:00')
+      const updated: number[] = []
+
+      if ((action as any).ids && Array.isArray((action as any).ids)) {
+        for (const id of (action as any).ids) {
+          const tid = typeof id === 'number' ? id : parseInt(String(id), 10)
+          let prevDue: number | null = null
+          try {
+            const prevTask = await kb.getTask(tid)
+            prevDue = prevTask?.date_due ?? null
+          } catch (_) {
+            // ignore snapshot errors
+          }
+          (undo.actions as any).push({ type: 'update_task', taskId: tid, prev: { date_due: prevDue } })
+          await kb.updateTask(tid, { date_due: whenTs })
+          updated.push(tid)
+        }
+      } else if ((action as any).first && (action as any).column) {
+        const col = columnsByName[normalizeColumnName((action as any).column) || (action as any).column.toLowerCase()]
+        if (col) {
+          const tasks = await kb.listProjectTasks(PROJECT_ID)
+          const list = tasks.filter((t: any) => t.column_id === col.id).sort((a:any,b:any)=> (a.position||0) - (b.position||0)).slice(0, (action as any).first)
+          for (const t of list) {
+            let prevDue: number | null = null
+            try { const prevTask = await kb.getTask(t.id); prevDue = prevTask?.date_due ?? null; } catch {}
+            (undo.actions as any).push({ type: 'update_task', taskId: t.id, prev: { date_due: prevDue } })
+            await kb.updateTask(t.id, { date_due: whenTs }); updated.push(t.id)
+          }
+        }
+      }
+      return { ok:true, updated, when: whenTs }
+    }
+
+    case 'undo_last': {
+      try {
+        const res = await callMcp('undo_last')
+        if (res?.undone) {
+          LAST_UNDO_TOKEN = null
+          return {
+            ok: true,
+            message: 'Undid the last action.',
+            undone: res
+          }
+        }
+      } catch (e: any) {
+        console.warn('[undo_last] MCP failed', e)
+      }
+      if (LAST_UNDO_TOKEN && UNDO_LOG.has(LAST_UNDO_TOKEN)) {
+        const record = UNDO_LOG.get(LAST_UNDO_TOKEN)
+        if (record) {
+          for (const act of record.actions.reverse()) {
+            try {
+              if (act.type === 'create_task' && act.taskId) {
+                await kb.updateTask(act.taskId, { is_active: 0 })
+              } else if (act.type === 'move_task' && act.taskId && act.fromColumnId) {
+                await kb.moveTaskPosition(PROJECT_ID, act.taskId, act.fromColumnId, (act as any).position || 1, SWIMLANE_ID)
+              } else if (act.type === 'update_task' && act.taskId && act.prev) {
+                await kb.updateTask(act.taskId, act.prev)
+              }
+            } catch (err) {
+              console.error('Fallback undo failed:', err)
+            }
+          }
+          UNDO_LOG.delete(LAST_UNDO_TOKEN)
+          LAST_UNDO_TOKEN = null
+          return { ok: true, message: 'Undid the last action.', undone: record }
+        }
+      }
+      return { ok: true, message: 'Nothing to undo.', undone: null }
+    }
+
+    case 'tidy_board': {
+      const key = `${requesterKey(request)}::board`
+      if ((action as any).preview) {
+        try {
+          const res = await callMcp('tidy_board', { preview: true })
+          tidyPreviewStore.set(key, { target: 'board', report: res?.result, timestamp: Date.now() })
+          const info = res?.result || {}
+          const moved = Array.isArray(info.movedEmpty) ? info.movedEmpty.length : 0
+          const normalized = Array.isArray(info.normalized) ? info.normalized.length : 0
+          const marked = Array.isArray(info.markedDuplicates) ? info.markedDuplicates.length : 0
+          console.log('[TIDY_AUDIT]', new Date().toISOString(), {
+            user: requesterKey(request),
+            action: 'preview',
+            target: 'board',
+            result: { moved, normalized, marked }
+          })
+          const msg = `Preview ready — ${moved} empty, ${normalized} normalized, ${marked} marked. Run “tidy board confirm” within 30 minutes to apply.`
+          return {
+            ok: true,
+            message: msg,
+            response: msg,
+            actions: [action],
+            results: [{ type: 'tidy_board', result: { ok: true, message: msg, tidy: info, preview: true } }],
+            metrics: { deterministic: true, duration_ms: Date.now() - startTime }
+          }
+        } catch (e: any) {
+          return { ok: false, error: e?.message || 'tidy_failed' }
+        }
+      }
+      if (!(action as any).confirm) {
+        return { ok: false, error: 'Run “preview: tidy board” first, then confirm with “tidy board confirm”.' }
+      }
+      const preview = tidyPreviewStore.get(key)
+      if (!preview || Date.now() - preview.timestamp > TIDY_PREVIEW_TTL_MS) {
+        return { ok: false, error: 'Preview expired. Run “preview: tidy board” again.' }
+      }
+      const lastExec = tidyLastExec.get(key)
+      if (lastExec && Date.now() - lastExec < TIDY_COOLDOWN_MS) {
+        return { ok: false, error: 'Tidy is limited to once per hour.' }
+      }
+      try {
+        const res = await callMcp('tidy_board', { preview: false })
+        tidyPreviewStore.delete(key)
+        tidyLastExec.set(key, Date.now())
+        const info = res?.result || {}
+        const moved = Array.isArray(info.movedEmpty) ? info.movedEmpty.length : 0
+        const normalized = Array.isArray(info.normalized) ? info.normalized.length : 0
+        const marked = Array.isArray(info.markedDuplicates) ? info.markedDuplicates.length : 0
+        console.log('[TIDY_AUDIT]', new Date().toISOString(), {
+          user: requesterKey(request),
+          action: 'confirm',
+          target: 'board',
+          result: { moved, normalized, marked }
+        })
+        const msg = `Tidy complete — moved ${moved} empty, normalized ${normalized}, marked ${marked} duplicates.`
+        LAST_UNDO_TOKEN = 'mcp'
+        return {
+          ok: res?.ok !== false,
+          message: msg,
+          response: msg,
+          actions: [action],
+          results: [{ type: 'tidy_board', result: { ok: true, message: msg, tidy: info } }],
+          metrics: { deterministic: true, duration_ms: Date.now() - startTime }
+        }
+      } catch (e: any) {
+        return { ok: false, error: e?.message || 'tidy_failed' }
+      }
+    }
+
+    case 'tidy_column': {
+      const column = String((action as any).column || '').trim()
+      if (!column) {
+        return { ok: false, error: 'Column is required for tidy_column' }
+      }
+      const key = `${requesterKey(request)}::${column.toLowerCase()}`
+      if ((action as any).preview) {
+        try {
+          const res = await callMcp('tidy_column', { column, preview: true })
+          tidyPreviewStore.set(key, { target: column, report: res?.result, timestamp: Date.now() })
+          const info = res?.result || {}
+          const moved = Array.isArray(info.movedEmpty) ? info.movedEmpty.length : 0
+          const normalized = Array.isArray(info.normalized) ? info.normalized.length : 0
+          const marked = Array.isArray(info.markedDuplicates) ? info.markedDuplicates.length : 0
+          console.log('[TIDY_AUDIT]', new Date().toISOString(), {
+            user: requesterKey(request),
+            action: 'preview',
+            target: column,
+            result: { moved, normalized, marked }
+          })
+          const msg = `Preview for ${column} — ${moved} empty, ${normalized} normalized, ${marked} marked. Run “tidy ${column} confirm” within 30 minutes to apply.`
+          return {
+            ok: true,
+            message: msg,
+            response: msg,
+            actions: [action],
+            results: [{ type: 'tidy_column', result: { ok: true, message: msg, tidy: info, preview: true } }],
+            metrics: { deterministic: true, duration_ms: Date.now() - startTime }
+          }
+        } catch (err: any) {
+          return { ok: false, error: err?.message || 'tidy_failed' }
+        }
+      }
+      if (!(action as any).confirm) {
+        return { ok: false, error: `Run “preview: tidy ${column}” first, then confirm with “tidy ${column} confirm”.` }
+      }
+      const preview = tidyPreviewStore.get(key)
+      if (!preview || Date.now() - preview.timestamp > TIDY_PREVIEW_TTL_MS) {
+        return { ok: false, error: 'Preview expired. Run “preview: tidy ${column}” again.' }
+      }
+      const lastExec = tidyLastExec.get(key)
+      if (lastExec && Date.now() - lastExec < TIDY_COOLDOWN_MS) {
+        return { ok: false, error: 'Tidy is limited to once per hour.' }
+      }
+      try {
+        const res = await callMcp('tidy_column', { column })
+        tidyPreviewStore.delete(key)
+        tidyLastExec.set(key, Date.now())
+        const info = res?.result || {}
+        const moved = Array.isArray(info.movedEmpty) ? info.movedEmpty.length : 0
+        const normalized = Array.isArray(info.normalized) ? info.normalized.length : 0
+        const marked = Array.isArray(info.markedDuplicates) ? info.markedDuplicates.length : 0
+        console.log('[TIDY_AUDIT]', new Date().toISOString(), {
+          user: requesterKey(request),
+          action: 'confirm',
+          target: column,
+          result: { moved, normalized, marked }
+        })
+        const msg = `Tidied ${column} — moved ${moved} empty, normalized ${normalized}, marked ${marked} duplicates.`
+        LAST_UNDO_TOKEN = 'mcp'
+        return {
+          ok: true,
+          message: msg,
+          response: msg,
+          actions: [action],
+          results: [{ type: 'tidy_column', result: { ok: true, message: msg, tidy: info } }],
+          metrics: { deterministic: true, duration_ms: Date.now() - startTime }
+        }
+      } catch (err: any) {
+        return { ok: false, error: err?.message || 'tidy_failed' }
+      }
     }
 
     case 'undo': {
@@ -453,7 +899,8 @@ export async function processMessage(message: string, preview: boolean = false, 
     
     // Parse message into actions
     const fullMessage = preview ? `preview: ${message}` : message;
-    const actions = parseMessage(fullMessage, columnNames);
+   const actions = parseMessage(fullMessage, columnNames);
+    console.log('[deterministic] parsed actions', actions)
     
     if (!actions || actions.length === 0) {
       // If deterministic parser can't handle it, return null to fallback to AI
@@ -478,8 +925,119 @@ export async function processMessage(message: string, preview: boolean = false, 
     // Get column mapping
     const columnsByName = await getColumnsMap();
     
+    // Short-circuit tidy preview/confirm
+    if (actions.length === 1 && actions[0].type === 'tidy_column') {
+      const action = actions[0]
+      const column = String(action.column)
+      const key = `${requesterKey(request)}::${column.toLowerCase()}`
+      if (action.preview) {
+        try {
+          const result = await callMcp('tidy_column', { column, preview: true })
+          tidyPreviewStore.set(key, { target: column, report: result, timestamp: Date.now() })
+          const moved = Array.isArray(result?.movedEmpty) ? result.movedEmpty.length : 0
+          const normalized = Array.isArray(result?.normalized) ? result.normalized.length : 0
+          const marked = Array.isArray(result?.markedDuplicates) ? result.markedDuplicates.length : 0
+          const msg = `Preview for ${column} — ${moved} empty, ${normalized} normalized, ${marked} marked. Run “tidy ${column} confirm” within 30 minutes to apply.`
+          return {
+            ok: true,
+            message: msg,
+            response: msg,
+            actions: [action],
+            results: [{ type: 'tidy_column', result: { ok: true, message: msg, tidy: result, preview: true } }],
+            metrics: { deterministic: true, duration_ms: Date.now() - startTime }
+          }
+        } catch (err: any) {
+          return { ok: false, message: err?.message || 'tidy_failed', error: err?.message || 'tidy_failed', actions, results: [], metrics: { deterministic: true, duration_ms: Date.now() - startTime } }
+        }
+      }
+      if ((action as any).confirm) {
+        const preview = tidyPreviewStore.get(key)
+        if (!preview || Date.now() - preview.timestamp > TIDY_PREVIEW_TTL_MS) {
+          return { ok: false, message: 'Preview expired. Run “preview: tidy ${column}” again.', response: 'Preview expired. Run “preview: tidy ${column}” again.', actions, results: [], metrics: { deterministic: true, duration_ms: Date.now() - startTime } }
+        }
+        const lastExec = tidyLastExec.get(key)
+        if (lastExec && Date.now() - lastExec < TIDY_COOLDOWN_MS) {
+          return { ok: false, message: 'Tidy is limited to once per hour.', response: 'Tidy is limited to once per hour.', actions, results: [], metrics: { deterministic: true, duration_ms: Date.now() - startTime } }
+        }
+        try {
+          const result = await callMcp('tidy_column', { column })
+          tidyPreviewStore.delete(key)
+          tidyLastExec.set(key, Date.now())
+          const moved = Array.isArray(result?.movedEmpty) ? result.movedEmpty.length : 0
+          const normalized = Array.isArray(result?.normalized) ? result.normalized.length : 0
+          const marked = Array.isArray(result?.markedDuplicates) ? result.markedDuplicates.length : 0
+          const msg = `Tidied ${column} — moved ${moved} empty, normalized ${normalized}, marked ${marked} duplicates.`
+          return {
+            ok: true,
+            message: msg,
+            response: msg,
+            actions: [action],
+            results: [{ type: 'tidy_column', result: { ok: true, message: msg, tidy: result } }],
+            metrics: { deterministic: true, duration_ms: Date.now() - startTime }
+          }
+        } catch (err: any) {
+          return { ok: false, message: err?.message || 'tidy_failed', response: err?.message || 'tidy_failed', actions, results: [], metrics: { deterministic: true, duration_ms: Date.now() - startTime } }
+        }
+      }
+    }
+
+    if (actions.length === 1 && actions[0].type === 'tidy_board') {
+      const action = actions[0]
+      const key = `${requesterKey(request)}::board`
+      if (action.preview) {
+        try {
+          const result = await callMcp('tidy_board', { preview: true })
+          tidyPreviewStore.set(key, { target: 'board', report: result, timestamp: Date.now() })
+          const moved = Array.isArray(result?.movedEmpty) ? result.movedEmpty.length : 0
+          const normalized = Array.isArray(result?.normalized) ? result.normalized.length : 0
+          const marked = Array.isArray(result?.markedDuplicates) ? result.markedDuplicates.length : 0
+          const msg = `Preview for board — ${moved} empty, ${normalized} normalized, ${marked} marked. Run “tidy board confirm” within 30 minutes to apply.`
+          return {
+            ok: true,
+            message: msg,
+            response: msg,
+            actions: [action],
+            results: [{ type: 'tidy_board', result: { ok: true, message: msg, tidy: result, preview: true } }],
+            metrics: { deterministic: true, duration_ms: Date.now() - startTime }
+          }
+        } catch (err: any) {
+          return { ok: false, message: err?.message || 'tidy_failed', response: err?.message || 'tidy_failed', actions, results: [], metrics: { deterministic: true, duration_ms: Date.now() - startTime } }
+        }
+      }
+      if ((action as any).confirm) {
+        const preview = tidyPreviewStore.get(key)
+        if (!preview || Date.now() - preview.timestamp > TIDY_PREVIEW_TTL_MS) {
+          return { ok: false, message: 'Preview expired. Run “preview: tidy board” again.', response: 'Preview expired. Run “preview: tidy board” again.', actions, results: [], metrics: { deterministic: true, duration_ms: Date.now() - startTime } }
+        }
+        const lastExec = tidyLastExec.get(key)
+        if (lastExec && Date.now() - lastExec < TIDY_COOLDOWN_MS) {
+          return { ok: false, message: 'Tidy is limited to once per hour.', response: 'Tidy is limited to once per hour.', actions, results: [], metrics: { deterministic: true, duration_ms: Date.now() - startTime } }
+        }
+        try {
+          const result = await callMcp('tidy_board', {})
+          tidyPreviewStore.delete(key)
+          tidyLastExec.set(key, Date.now())
+          const moved = Array.isArray(result?.movedEmpty) ? result.movedEmpty.length : 0
+          const normalized = Array.isArray(result?.normalized) ? result.normalized.length : 0
+          const marked = Array.isArray(result?.markedDuplicates) ? result.markedDuplicates.length : 0
+          const msg = `Tidied board — moved ${moved} empty, normalized ${normalized}, marked ${marked} duplicates.`
+          return {
+            ok: true,
+            message: msg,
+            response: msg,
+            actions: [action],
+            results: [{ type: 'tidy_board', result: { ok: true, message: msg, tidy: result } }],
+            metrics: { deterministic: true, duration_ms: Date.now() - startTime }
+          }
+        } catch (err: any) {
+          return { ok: false, message: err?.message || 'tidy_failed', response: err?.message || 'tidy_failed', actions, results: [], metrics: { deterministic: true, duration_ms: Date.now() - startTime } }
+        }
+      }
+    }
+
     // Create undo record
     const undoToken = crypto.randomBytes(6).toString('hex');
+    LAST_UNDO_TOKEN = undoToken
     const undo: UndoRecord = {
       token: undoToken,
       actions: [],
@@ -520,6 +1078,9 @@ export async function processMessage(message: string, preview: boolean = false, 
           case 'comment_task':
             messages.push(`Commented on #${result.taskId}.`);
             break;
+          case 'remove_task':
+            messages.push(`Removed #${result.taskId}.`);
+            break;
           case 'list_tasks':
             messages.push(`${result.count} task${result.count !== 1 ? 's' : ''}:`);
             if (result.tasks.length > 0) {
@@ -537,6 +1098,15 @@ export async function processMessage(message: string, preview: boolean = false, 
           case 'undo':
             messages.push(`Reverted ${result.actionsReverted} action${result.actionsReverted !== 1 ? 's' : ''}.`);
             break;
+          case 'tidy_board':
+            if (result?.message) messages.push(result.message);
+            break;
+          case 'tidy_column':
+            if (result?.message) messages.push(result.message);
+            break;
+          case 'undo_last':
+            messages.push(result?.message || 'Undid the last action.');
+            break;
         }
       } catch (error: any) {
         messages.push(error.message);
@@ -544,6 +1114,35 @@ export async function processMessage(message: string, preview: boolean = false, 
       }
     }
     
+    // If response is a board summary (one or more list_tasks), append concise counts
+    try {
+      const onlyLists = actions.every((a: any) => a.type === 'list_tasks')
+      if (onlyLists) {
+        const cols = await kb.getColumns(PROJECT_ID)
+        const lang = (request as any)?.headers?.get ? ((request as any).headers.get('accept-language')||'').toLowerCase() : ''
+        const isPT = lang.startsWith('pt')
+        const all = await kb.listProjectTasks(PROJECT_ID)
+        const lowerTitle = (t: any) => String(t.title||'').toLowerCase()
+        const cnt = { ready:0, wip:0, done:0, overdue:0 }
+        const byColId: Record<number,string> = {}
+        for (const c of cols) byColId[c.id] = String(c.title||'')
+        const now = Math.floor(Date.now()/1000)
+        for (const t of all) {
+          const name = lowerTitle({ title: byColId[t.column_id]||'' })
+          if (/ready/.test(name)) cnt.ready++
+          else if (/(in progress|work in progress|wip|doing|active|current)/.test(name)) cnt.wip++
+          else if (/(done|complete|finished|closed|shipped|deployed|live)/.test(name)) cnt.done++
+          if (t.date_due && t.date_due < now && t.is_active === 1) cnt.overdue++
+        }
+        const parts = [] as string[]
+        parts.push((isPT?`Prontas ${cnt.ready}`:`Ready ${cnt.ready}`))
+        parts.push((isPT?`Em Progresso ${cnt.wip}`:`In Progress ${cnt.wip}`))
+        parts.push((isPT?`Concluídas ${cnt.done}`:`Done ${cnt.done}`))
+        parts.push((isPT?`Atrasadas ${cnt.overdue}`:`Overdue ${cnt.overdue}`))
+                messages.unshift(((isPT ? 'Resumo — ' : 'Summary — ') + parts.join(' • ')))
+      }
+    } catch {}
+
     // Store undo record if there were state-changing actions
     if (undo.actions.length > 0) {
       UNDO_LOG.set(undoToken, undo);

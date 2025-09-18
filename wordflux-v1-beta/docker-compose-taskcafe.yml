@@ -1,0 +1,39 @@
+version: '3.8'
+services:
+  postgres:
+    image: postgres:13
+    environment:
+      POSTGRES_USER: taskcafe
+      POSTGRES_PASSWORD: taskcafe2025
+      POSTGRES_DB: taskcafe
+    volumes:
+      - taskcafe-postgres:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U taskcafe"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  taskcafe:
+    image: taskcafe/taskcafe:latest
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      TASKCAFE_DATABASE_HOST: postgres
+      TASKCAFE_DATABASE_NAME: taskcafe
+      TASKCAFE_DATABASE_USER: taskcafe
+      TASKCAFE_DATABASE_PASSWORD: taskcafe2025
+      TASKCAFE_SECRET: ultra-secret-key-2025
+      TASKCAFE_WEB_LISTEN: 0.0.0.0
+      TASKCAFE_MIGRATE: "true"
+    ports:
+      - "3333:3333"
+    command: ["./taskcafe", "web", "--migrate"]
+    restart: unless-stopped
+
+volumes:
+  taskcafe-postgres:
