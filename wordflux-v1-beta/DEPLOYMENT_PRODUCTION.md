@@ -14,7 +14,7 @@ Internet → AWS EC2 (52.4.68.118:80)
          → Nginx (reverse proxy)
          → PM2 (wf-v1-beta:3000)
          → Next.js Application
-         → Kanboard Docker (127.0.0.1:8090)
+         → TaskCafe Docker (127.0.0.1:8090)
 ```
 
 ## Deployment Steps
@@ -66,9 +66,9 @@ cp .env.example .env.local
 # Edit .env.local with production values:
 # OPENAI_API_KEY=sk-...
 # OPENAI_MODEL=gpt-5-mini
-# KANBOARD_URL=http://localhost:8090/jsonrpc.php
-# KANBOARD_USERNAME=jsonrpc
-# KANBOARD_PASSWORD=wordflux-api-token-2025
+# TaskCafe_URL=http://localhost:8090/jsonrpc.php
+# TaskCafe_USERNAME=jsonrpc
+# TaskCafe_PASSWORD=wordflux-api-token-2025
 
 # Build for production
 npm run build
@@ -79,16 +79,16 @@ pm2 save
 pm2 startup
 ```
 
-### 4. Setup Kanboard Container
+### 4. Setup TaskCafe Container
 
 ```bash
-# Run Kanboard (localhost only for security)
-docker run -d --name wordflux-kanboard \
+# Run TaskCafe (localhost only for security)
+docker run -d --name wordflux-TaskCafe \
   --restart=always \
   -p 127.0.0.1:8090:80 \
-  kanboard/kanboard:latest
+  TaskCafe/TaskCafe:latest
 
-# Configure Kanboard via web UI at localhost:8090
+# Configure TaskCafe via web UI at localhost:8090
 # 1. Create admin account
 # 2. Create project "WordFlux"
 # 3. Enable JSON-RPC API
@@ -159,14 +159,14 @@ crontab -e
 All containers MUST bind to localhost only:
 ```bash
 # ✅ SECURE - localhost only
-docker run -p 127.0.0.1:8090:80 kanboard/kanboard
+docker run -p 127.0.0.1:8090:80 TaskCafe/TaskCafe
 
 # ❌ INSECURE - publicly exposed
-docker run -p 8090:80 kanboard/kanboard
+docker run -p 8090:80 TaskCafe/TaskCafe
 ```
 
 ### Current Security Status
-- ✅ Kanboard: 127.0.0.1:8090 (localhost only)
+- ✅ TaskCafe: 127.0.0.1:8090 (localhost only)
 - ✅ All other containers removed for security
 - ✅ Nginx as reverse proxy on port 80
 - ✅ PM2 process on localhost:3000
@@ -216,11 +216,11 @@ npm run build
 pm2 restart wf-v1-beta
 ```
 
-### Kanboard connection issues
+### TaskCafe connection issues
 ```bash
 # Check container
-docker ps | grep kanboard
-docker logs wordflux-kanboard
+docker ps | grep TaskCafe
+docker logs wordflux-TaskCafe
 
 # Test API
 curl -X POST http://localhost:8090/jsonrpc.php \
@@ -237,7 +237,7 @@ curl -X POST http://localhost:8090/jsonrpc.php \
 - [x] Docker installed
 - [x] Nginx configured
 - [x] PM2 process manager setup
-- [x] Kanboard container running (localhost only)
+- [x] TaskCafe container running (localhost only)
 - [x] Environment variables configured
 - [x] Application built and running
 - [x] Health monitoring active

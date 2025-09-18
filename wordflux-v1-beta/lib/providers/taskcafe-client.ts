@@ -1,4 +1,6 @@
-import type { BoardColumn, BoardProvider } from '../board-provider'
+import type { BoardColumn, BoardProvider, BoardMember } from '../board-provider'
+import { parseDerivedMetadata } from '../card-derivations'
+import type { DerivedCardMetadata } from '../filter-spec'
 
 interface TaskCafeClientOptions {
   url: string
@@ -25,6 +27,16 @@ type TaskCafeTask = {
   assigned?: Array<{ fullName: string; username: string }>
 }
 
+type TaskCafeMember = {
+  id: string
+  fullName?: string | null
+  username?: string | null
+  profileIcon?: {
+    initials?: string | null
+    bgColor?: string | null
+  } | null
+}
+
 type TaskCafeTaskGroup = {
   id: string
   name: string
@@ -36,6 +48,8 @@ type TaskCafeProject = {
   id: string
   name: string
   taskGroups: TaskCafeTaskGroup[]
+  labels?: Array<{ id: string; name?: string | null }>
+  members?: TaskCafeMember[]
 }
 
 const QUERY_PROJECT = /* GraphQL */ `
@@ -43,6 +57,16 @@ const QUERY_PROJECT = /* GraphQL */ `
     findProject(input: { projectID: $projectId }) {
       id
       name
+      labels {
+        id
+        name
+      }
+      members {
+        id
+        fullName
+        username
+        profileIcon { initials bgColor }
+      }
       taskGroups {
         id
         name
@@ -57,14 +81,14 @@ const QUERY_PROJECT = /* GraphQL */ `
           labels {
             projectLabel { name }
           }
-          assigned {
-            fullName
-            username
-          }
+        assigned {
+          fullName
+          username
         }
       }
     }
   }
+}
 `
 
 const MUTATION_CREATE_TASK = /* GraphQL */ `
@@ -106,7 +130,7 @@ const MUTATION_MOVE_TASK = /* GraphQL */ `
 
 const MUTATION_DELETE_TASK = /* GraphQL */ `
   mutation DeleteTask($input: DeleteTaskInput!) {
-    deleteTask(input: $input) { success }
+    deleteTask(input: $input) { taskID }
   }
 `
 
@@ -132,6 +156,36 @@ const QUERY_USERS = /* GraphQL */ `
   }
 `
 
+const MUTATION_ASSIGN_TASK = /* GraphQL */ `
+  mutation AssignTask($taskID: UUID!, $userID: UUID!) {
+    assignTask(input: { taskID: $taskID, userID: $userID }) {
+      id
+      assigned { id fullName }
+    }
+  }
+`
+
+const MUTATION_ADD_TASK_LABEL = /* GraphQL */ `
+  mutation AddTaskLabel($taskID: UUID!, $projectLabelID: UUID!) {
+    addTaskLabel(input: { taskID: $taskID, projectLabelID: $projectLabelID }) {
+      id
+      labels {
+        id
+        projectLabel { id name }
+      }
+    }
+  }
+`
+
+const MUTATION_TOGGLE_TASK_LABEL = /* GraphQL */ `
+  mutation ToggleTaskLabel($taskID: UUID!, $projectLabelID: UUID!) {
+    toggleTaskLabel(input: { taskID: $taskID, projectLabelID: $projectLabelID }) {
+      active
+      task { id }
+    }
+  }
+`
+
 export class TaskCafeClient implements BoardProvider {
   private readonly baseUrl: string
   private readonly username?: string
@@ -139,6 +193,7 @@ export class TaskCafeClient implements BoardProvider {
   private readonly defaultProjectId?: string
   private sessionCookie: string | null = null
   private loginPromise: Promise<void> | null = null
+  private readonly projectLabelCache = new Map<string, Array<{ id: string; name?: string | null }>>()
 
   constructor(options: TaskCafeClientOptions) {
     this.baseUrl = options.url.replace(/\/$/, '')
@@ -198,6 +253,15 @@ export class TaskCafeClient implements BoardProvider {
   private async graphql<T>(query: string, variables?: Record<string, any>, retry = true): Promise<T> {
     await this.ensureSession()
 
+    const payload = { query, variables }
+    if (/CreateTask\(/.test(query)) {
+      try {
+        console.debug('[taskcafe] createTask payload', JSON.stringify(payload))
+      } catch (err) {
+        console.debug('[taskcafe] createTask payload <unserializable>', err)
+      }
+    }
+
     const response = await fetch(`${this.baseUrl}/graphql`, {
       method: 'POST',
       headers: {
@@ -205,7 +269,7 @@ export class TaskCafeClient implements BoardProvider {
         Accept: 'application/json',
         ...(this.sessionCookie ? { Cookie: this.sessionCookie } : {})
       },
-      body: JSON.stringify({ query, variables })
+      body: JSON.stringify(payload)
     })
 
     if (response.status === 401 && retry) {
@@ -255,10 +319,85 @@ export class TaskCafeClient implements BoardProvider {
     return String(taskId)
   }
 
-  private mapTask(task: TaskCafeTask) {
-    const tags = (task.labels || [])
+  private mapMember(member: TaskCafeMember): BoardMember {
+    return {
+      id: member.id,
+      name: member.fullName ?? undefined,
+      username: member.username ?? undefined,
+      initials: member.profileIcon?.initials ?? null,
+      color: member.profileIcon?.bgColor ?? null
+    }
+  }
+
+  private isUuid(value: string): boolean {
+    return /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(value)
+  }
+
+  private cacheProjectLabels(projectId: string, labels?: Array<{ id: string; name?: string | null }>) {
+    if (!labels) return
+    this.projectLabelCache.set(projectId, labels)
+  }
+
+  private async getProjectLabels(projectId: string): Promise<Array<{ id: string; name?: string | null }>> {
+    const cached = this.projectLabelCache.get(projectId)
+    if (cached) return cached
+    const project = await this.fetchProject(projectId)
+    const labels = project?.labels ?? []
+    this.cacheProjectLabels(projectId, labels)
+    return labels
+  }
+
+  private resolvePrioritySlugFromLabel(name?: string | null): 'urgent' | 'high' | 'medium' | 'low' | null {
+    if (!name) return null
+    const raw = name.trim().toLowerCase()
+    if (!raw) return null
+    if (!/^(priority[-:_\s]?|prio[-:_\s]?)/.test(raw)) return null
+    if (raw.includes('urgent') || raw.includes('critical')) return 'urgent'
+    if (raw.includes('high') || raw.includes('alta') || raw.includes('p0') || raw.includes('p1')) return 'high'
+    if (raw.includes('medium') || raw.includes('media') || raw.includes('normal') || raw.includes('mid') || raw.includes('p2')) return 'medium'
+    if (raw.includes('low') || raw.includes('baixa') || raw.includes('p3') || raw.includes('p4')) return 'low'
+    return null
+  }
+
+  private normalizePriorityInput(priority: number | string): 'urgent' | 'high' | 'medium' | 'low' | 'none' {
+    if (typeof priority === 'number' && Number.isFinite(priority)) {
+      if (priority >= 4) return 'urgent'
+      if (priority >= 3) return 'high'
+      if (priority === 2) return 'medium'
+      if (priority === 1) return 'low'
+      return 'none'
+    }
+    const raw = String(priority ?? '').trim().toLowerCase()
+    if (!raw) throw new Error('Priority value is required')
+    if (['none', 'clear', 'remove', 'reset'].includes(raw)) return 'none'
+    if (['critical', 'urgent', '🔥', 'urgent🔥'].includes(raw)) return 'urgent'
+    if (['high', 'alta', 'p0', 'p1'].includes(raw)) return 'high'
+    if (['medium', 'media', 'normal', 'mid', 'p2'].includes(raw)) return 'medium'
+    if (['low', 'baixa', 'p3', 'p4'].includes(raw)) return 'low'
+    const parsed = parseInt(raw, 10)
+    if (Number.isFinite(parsed)) {
+      if (parsed >= 4) return 'urgent'
+      if (parsed >= 3) return 'high'
+      if (parsed === 2) return 'medium'
+      if (parsed === 1) return 'low'
+      return 'none'
+    }
+    throw new Error(`Unknown priority value: ${priority}`)
+  }
+
+  private mapTask(task: TaskCafeTask, columnName?: string) {
+    const labelNames = (task.labels || [])
       .map(label => label?.projectLabel?.name)
       .filter((name): name is string => Boolean(name))
+
+    const filteredTags = labelNames.filter(label => !this.resolvePrioritySlugFromLabel(label))
+
+    const derived = parseDerivedMetadata(task.description, labelNames, task.assigned || [], {
+      dueDate: task.dueDate ?? null,
+      createdAt: task.createdAt,
+      lastActivityAt: task.createdAt,
+      column: columnName ?? null,
+    })
 
     const assignees = (task.assigned || [])
       .map(member => member.fullName || member.username)
@@ -267,12 +406,16 @@ export class TaskCafeClient implements BoardProvider {
     return {
       id: task.id,
       title: task.name,
-      description: task.description || undefined,
-      tags,
+      description: derived.sanitizedDescription || undefined,
+      labels: labelNames,
+      tags: filteredTags,
       assignees,
       due_date: task.dueDate ?? null,
+      priority: derived.priority,
+      points: derived.points,
       position: task.position,
-      created_at: task.createdAt
+      created_at: task.createdAt,
+      derived,
     }
   }
 
@@ -281,10 +424,14 @@ export class TaskCafeClient implements BoardProvider {
     const data = await this.graphql<{ findProject: TaskCafeProject | null }>(QUERY_PROJECT, {
       projectId: target
     })
-    return data.findProject
+    const project = data.findProject
+    if (project?.labels) {
+      this.cacheProjectLabels(target, project.labels)
+    }
+    return project
   }
 
-  async getBoardState(projectId?: number | string): Promise<{ columns: BoardColumn[] }> {
+  async getBoardState(projectId?: number | string): Promise<{ columns: BoardColumn[]; members?: BoardMember[] }> {
     const project = await this.fetchProject(projectId)
     if (!project) return { columns: [] }
 
@@ -297,10 +444,12 @@ export class TaskCafeClient implements BoardProvider {
         cards: (group.tasks || [])
           .slice()
           .sort((a, b) => a.position - b.position)
-          .map(task => this.mapTask(task))
+          .map(task => this.mapTask(task, group.name))
       }))
 
-    return { columns }
+    const members = (project.members || []).map(member => this.mapMember(member))
+
+    return { columns, members }
   }
 
   async getColumns(projectId: number | string): Promise<Array<{ id: string; title: string; position: number }>> {
@@ -340,6 +489,11 @@ export class TaskCafeClient implements BoardProvider {
       name: title,
       position: Date.now(),
       assigned: [] as string[]
+    }
+
+    if (!(globalThis as any).__WF_DEBUG_CREATE_INPUT__) {
+      (globalThis as any).__WF_DEBUG_CREATE_INPUT__ = true
+      console.debug('[taskcafe] createTask input', input)
     }
     const data = await this.graphql<{ createTask: { id: string } }>(MUTATION_CREATE_TASK, { input })
     const taskId = data.createTask.id
@@ -389,6 +543,24 @@ export class TaskCafeClient implements BoardProvider {
         taskID: taskId,
         taskGroupID: columnId,
         position: targetPosition
+      }
+    })
+
+    return true
+  }
+
+  async moveTaskPosition(
+    projectId: number | string,
+    taskId: number | string,
+    columnId: number | string,
+    position?: number,
+    _swimlaneId?: number | string
+  ): Promise<boolean> {
+    await this.graphql(MUTATION_MOVE_TASK, {
+      input: {
+        taskID: this.normalizeTaskId(taskId),
+        taskGroupID: String(columnId),
+        position: position ?? Date.now()
       }
     })
 
@@ -458,8 +630,27 @@ export class TaskCafeClient implements BoardProvider {
   }
 
   async getTask(taskId: number | string): Promise<any> {
-    const data = await this.graphql<{ findTask: { id: string; name: string; description?: string; taskGroup: { id: string } } }>(
-      `query ($taskID: UUID!) { findTask(input: { taskID: $taskID }) { id name description taskGroup { id } } }`,
+    const data = await this.graphql<{
+      findTask: {
+        id: string
+        name: string
+        description?: string
+        taskGroup: { id: string }
+        labels: Array<{ id: string; projectLabel: { id: string; name?: string | null } }>
+      }
+    }>(
+      `query ($taskID: UUID!) {
+        findTask(input: { taskID: $taskID }) {
+          id
+          name
+          description
+          taskGroup { id }
+          labels {
+            id
+            projectLabel { id name }
+          }
+        }
+      }`,
       { taskID: this.normalizeTaskId(taskId) }
     )
     return data.findTask
@@ -472,17 +663,40 @@ export class TaskCafeClient implements BoardProvider {
     return tasks.filter(task => task.title.toLowerCase().includes(normalized))
   }
 
-  async addComment(taskId: number | string, content: string): Promise<string | number> {
-    const data = await this.graphql<{ createTaskComment: { comment: { id: string } } }>(
-      `mutation ($input: CreateTaskComment!) { createTaskComment(input: $input) { comment { id } } }`,
-      {
-        input: {
-          taskID: this.normalizeTaskId(taskId),
-          content
+  async addComment(taskId: number | string, content: string): Promise<string | number | null> {
+    try {
+      const data = await this.graphql<{ createTaskComment: { comment: { id: string } } }>(
+        `mutation ($input: CreateTaskComment!) { createTaskComment(input: $input) { comment { id } } }`,
+        {
+          input: {
+            taskID: this.normalizeTaskId(taskId),
+            content
+          }
+        }
+      )
+      return data.createTaskComment.comment.id
+    } catch (error: any) {
+      const message = typeof error?.message === 'string' ? error.message : ''
+      if (message.includes('unknown field') && message.includes('content')) {
+        try {
+          const data = await this.graphql<{ createTaskComment: { comment: { id: string } } }>(
+            `mutation ($input: CreateTaskComment!) { createTaskComment(input: $input) { comment { id } } }`,
+            {
+              input: {
+                taskID: this.normalizeTaskId(taskId),
+                comment: content
+              }
+            }
+          )
+          return data.createTaskComment.comment.id
+        } catch (fallbackError) {
+          console.warn('[taskcafe] comment fallback failed', fallbackError)
+          return null
         }
       }
-    )
-    return data.createTaskComment.comment.id
+      console.warn('[taskcafe] addComment failed', error)
+      return null
+    }
   }
 
   async addTaskComment(taskId: number | string, content: string): Promise<string | number> {
@@ -491,11 +705,129 @@ export class TaskCafeClient implements BoardProvider {
 
   // Placeholder methods for advanced operations not yet mapped to TaskCafe GraphQL
   async assignTask(taskId: number | string, assigneeId: string): Promise<boolean> {
-    throw new Error('TaskCafe assignTask is not implemented yet')
+    const taskID = this.normalizeTaskId(taskId)
+    const identifier = (assigneeId ?? '').trim()
+    if (!identifier) {
+      throw new Error('TaskCafe assignTask requires an assignee identifier')
+    }
+
+    let userID = identifier
+    if (!this.isUuid(identifier)) {
+      const data = await this.graphql<{ users: Array<{ id: string; username: string; fullName: string }> }>(QUERY_USERS)
+      const normalized = identifier.toLowerCase()
+      const match = data.users.find(user => user.username.toLowerCase() === normalized || user.fullName.toLowerCase() === normalized)
+      if (!match) {
+        throw new Error(`TaskCafe user '${assigneeId}' not found`)
+      }
+      userID = match.id
+    }
+
+    await this.graphql<{ assignTask: { id: string } }>(MUTATION_ASSIGN_TASK, {
+      taskID,
+      userID
+    })
+    return true
   }
 
   async addTaskLabel(taskId: number | string, labelIds: string[] | string): Promise<boolean> {
-    throw new Error('TaskCafe addTaskLabel is not implemented yet')
+    const taskID = this.normalizeTaskId(taskId)
+    const labels = Array.isArray(labelIds) ? labelIds : [labelIds]
+    if (!labels.length) {
+      throw new Error('TaskCafe addTaskLabel requires at least one label identifier')
+    }
+
+    const projectId = this.resolveProjectId()
+    const catalog = await this.getProjectLabels(projectId)
+
+    for (const label of labels) {
+      if (!label) continue
+      let projectLabelID = label.trim()
+      if (!projectLabelID) continue
+      if (!this.isUuid(projectLabelID)) {
+        const normalized = projectLabelID.toLowerCase()
+        const match = catalog.find(entry => {
+          const name = (entry.name ?? '').toLowerCase()
+          if (name === normalized) return true
+          const slug = this.resolvePrioritySlugFromLabel(entry.name)
+          if (!slug) return false
+          return normalized === slug || normalized === `priority-${slug}`
+        })
+        if (!match) {
+          throw new Error(`TaskCafe project label '${label}' not found`)
+        }
+        projectLabelID = match.id
+      }
+
+      try {
+        await this.graphql<{ addTaskLabel: { id: string } }>(MUTATION_ADD_TASK_LABEL, {
+          taskID,
+          projectLabelID
+        })
+      } catch (error) {
+        await this.graphql<{ toggleTaskLabel: { active: boolean } }>(MUTATION_TOGGLE_TASK_LABEL, {
+          taskID,
+          projectLabelID
+        })
+      }
+    }
+
+    return true
+  }
+
+  async updateTaskPriority(taskId: number | string, priority: number | string): Promise<boolean> {
+    const taskID = this.normalizeTaskId(taskId)
+    const normalized = this.normalizePriorityInput(priority)
+    const projectId = this.resolveProjectId()
+
+    const catalog = await this.getProjectLabels(projectId)
+    const priorityCatalog = catalog
+      .map(entry => ({
+        id: entry.id,
+        name: entry.name ?? '',
+        slug: this.resolvePrioritySlugFromLabel(entry.name)
+      }))
+      .filter((entry): entry is { id: string; name: string; slug: 'urgent' | 'high' | 'medium' | 'low' } => Boolean(entry.slug))
+
+    const targetSlug = normalized === 'none' ? null : normalized
+    const target = targetSlug ? priorityCatalog.find(entry => entry.slug === targetSlug) : null
+    if (targetSlug && !target) {
+      throw new Error(`TaskCafe priority label '${targetSlug}' not found. Create a label such as 'priority-${targetSlug}'.`)
+    }
+
+    const task = await this.getTask(taskID)
+    const currentPriorityLabels = Array.isArray(task?.labels)
+      ? task.labels
+          .map((label: any) => {
+            const slug = this.resolvePrioritySlugFromLabel(label?.projectLabel?.name)
+            if (!slug || !label?.projectLabel?.id) return null
+            return {
+              slug,
+              projectLabelId: String(label.projectLabel.id),
+              taskLabelId: label.id ? String(label.id) : undefined
+            }
+          })
+          .filter((entry): entry is { slug: 'urgent' | 'high' | 'medium' | 'low'; projectLabelId: string; taskLabelId?: string } => Boolean(entry))
+      : []
+
+    for (const label of currentPriorityLabels) {
+      if (!targetSlug || label.slug !== targetSlug) {
+        await this.graphql<{ toggleTaskLabel: { active: boolean } }>(MUTATION_TOGGLE_TASK_LABEL, {
+          taskID,
+          projectLabelID: label.projectLabelId
+        })
+      }
+    }
+
+    if (!targetSlug) {
+      return true
+    }
+
+    const alreadyAssigned = currentPriorityLabels.some(label => label.slug === targetSlug)
+    if (!alreadyAssigned && target) {
+      await this.addTaskLabel(taskID, target.id)
+    }
+
+    return true
   }
 
   async updateTaskScore(taskId: number | string, score: number): Promise<boolean> {
@@ -503,7 +835,47 @@ export class TaskCafeClient implements BoardProvider {
   }
 
   async listProjectTasks(projectId: number | string) {
-    return this.getTasks(projectId)
+    const project = await this.fetchProject(projectId)
+    if (!project) return []
+
+    const nowSeconds = Math.floor(Date.now() / 1000)
+    const tasks: Array<{
+      id: string
+      title: string
+      description?: string
+      column_id: string
+      position: number
+      date_creation: number
+      created_at?: string
+      due_date?: number | null
+      is_active: number
+    }> = []
+
+    for (const group of project.taskGroups || []) {
+      for (const task of group.tasks || []) {
+        const createdAt = task.createdAt ? Math.floor(new Date(task.createdAt).getTime() / 1000) : nowSeconds
+        const dueDate = task.dueDate ? Math.floor(new Date(task.dueDate).getTime() / 1000) : null
+        tasks.push({
+          id: task.id,
+          title: task.name,
+          description: task.description || undefined,
+          column_id: group.id,
+          position: task.position,
+          date_creation: createdAt,
+          created_at: task.createdAt,
+          due_date: dueDate,
+          is_active: 1
+        })
+      }
+    }
+
+    return tasks
+  }
+
+  async getTeamMembers(projectId?: number | string): Promise<BoardMember[]> {
+    const project = await this.fetchProject(projectId)
+    if (!project?.members) return []
+    return project.members.map(member => this.mapMember(member))
   }
 
   async request(method: string, params: Record<string, any> = {}): Promise<any> {

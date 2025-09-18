@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import useSWR from 'swr'
 import styles from './Board2.module.css'
 import { callMcp } from '@/lib/mcp-client'
@@ -8,6 +8,9 @@ import { Column } from './Column'
 import { DndContext, type DragEndEvent, type DragOverEvent, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { SortableContext, rectSortingStrategy } from '@dnd-kit/sortable'
 import { computePosition, STEP } from '@/lib/positioning'
+import { useWebSocket } from '@/hooks/useWebSocket'
+import type { BoardMember } from '@/lib/board-provider'
+import { BoardHeader } from './BoardHeader'
 
 export type BoardCard = {
   id: string | number
@@ -15,12 +18,20 @@ export type BoardCard = {
   description?: string
   tags?: string[]
   due_date?: string | null
+  assignees?: string[]
+  priority?: string | number | null
+  points?: number | string | null
   position?: number
+  created_at?: string | null
 }
 
 export type BoardColumn = {
   id: string | number
   name: string
+  displayName?: string
+  canonicalName?: string
+  originalName?: string
+  legacyId?: number
   cards: BoardCard[]
 }
 
@@ -31,25 +42,37 @@ function cardKey(id: string | number) { return `card-${idOf(id)}` }
 function colKey(id: string | number) { return `col-${idOf(id)}` }
 
 function columnWeight(name: string): number {
-  const n = name.toLowerCase();
-  if (/backlog|todo|inbox|ideas|analysis|planning|intake|icebox/.test(n)) return 10;
-  if (/ready|up next|queued|planned/.test(n)) return 15;
-  if (/in progress|work in progress|wip|doing|active|current|dev|coding|building|implementing/.test(n)) return 20;
-  if (/review|qa|qc|verify|validation|testing|staging|uat|verification|check/.test(n)) return 30;
-  if (/done|complete|finished|closed|shipped|deployed|live|released|published|archived/.test(n)) return 40;
-  return 999;
+  const n = name.toLowerCase()
+  if (/backlog/.test(n)) return 1
+  if (/in progress/.test(n)) return 2
+  if (/review/.test(n)) return 3
+  if (/done/.test(n)) return 4
+  return 999
 }
 
-function sortColumns(cols: { id: string|number; name: string; cards: any[]; canonicalName?: string }[]) {
+function sortColumns(cols: { id: string|number; name: string; cards: any[]; canonicalName?: string; displayName?: string; originalName?: string }[]) {
   return cols.slice().sort((a,b) => columnWeight(a.canonicalName || a.name) - columnWeight(b.canonicalName || b.name));
 }
 
 export default function Board2() {
-  const { data, isLoading, mutate } = useSWR<{ columns: BoardColumn[]; error?: string }>(
+  const { data, isLoading, mutate } = useSWR<{ columns: BoardColumn[]; members?: BoardMember[]; error?: string }>(
     '/api/board/state',
     fetcher,
     { refreshInterval: 1000 }
   )
+
+  const handleBoardChanged = useCallback(() => {
+    console.log('[WS] Board update received')
+    mutate()
+  }, [mutate])
+
+  const handleCardMoved = useCallback((payload: unknown) => {
+    console.log('[WS] Card moved:', payload)
+    mutate()
+  }, [mutate])
+
+  useWebSocket('board:changed', handleBoardChanged)
+  useWebSocket('card:updated', handleCardMoved)
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
 
@@ -104,6 +127,79 @@ export default function Board2() {
     window.addEventListener('board-refresh' as any, handleRefresh)
     return () => window.removeEventListener('board-refresh' as any, handleRefresh)
   }, [mutate])
+
+  const memberDirectory = useMemo(() => {
+    const map = new Map<string, { initials?: string | null; color?: string | null; username?: string | null }>()
+    for (const member of data?.members || []) {
+      const initials = member.initials || (member.name
+        ? member.name
+            .split(/\s+/)
+            .filter(Boolean)
+            .map(part => part[0])
+            .join('')
+            .slice(0, 2)
+            .toUpperCase()
+        : null)
+      const record = {
+        initials: initials || null,
+        color: member.color || null,
+        username: member.username || null
+      }
+      const fromName = member.name?.trim().toLowerCase()
+      const fromUsername = member.username?.trim().toLowerCase()
+      if (fromName) map.set(fromName, record)
+      if (fromUsername) map.set(fromUsername, record)
+    }
+    return map
+  }, [data?.members])
+
+  const headerMetrics = useMemo(() => {
+    const now = new Date()
+    let overdue = 0
+    let inProgress = 0
+    let donePoints = 0
+    const assigneeSet = new Set<string>()
+
+    for (const col of cols) {
+      const isInProgress = /in progress/i.test(col.name)
+      const isDone = /done/i.test(col.name)
+      for (const card of col.cards || []) {
+        if (card.due_date) {
+          const due = new Date(card.due_date)
+          if (!Number.isNaN(due.getTime()) && due < now) {
+            overdue += 1
+          }
+        }
+        if (isInProgress) {
+          inProgress += 1
+        }
+        if (isDone) {
+          const value = typeof card.points === 'number'
+            ? card.points
+            : card.points != null
+              ? Number(card.points)
+              : NaN
+          if (Number.isFinite(value)) donePoints += value
+        }
+        if (Array.isArray(card.assignees)) {
+          card.assignees
+            .filter(Boolean)
+            .forEach(name => assigneeSet.add(String(name)))
+        }
+      }
+    }
+
+    const memberCount = memberDirectory.size > 0
+      ? memberDirectory.size
+      : assigneeSet.size
+
+    return {
+      overdue,
+      inProgress,
+      teamSize: memberCount,
+      velocity: donePoints
+    }
+  }, [cols, memberDirectory])
 
   function findColumnByCardId(cardId: string | number) { return cols.find(c => c.cards.some(card => idOf(card.id) === idOf(cardId))) }
 
@@ -197,7 +293,7 @@ export default function Board2() {
       .catch(() => mutate())
   }
 
-  if (isLoading) return <div style={{ padding: 16 }}>Loading board…</div>
+  if (isLoading && !data) return <div style={{ padding: 16 }}>Loading board…</div>
 
   const base = cols
 
@@ -211,24 +307,28 @@ export default function Board2() {
     : sortColumns(base)
 
   return (
-    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragOver={onDragOver} onDragEnd={onDragEnd}>
-      <div className={styles.boardRoot} role="list" aria-label="Kanban columns">
-        {displayCols.map((col) => (
-          <div key={col.id} role="listitem">
-            <SortableContext items={col.cards.map(c => cardKey(c.id))} strategy={rectSortingStrategy}>
-              <Column
-                id={col.id}
-                name={col.canonicalName || col.name}
-                cards={col.cards}
-                droppableId={colKey(col.id)}
-                dropIndex={dropHint && idOf(dropHint.colId) === idOf(col.id) ? dropHint.index : undefined}
-                highlightIds={highlightIds}
-              />
-            </SortableContext>
-          </div>
-        ))}
-        {displayCols.length === 0 && <div className={styles.empty}>No columns found</div>}
-      </div>
-    </DndContext>
+    <>
+      <BoardHeader metrics={headerMetrics} loading={isLoading} />
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragOver={onDragOver} onDragEnd={onDragEnd}>
+        <div className={styles.boardRoot} role="list" aria-label="Kanban columns">
+          {displayCols.map((col) => (
+            <div key={col.id} role="listitem">
+              <SortableContext items={col.cards.map(c => cardKey(c.id))} strategy={rectSortingStrategy}>
+                <Column
+                  id={col.id}
+                  name={col.displayName || (col as any).originalName || col.name}
+                  canonicalName={col.canonicalName || col.name}
+                  cards={col.cards}
+                  droppableId={colKey(col.id)}
+                  dropIndex={dropHint && idOf(dropHint.colId) === idOf(col.id) ? dropHint.index : undefined}
+                  highlightIds={highlightIds}
+                  memberDirectory={memberDirectory}
+                />
+              </SortableContext>
+            </div>
+          ))}
+        </div>
+      </DndContext>
+    </>
   )
 }

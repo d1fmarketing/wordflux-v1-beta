@@ -22,23 +22,23 @@ echo -e "${GREEN}[$(date)] Starting WordFlux backup...${NC}"
 # Create backup directory if not exists
 mkdir -p "${BACKUP_DIR}"
 
-# 1. Backup database (Kanboard SQLite)
-echo -e "${YELLOW}→ Backing up Kanboard database...${NC}"
-# Kanboard uses SQLite internally
-KB_CONTAINER=${KB_CONTAINER:-wordflux-kanboard}
+# 1. Backup database (TaskCafe SQLite)
+echo -e "${YELLOW}→ Backing up TaskCafe database...${NC}"
+# TaskCafe uses SQLite internally
+KB_CONTAINER=${KB_CONTAINER:-wordflux-TaskCafe}
 
 if docker ps --format '{{.Names}}' | grep -q "^${KB_CONTAINER}$"; then
   # Copy SQLite database from container
-  if docker cp ${KB_CONTAINER}:/var/www/app/data/db.sqlite "${BACKUP_DIR}/kanboard-${TIMESTAMP}.sqlite"; then
+  if docker cp ${KB_CONTAINER}:/var/www/app/data/db.sqlite "${BACKUP_DIR}/TaskCafe-${TIMESTAMP}.sqlite"; then
     # Compress the database
-    gzip "${BACKUP_DIR}/kanboard-${TIMESTAMP}.sqlite"
-    echo -e "${GREEN}✓ Kanboard database backup complete (${KB_CONTAINER})${NC}"
+    gzip "${BACKUP_DIR}/TaskCafe-${TIMESTAMP}.sqlite"
+    echo -e "${GREEN}✓ TaskCafe database backup complete (${KB_CONTAINER})${NC}"
   else
-    echo -e "${RED}⚠ Kanboard database backup failed${NC}"
-    rm -f "${BACKUP_DIR}/kanboard-${TIMESTAMP}.sqlite" || true
+    echo -e "${RED}⚠ TaskCafe database backup failed${NC}"
+    rm -f "${BACKUP_DIR}/TaskCafe-${TIMESTAMP}.sqlite" || true
   fi
 else
-  echo -e "${RED}⚠ Kanboard container not running — skipping DB backup${NC}"
+  echo -e "${RED}⚠ TaskCafe container not running — skipping DB backup${NC}"
 fi
 
 # 2. Backup environment files
@@ -73,7 +73,7 @@ cat > "${BACKUP_DIR}/manifest-${TIMESTAMP}.txt" << EOF
 Backup Date: $(date)
 Application Version: ${APP_VERSION}
 Files Included:
-- Kanboard Database: kanboard-${TIMESTAMP}.sqlite.gz (if created)
+- TaskCafe Database: TaskCafe-${TIMESTAMP}.sqlite.gz (if created)
 - Environment: env-${TIMESTAMP}.env (if created)
 - Application: ${BACKUP_NAME}.tar.gz
 - Nginx Config: nginx-${TIMESTAMP}.conf (if created)

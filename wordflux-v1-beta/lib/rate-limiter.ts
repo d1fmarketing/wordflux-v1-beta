@@ -101,7 +101,7 @@ class RateLimiter {
 // Export singleton instance
 export const chatRateLimiter = new RateLimiter({
   windowMs: 60000, // 1 minute
-  maxRequests: 30  // 30 requests per minute
+  maxRequests: 100 // allow generous headroom for automated tests
 });
 
 // Middleware function

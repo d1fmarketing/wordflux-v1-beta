@@ -17,7 +17,7 @@
 
 ## 1) What’s running
 
-Likely Node/Next.js app with App Router under `app/api/*`. Providers live in `lib/providers/*` (e.g., Kanboard, Taskcafe).
+Likely Node/Next.js app with App Router under `app/api/*`. Providers live in `lib/providers/*` (e.g., TaskCafe, Taskcafe).
 
 Enumerate:
 
@@ -34,7 +34,7 @@ docker ps || true
 - app/api/board/move/route.ts – moves a card between columns (optionally to index/position)
 - app/api/board/create/route.ts – creates a new card in a column
 - lib/board-provider.ts – abstraction that chooses a backend provider
-- lib/providers/kanboard-client.ts, lib/providers/taskcafe-client.ts – provider implementations
+- lib/providers/TaskCafe-client.ts, lib/providers/taskcafe-client.ts – provider implementations
 
 Note: exact schemas may differ by provider; confirm via the health check and code.
 
@@ -43,8 +43,8 @@ Note: exact schemas may differ by provider; confirm via the health check and cod
 Create `.env.local` in CODE_DIR (server‑only). Example keys (values redacted here):
 
 BOARD_BACKEND=taskcafe
-KANBOARD_URL=<redacted>
-KANBOARD_USERNAME=<redacted>
+TaskCafe_URL=<redacted>
+TaskCafe_USERNAME=<redacted>
 TASKCAFE_URL=<redacted>
 PORT=3001
 
@@ -96,13 +96,13 @@ POST /api/mcp
 | move_card     | { taskId, toColumnId, position? }                 | uses ladder positioning                 |
 | update_card   | { taskId, title?, description?, points? }         | maps to provider.updateTask             |
 | remove_card   | { taskId }                                        | delete card                             |
-| set_due       | { taskId, when }                                  | Kanboard only (natural language aware)  |
-| assign_card   | { taskId, assignee }                              | Kanboard only (username)                |
-| add_label     | { taskId, label }                                 | Kanboard only                           |
-| remove_label  | { taskId, label }                                 | Kanboard only                           |
-| add_comment   | { taskId, content }                               | Kanboard only                           |
+| set_due       | { taskId, when }                                  | TaskCafe only (natural language aware)  |
+| assign_card   | { taskId, assignee }                              | TaskCafe only (username)                |
+| add_label     | { taskId, label }                                 | TaskCafe only                           |
+| remove_label  | { taskId, label }                                 | TaskCafe only                           |
+| add_comment   | { taskId, content }                               | TaskCafe only                           |
 | bulk_move     | { tasks: [{ taskId, position? }], toColumnId }    | multi-move                              |
-| set_points    | { taskId, points }                                | Kanboard only                           |
+| set_points    | { taskId, points }                                | TaskCafe only                           |
 | undo_create   | { taskId }                                        | calls remove_card                       |
 | undo_move     | { taskId, columnId, position? }                   | move back                               |
 | undo_update   | { taskId, patch }                                 | restore fields                          |

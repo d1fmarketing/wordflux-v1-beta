@@ -11,7 +11,7 @@
 **We're NOT building from scratch.** We're combining two mature MIT-licensed open-source projects with a thin AI controller layer.
 
 ### The Stack
-- **Kanboard** (MIT) - Battle-tested kanban board with JSON-RPC API
+- **TaskCafe** (MIT) - Battle-tested kanban board with JSON-RPC API
 - **Chatbot UI** (MIT) - Clean Next.js chat interface
 - **Agent Controller** (Our Code) - GPT-5 powered glue layer
 
@@ -28,7 +28,7 @@
 
 ## 🎯 STRATEGIC DECISION MATRIX
 
-| Criteria | Option A (Kanboard) | Option B (Plane) | Option C (Planka) | Winner |
+| Criteria | Option A (TaskCafe) | Option B (Plane) | Option C (Planka) | Winner |
 |----------|-------------------|------------------|-------------------|---------|
 | **License** | MIT ✅ | AGPL ⚠️ | Fair-code ❌ | A |
 | **API Quality** | JSON-RPC ✅ | REST + MCP ✅✅ | REST ⚠️ | B |
@@ -71,28 +71,28 @@
   
 □ 1.1.5 Environment file setup
   cp .env.example .env.local
-  # Add: OPENAI_API_KEY, KANBOARD_URL, KANBOARD_TOKEN
+  # Add: OPENAI_API_KEY, TaskCafe_URL, TaskCafe_TOKEN
 ```
 
-#### Phase 1.2: Kanboard Deployment (2 hours)
+#### Phase 1.2: TaskCafe Deployment (2 hours)
 ```yaml
 # docker/docker-compose.yml
 version: '3.8'
 
 services:
-  kanboard:
-    image: kanboard/kanboard:v1.2.35
-    container_name: wordflux-kanboard
+  TaskCafe:
+    image: TaskCafe/TaskCafe:v1.2.35
+    container_name: wordflux-TaskCafe
     restart: unless-stopped
     ports:
       - "8080:80"
     environment:
-      - DATABASE_URL=postgres://kanboard:kanboard123@postgres:5432/kanboard
+      - DATABASE_URL=postgres://TaskCafe:TaskCafe123@postgres:5432/TaskCafe
       - PLUGIN_INSTALLER=true
       - LOG_LEVEL=info
     volumes:
-      - kanboard_data:/var/www/app/data
-      - kanboard_plugins:/var/www/app/plugins
+      - TaskCafe_data:/var/www/app/data
+      - TaskCafe_plugins:/var/www/app/plugins
     depends_on:
       postgres:
         condition: service_healthy
@@ -104,13 +104,13 @@ services:
     container_name: wordflux-postgres
     restart: unless-stopped
     environment:
-      - POSTGRES_USER=kanboard
-      - POSTGRES_PASSWORD=kanboard123
-      - POSTGRES_DB=kanboard
+      - POSTGRES_USER=TaskCafe
+      - POSTGRES_PASSWORD=TaskCafe123
+      - POSTGRES_DB=TaskCafe
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U kanboard"]
+      test: ["CMD-SHELL", "pg_isready -U TaskCafe"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -122,8 +122,8 @@ networks:
     driver: bridge
 
 volumes:
-  kanboard_data:
-  kanboard_plugins:
+  TaskCafe_data:
+  TaskCafe_plugins:
   postgres_data:
 ```
 
@@ -133,10 +133,10 @@ volumes:
   cd docker && docker-compose up -d
   
 □ 1.2.2 Wait for initialization (monitor logs)
-  docker-compose logs -f kanboard
+  docker-compose logs -f TaskCafe
   # Wait for: "INFO: Ready to handle connections"
   
-□ 1.2.3 Access Kanboard UI
+□ 1.2.3 Access TaskCafe UI
   # Browse to http://localhost:8080
   # Default: admin/admin
   
@@ -147,7 +147,7 @@ volumes:
   
 □ 1.2.5 Create API token
   □ Settings → API → Generate new token
-  □ Copy token to .env.local as KANBOARD_TOKEN
+  □ Copy token to .env.local as TaskCafe_TOKEN
   
 □ 1.2.6 Create project structure
   □ Create project "Studio Board"
@@ -159,7 +159,7 @@ volumes:
     -H "X-API-Auth: YOUR_TOKEN" \
     -H "Content-Type: application/json" \
     -d '{"jsonrpc":"2.0","method":"getVersion","id":1}'
-  # Should return Kanboard version
+  # Should return TaskCafe version
 ```
 
 #### Phase 1.3: Chatbot UI Setup (2 hours)
@@ -192,7 +192,7 @@ volumes:
 ```
 
 #### Day 1 Success Criteria ✅
-- [ ] Kanboard running at :8080 with API token
+- [ ] TaskCafe running at :8080 with API token
 - [ ] Chatbot UI running at :3000 with OpenAI working
 - [ ] Both systems verified independently
 - [ ] Environment fully configured
@@ -200,15 +200,15 @@ volumes:
 ---
 
 ### 🗓️ **DAY 2: API CLIENT LAYER**
-*Goal: Complete Kanboard API wrapper*
+*Goal: Complete TaskCafe API wrapper*
 
-#### Phase 2.1: Kanboard Client Library (4 hours)
+#### Phase 2.1: TaskCafe Client Library (4 hours)
 ```javascript
-// lib/kanboard-client.js
-export class KanboardClient {
+// lib/TaskCafe-client.js
+export class TaskCafeClient {
   constructor(url, token) {
-    this.url = url || process.env.KANBOARD_URL;
-    this.token = token || process.env.KANBOARD_TOKEN;
+    this.url = url || process.env.TaskCafe_URL;
+    this.token = token || process.env.TaskCafe_TOKEN;
     this.rpcId = 0;
     this.projectId = 1; // Default project
     
@@ -247,7 +247,7 @@ export class KanboardClient {
       
       return data.result;
     } catch (error) {
-      console.error(`KanboardClient.call(${method}) failed:`, error);
+      console.error(`TaskCafeClient.call(${method}) failed:`, error);
       throw error;
     }
   }
@@ -383,9 +383,9 @@ export class KanboardClient {
 import { EventEmitter } from 'events';
 
 export class BoardState extends EventEmitter {
-  constructor(kanboardClient, pollInterval = 3000) {
+  constructor(TaskCafeClient, pollInterval = 3000) {
     super();
-    this.client = kanboardClient;
+    this.client = TaskCafeClient;
     this.pollInterval = pollInterval;
     this.state = null;
     this.polling = false;
@@ -509,19 +509,19 @@ export class BoardState extends EventEmitter {
 
 #### Phase 2.3: Testing Suite (2 hours)
 ```javascript
-// tests/kanboard-client.test.js
-import { KanboardClient } from '../lib/kanboard-client';
+// tests/TaskCafe-client.test.js
+import { TaskCafeClient } from '../lib/TaskCafe-client';
 
-describe('KanboardClient', () => {
+describe('TaskCafeClient', () => {
   let client;
   let testTaskId;
 
   beforeAll(async () => {
-    client = new KanboardClient();
+    client = new TaskCafeClient();
     await client.initialize();
   });
 
-  test('should connect to Kanboard', async () => {
+  test('should connect to TaskCafe', async () => {
     const version = await client.call('getVersion');
     expect(version).toBeTruthy();
   });
@@ -567,7 +567,7 @@ describe('KanboardClient', () => {
 ```
 
 #### Day 2 Success Criteria ✅
-- [ ] All Kanboard API methods implemented
+- [ ] All TaskCafe API methods implemented
 - [ ] State polling working with change detection
 - [ ] All tests passing
 - [ ] Can perform full CRUD on cards via API
@@ -732,23 +732,23 @@ Response: {
 #### Phase 3.2: Agent Controller (3 hours)
 ```javascript
 // lib/agent-controller.js
-import { KanboardClient } from './kanboard-client';
+import { TaskCafeClient } from './TaskCafe-client';
 import { AgentInterpreter } from './agent/interpreter';
 import { BoardState } from './board-state';
 
 export class AgentController {
   constructor(config) {
     // Initialize components
-    this.kanboard = new KanboardClient(
-      config.KANBOARD_URL,
-      config.KANBOARD_TOKEN
+    this.TaskCafe = new TaskCafeClient(
+      config.TaskCafe_URL,
+      config.TaskCafe_TOKEN
     );
     
     this.interpreter = new AgentInterpreter(
       config.OPENAI_API_KEY
     );
     
-    this.boardState = new BoardState(this.kanboard);
+    this.boardState = new BoardState(this.TaskCafe);
     
     // Action history for undo
     this.actionHistory = [];
@@ -757,7 +757,7 @@ export class AgentController {
 
   async initialize() {
     // Initialize column mapping
-    await this.kanboard.initialize();
+    await this.TaskCafe.initialize();
     
     // Start state polling
     this.boardState.start();
@@ -844,7 +844,7 @@ export class AgentController {
     
     switch (action.type) {
       case 'create_card':
-        return await this.kanboard.createCard(
+        return await this.TaskCafe.createCard(
           action.title,
           action.column,
           action.description
@@ -856,7 +856,7 @@ export class AgentController {
         
         // If not a number, search by title
         if (isNaN(parseInt(action.identifier))) {
-          const matches = await this.kanboard.findCard(action.identifier);
+          const matches = await this.TaskCafe.findCard(action.identifier);
           if (matches.length === 0) {
             throw new Error(`Card not found: ${action.identifier}`);
           }
@@ -866,39 +866,39 @@ export class AgentController {
           taskId = matches[0].id;
         }
         
-        return await this.kanboard.moveCard(taskId, action.toColumn);
+        return await this.TaskCafe.moveCard(taskId, action.toColumn);
       }
       
       case 'update_card': {
         let taskId = action.identifier;
         
         if (isNaN(parseInt(action.identifier))) {
-          const matches = await this.kanboard.findCard(action.identifier);
+          const matches = await this.TaskCafe.findCard(action.identifier);
           if (matches.length === 0) {
             throw new Error(`Card not found: ${action.identifier}`);
           }
           taskId = matches[0].id;
         }
         
-        return await this.kanboard.updateCard(taskId, action.updates);
+        return await this.TaskCafe.updateCard(taskId, action.updates);
       }
       
       case 'delete_card': {
         let taskId = action.identifier;
         
         if (isNaN(parseInt(action.identifier))) {
-          const matches = await this.kanboard.findCard(action.identifier);
+          const matches = await this.TaskCafe.findCard(action.identifier);
           if (matches.length === 0) {
             throw new Error(`Card not found: ${action.identifier}`);
           }
           taskId = matches[0].id;
         }
         
-        return await this.kanboard.deleteCard(taskId);
+        return await this.TaskCafe.deleteCard(taskId);
       }
       
       case 'list_cards': {
-        const board = await this.kanboard.getBoard();
+        const board = await this.TaskCafe.getBoard();
         let cards = [];
         
         if (action.column && action.column !== 'all') {
@@ -953,8 +953,8 @@ describe('AgentController', () => {
 
   beforeAll(async () => {
     agent = new AgentController({
-      KANBOARD_URL: process.env.KANBOARD_URL,
-      KANBOARD_TOKEN: process.env.KANBOARD_TOKEN,
+      TaskCafe_URL: process.env.TaskCafe_URL,
+      TaskCafe_TOKEN: process.env.TaskCafe_TOKEN,
       OPENAI_API_KEY: process.env.OPENAI_API_KEY
     });
     
@@ -1374,7 +1374,7 @@ export default function BoardView() {
           key={refreshKey}
           src={boardUrl}
           className="w-full h-full border-0"
-          title="Kanboard"
+          title="TaskCafe"
         />
       </div>
     </div>
@@ -1392,8 +1392,8 @@ let agentInstance = null;
 async function getAgent() {
   if (!agentInstance) {
     agentInstance = new AgentController({
-      KANBOARD_URL: process.env.KANBOARD_URL || 'http://localhost:8080',
-      KANBOARD_TOKEN: process.env.KANBOARD_TOKEN,
+      TaskCafe_URL: process.env.TaskCafe_URL || 'http://localhost:8080',
+      TaskCafe_TOKEN: process.env.TaskCafe_TOKEN,
       OPENAI_API_KEY: process.env.OPENAI_API_KEY
     });
     
@@ -1521,18 +1521,18 @@ describe('End-to-End Tests', () => {
 version: '3.8'
 
 services:
-  kanboard:
-    image: kanboard/kanboard:v1.2.35
-    container_name: wordflux-kanboard
+  TaskCafe:
+    image: TaskCafe/TaskCafe:v1.2.35
+    container_name: wordflux-TaskCafe
     restart: always
     ports:
       - "127.0.0.1:8080:80"  # Only localhost
     environment:
-      - DATABASE_URL=postgres://kanboard:${DB_PASSWORD}@postgres:5432/kanboard
+      - DATABASE_URL=postgres://TaskCafe:${DB_PASSWORD}@postgres:5432/TaskCafe
       - LOG_LEVEL=warning
     volumes:
-      - kanboard_data:/var/www/app/data
-      - kanboard_plugins:/var/www/app/plugins
+      - TaskCafe_data:/var/www/app/data
+      - TaskCafe_plugins:/var/www/app/plugins
     depends_on:
       - postgres
     networks:
@@ -1543,9 +1543,9 @@ services:
     container_name: wordflux-postgres
     restart: always
     environment:
-      - POSTGRES_USER=kanboard
+      - POSTGRES_USER=TaskCafe
       - POSTGRES_PASSWORD=${DB_PASSWORD}
-      - POSTGRES_DB=kanboard
+      - POSTGRES_DB=TaskCafe
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
@@ -1559,11 +1559,11 @@ services:
       - "127.0.0.1:3000:3000"
     environment:
       - NODE_ENV=production
-      - KANBOARD_URL=http://kanboard
-      - KANBOARD_TOKEN=${KANBOARD_TOKEN}
+      - TaskCafe_URL=http://TaskCafe
+      - TaskCafe_TOKEN=${TaskCafe_TOKEN}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
     depends_on:
-      - kanboard
+      - TaskCafe
     networks:
       - wordflux-network
 
@@ -1579,7 +1579,7 @@ services:
       - ./ssl:/etc/nginx/ssl
     depends_on:
       - wordflux
-      - kanboard
+      - TaskCafe
     networks:
       - wordflux-network
 
@@ -1588,8 +1588,8 @@ networks:
     driver: bridge
 
 volumes:
-  kanboard_data:
-  kanboard_plugins:
+  TaskCafe_data:
+  TaskCafe_plugins:
   postgres_data:
 ```
 
@@ -1618,9 +1618,9 @@ server {
         proxy_cache_bypass $http_upgrade;
     }
 
-    # Kanboard
+    # TaskCafe
     location /board/ {
-        proxy_pass http://kanboard/;
+        proxy_pass http://TaskCafe/;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
     }
@@ -1679,7 +1679,7 @@ const CHECKS = [
     method: 'GET'
   },
   {
-    name: 'Kanboard API',
+    name: 'TaskCafe API',
     url: 'http://localhost:8080/jsonrpc.php',
     method: 'POST',
     body: {
@@ -1699,7 +1699,7 @@ async function runChecks() {
         method: check.method,
         headers: {
           'Content-Type': 'application/json',
-          'X-API-Auth': process.env.KANBOARD_TOKEN
+          'X-API-Auth': process.env.TaskCafe_TOKEN
         },
         body: check.body ? JSON.stringify(check.body) : undefined
       });
@@ -1803,19 +1803,19 @@ runChecks();
 ## 📝 NOTES
 
 ### Lessons Learned
-1. **Don't rebuild what exists** - Kanboard + Chatbot UI saved months
+1. **Don't rebuild what exists** - TaskCafe + Chatbot UI saved months
 2. **JSON-RPC is simple** - Much easier than REST for this use case
 3. **MIT license is freedom** - No legal concerns ever
 4. **Agent layer is the value** - Focus on what makes us unique
 
 ### Key Decisions
-- Chose Kanboard over Planka for licensing
+- Chose TaskCafe over Planka for licensing
 - Used iframe instead of custom board UI (can upgrade later)
 - GPT-4 until GPT-5 available
 - Polling instead of webhooks (simpler, good enough)
 
 ### Resources
-- Kanboard Docs: https://docs.kanboard.org
+- TaskCafe Docs: https://docs.TaskCafe.org
 - Chatbot UI: https://github.com/mckaywrigley/chatbot-ui
 - OpenAI API: https://platform.openai.com/docs
 

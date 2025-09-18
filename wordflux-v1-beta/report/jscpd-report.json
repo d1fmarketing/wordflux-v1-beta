@@ -1,0 +1,2729 @@
+{
+  "statistics": {
+    "detectionDate": "2025-09-16T21:58:42.437Z",
+    "formats": {
+      "typescript": {
+        "sources": {
+          "app/api/ai/monitor/config/route.ts": {
+            "lines": 20,
+            "tokens": 152,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/api/ai/monitor/[action]/route.ts": {
+            "lines": 41,
+            "tokens": 306,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/api/chat/stream/route.ts": {
+            "lines": 104,
+            "tokens": 1194,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/api/board/task/route.ts": {
+            "lines": 54,
+            "tokens": 805,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/api/board/sync/route.ts": {
+            "lines": 20,
+            "tokens": 255,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/api/board/state/route.ts": {
+            "lines": 65,
+            "tokens": 799,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/api/board/remove/route.ts": {
+            "lines": 18,
+            "tokens": 291,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/api/board/move/route.ts": {
+            "lines": 36,
+            "tokens": 324,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/api/board/diagnostics/route.ts": {
+            "lines": 157,
+            "tokens": 1565,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/api/board/create/route.ts": {
+            "lines": 35,
+            "tokens": 317,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/api/auth/[...nextauth]/route.ts": {
+            "lines": 5,
+            "tokens": 50,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/api/ai/status/route.ts": {
+            "lines": 60,
+            "tokens": 444,
+            "sources": 1,
+            "clones": 1,
+            "duplicatedLines": 17,
+            "duplicatedTokens": 100,
+            "percentage": 28.33,
+            "percentageTokens": 22.52,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/api/ai/recommendations/route.ts": {
+            "lines": 18,
+            "tokens": 150,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/api/ai/init/route.ts": {
+            "lines": 62,
+            "tokens": 442,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/api/ai/features/route.ts": {
+            "lines": 21,
+            "tokens": 155,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/api/ai/auto-plan/route.ts": {
+            "lines": 25,
+            "tokens": 215,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/api/ai/analyze-board/route.ts": {
+            "lines": 20,
+            "tokens": 167,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/api/mcp/route.ts": {
+            "lines": 419,
+            "tokens": 6350,
+            "sources": 1,
+            "clones": 6,
+            "duplicatedLines": 56,
+            "duplicatedTokens": 896,
+            "percentage": 13.37,
+            "percentageTokens": 14.11,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/api/log/route.ts": {
+            "lines": 35,
+            "tokens": 297,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/api/health/route.ts": {
+            "lines": 45,
+            "tokens": 478,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/api/deploy/route.ts": {
+            "lines": 17,
+            "tokens": 243,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/api/chat/route.ts": {
+            "lines": 172,
+            "tokens": 1651,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/ui/tokens.ts": {
+            "lines": 99,
+            "tokens": 875,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/ui/i18n.ts": {
+            "lines": 67,
+            "tokens": 978,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "lib/services/pattern-recognition.ts": {
+            "lines": 591,
+            "tokens": 5010,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "lib/services/board-monitor.ts": {
+            "lines": 450,
+            "tokens": 3254,
+            "sources": 1,
+            "clones": 1,
+            "duplicatedLines": 17,
+            "duplicatedTokens": 100,
+            "percentage": 3.78,
+            "percentageTokens": 3.07,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "lib/services/ai-startup.ts": {
+            "lines": 163,
+            "tokens": 1152,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "lib/services/ai-coach.ts": {
+            "lines": 973,
+            "tokens": 8690,
+            "sources": 1,
+            "clones": 2,
+            "duplicatedLines": 30,
+            "duplicatedTokens": 184,
+            "percentage": 3.08,
+            "percentageTokens": 2.12,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "lib/providers/taskcafe-client.ts": {
+            "lines": 121,
+            "tokens": 1800,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "lib/providers/index.ts": {
+            "lines": 15,
+            "tokens": 150,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "lib/mcp/undo-store.ts": {
+            "lines": 109,
+            "tokens": 1084,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "lib/TaskCafe-client/real.ts": {
+            "lines": 364,
+            "tokens": 3827,
+            "sources": 1,
+            "clones": 4,
+            "duplicatedLines": 368,
+            "duplicatedTokens": 4012,
+            "percentage": 101.1,
+            "percentageTokens": 104.83,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "lib/TaskCafe-client/mock.ts": {
+            "lines": 168,
+            "tokens": 1731,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "lib/TaskCafe-client/index.ts": {
+            "lines": 11,
+            "tokens": 87,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "lib/auth/options.ts": {
+            "lines": 66,
+            "tokens": 535,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "lib/agent/tools.ts": {
+            "lines": 447,
+            "tokens": 3997,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "lib/agent/parse.ts": {
+            "lines": 554,
+            "tokens": 5813,
+            "sources": 1,
+            "clones": 2,
+            "duplicatedLines": 16,
+            "duplicatedTokens": 174,
+            "percentage": 2.89,
+            "percentageTokens": 2.99,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "lib/agent/memory.ts": {
+            "lines": 363,
+            "tokens": 2558,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "lib/agent/interpreter.ts": {
+            "lines": 836,
+            "tokens": 7323,
+            "sources": 1,
+            "clones": 2,
+            "duplicatedLines": 10,
+            "duplicatedTokens": 162,
+            "percentage": 1.2,
+            "percentageTokens": 2.21,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "lib/agent/get-agent.ts": {
+            "lines": 25,
+            "tokens": 248,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "lib/agent/function-agent.ts": {
+            "lines": 639,
+            "tokens": 5480,
+            "sources": 1,
+            "clones": 2,
+            "duplicatedLines": 18,
+            "duplicatedTokens": 184,
+            "percentage": 2.82,
+            "percentageTokens": 3.36,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "lib/agent/action-schema.ts": {
+            "lines": 128,
+            "tokens": 1361,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "lib/validation.ts": {
+            "lines": 134,
+            "tokens": 1265,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "lib/utils.ts": {
+            "lines": 5,
+            "tokens": 58,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "lib/user-context.ts": {
+            "lines": 112,
+            "tokens": 1040,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "lib/style-guard.ts": {
+            "lines": 134,
+            "tokens": 913,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "lib/rate-limiter.ts": {
+            "lines": 127,
+            "tokens": 1071,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "lib/positioning.ts": {
+            "lines": 24,
+            "tokens": 361,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "lib/normalize.ts": {
+            "lines": 26,
+            "tokens": 252,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "lib/mcp-client.ts": {
+            "lines": 49,
+            "tokens": 461,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "lib/TaskCafe-client.ts": {
+            "lines": 364,
+            "tokens": 3823,
+            "sources": 1,
+            "clones": 2,
+            "duplicatedLines": 358,
+            "duplicatedTokens": 3796,
+            "percentage": 98.35,
+            "percentageTokens": 99.29,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "lib/board-types.ts": {
+            "lines": 52,
+            "tokens": 383,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "lib/board-state.ts": {
+            "lines": 291,
+            "tokens": 2401,
+            "sources": 1,
+            "clones": 1,
+            "duplicatedLines": 8,
+            "duplicatedTokens": 118,
+            "percentage": 2.75,
+            "percentageTokens": 4.91,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "lib/board-state-manager.ts": {
+            "lines": 181,
+            "tokens": 2029,
+            "sources": 1,
+            "clones": 3,
+            "duplicatedLines": 26,
+            "duplicatedTokens": 326,
+            "percentage": 14.36,
+            "percentageTokens": 16.07,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "lib/board-provider.ts": {
+            "lines": 31,
+            "tokens": 405,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "lib/auto-tagger.ts": {
+            "lines": 122,
+            "tokens": 1094,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "lib/agent-controller.ts": {
+            "lines": 195,
+            "tokens": 1721,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "lib/agent-controller-v3.ts": {
+            "lines": 565,
+            "tokens": 4072,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          }
+        },
+        "total": {
+          "lines": 10050,
+          "tokens": 93952,
+          "sources": 58,
+          "clones": 13,
+          "duplicatedLines": 462,
+          "duplicatedTokens": 5026,
+          "percentage": 4.6,
+          "percentageTokens": 5.35,
+          "newDuplicatedLines": 0,
+          "newClones": 0
+        }
+      },
+      "javascript": {
+        "sources": {
+          "app/components/ui/tabs.tsx": {
+            "lines": 34,
+            "tokens": 211,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/components/ui/switch.tsx": {
+            "lines": 10,
+            "tokens": 37,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/components/ui/slider.tsx": {
+            "lines": 4,
+            "tokens": 15,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/components/ui/scroll-area.tsx": {
+            "lines": 27,
+            "tokens": 181,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/components/ui/card.tsx": {
+            "lines": 63,
+            "tokens": 436,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/components/ui/button.tsx": {
+            "lines": 24,
+            "tokens": 105,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/components/ui/badge.tsx": {
+            "lines": 14,
+            "tokens": 54,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/components/board2/Column.tsx": {
+            "lines": 37,
+            "tokens": 644,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/components/board2/Card.tsx": {
+            "lines": 5,
+            "tokens": 123,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/components/board2/Board2.tsx": {
+            "lines": 30,
+            "tokens": 435,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/workspace2/page.tsx": {
+            "lines": 4,
+            "tokens": 79,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/workspace/workspace-client.tsx": {
+            "lines": 62,
+            "tokens": 430,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/workspace/page.tsx": {
+            "lines": 4,
+            "tokens": 84,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/ui/Button.tsx": {
+            "lines": 0,
+            "tokens": 14,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/login/page.tsx": {
+            "lines": 43,
+            "tokens": 275,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/components/WorkingBoard.tsx": {
+            "lines": 118,
+            "tokens": 1116,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/components/ToastHost.tsx": {
+            "lines": 7,
+            "tokens": 221,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/components/ThemeToggle.tsx": {
+            "lines": 2,
+            "tokens": 45,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/components/TaskTitle.tsx": {
+            "lines": 0,
+            "tokens": 3,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/components/TaskPanel.tsx": {
+            "lines": 443,
+            "tokens": 2949,
+            "sources": 1,
+            "clones": 3,
+            "duplicatedLines": 83,
+            "duplicatedTokens": 712,
+            "percentage": 18.74,
+            "percentageTokens": 24.14,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/components/TaskCard.tsx": {
+            "lines": 16,
+            "tokens": 257,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/components/Tag.tsx": {
+            "lines": 0,
+            "tokens": 3,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/components/SimpleBoard.tsx": {
+            "lines": 0,
+            "tokens": 9,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/components/SafeWorkspace.tsx": {
+            "lines": 437,
+            "tokens": 3712,
+            "sources": 1,
+            "clones": 2,
+            "duplicatedLines": 112,
+            "duplicatedTokens": 778,
+            "percentage": 25.63,
+            "percentageTokens": 20.96,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/components/RealBoard.tsx": {
+            "lines": 139,
+            "tokens": 1547,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/components/ErrorBoundary.tsx": {
+            "lines": 5,
+            "tokens": 90,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/components/CommandPalette.tsx": {
+            "lines": 132,
+            "tokens": 914,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/components/CommandHintsBar.tsx": {
+            "lines": 30,
+            "tokens": 193,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/components/ClientErrorBoundary.tsx": {
+            "lines": 34,
+            "tokens": 286,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/components/ChatMessage.tsx": {
+            "lines": 4,
+            "tokens": 123,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/components/Chat.tsx": {
+            "lines": 51,
+            "tokens": 598,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/components/BoardFilters.tsx": {
+            "lines": 120,
+            "tokens": 988,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/components/BoardColumn.tsx": {
+            "lines": 20,
+            "tokens": 196,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/components/Board.tsx": {
+            "lines": 95,
+            "tokens": 1204,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/components/AnalyzeDrawer.tsx": {
+            "lines": 152,
+            "tokens": 881,
+            "sources": 1,
+            "clones": 1,
+            "duplicatedLines": 25,
+            "duplicatedTokens": 124,
+            "percentage": 16.45,
+            "percentageTokens": 14.07,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/components/AnalysisBanner.tsx": {
+            "lines": 80,
+            "tokens": 544,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/components/AgentStrip.tsx": {
+            "lines": 15,
+            "tokens": 177,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/components/AIControlPanel.tsx": {
+            "lines": 299,
+            "tokens": 2634,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/layout.tsx": {
+            "lines": 2,
+            "tokens": 30,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          }
+        },
+        "total": {
+          "lines": 2562,
+          "tokens": 21843,
+          "sources": 39,
+          "clones": 3,
+          "duplicatedLines": 110,
+          "duplicatedTokens": 807,
+          "percentage": 4.29,
+          "percentageTokens": 3.69,
+          "newDuplicatedLines": 0,
+          "newClones": 0
+        }
+      },
+      "tsx": {
+        "sources": {
+          "app/components/ui/tabs.tsx": {
+            "lines": 53,
+            "tokens": 360,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/components/ui/switch.tsx": {
+            "lines": 27,
+            "tokens": 166,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/components/ui/slider.tsx": {
+            "lines": 26,
+            "tokens": 189,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/components/ui/scroll-area.tsx": {
+            "lines": 46,
+            "tokens": 333,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/components/ui/card.tsx": {
+            "lines": 77,
+            "tokens": 552,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/components/ui/button.tsx": {
+            "lines": 45,
+            "tokens": 290,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/components/ui/badge.tsx": {
+            "lines": 30,
+            "tokens": 180,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/components/board2/Column.tsx": {
+            "lines": 78,
+            "tokens": 1162,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/components/board2/Card.tsx": {
+            "lines": 26,
+            "tokens": 240,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/components/board2/Board2.tsx": {
+            "lines": 224,
+            "tokens": 3161,
+            "sources": 1,
+            "clones": 2,
+            "duplicatedLines": 28,
+            "duplicatedTokens": 336,
+            "percentage": 12.5,
+            "percentageTokens": 10.63,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/workspace2/page.tsx": {
+            "lines": 19,
+            "tokens": 212,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/workspace/workspace-client.tsx": {
+            "lines": 106,
+            "tokens": 872,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/workspace/page.tsx": {
+            "lines": 21,
+            "tokens": 252,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/ui/Button.tsx": {
+            "lines": 17,
+            "tokens": 176,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/login/page.tsx": {
+            "lines": 104,
+            "tokens": 737,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/components/WorkingBoard.tsx": {
+            "lines": 209,
+            "tokens": 1852,
+            "sources": 1,
+            "clones": 1,
+            "duplicatedLines": 8,
+            "duplicatedTokens": 84,
+            "percentage": 3.83,
+            "percentageTokens": 4.54,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/components/ToastHost.tsx": {
+            "lines": 34,
+            "tokens": 625,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/components/ThemeToggle.tsx": {
+            "lines": 34,
+            "tokens": 344,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/components/TaskTitle.tsx": {
+            "lines": 22,
+            "tokens": 127,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/components/TaskPanel.tsx": {
+            "lines": 559,
+            "tokens": 3996,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/components/TaskCard.tsx": {
+            "lines": 78,
+            "tokens": 874,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/components/Tag.tsx": {
+            "lines": 7,
+            "tokens": 114,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/components/SimpleBoard.tsx": {
+            "lines": 45,
+            "tokens": 480,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/components/SafeWorkspace.tsx": {
+            "lines": 715,
+            "tokens": 6465,
+            "sources": 1,
+            "clones": 6,
+            "duplicatedLines": 82,
+            "duplicatedTokens": 708,
+            "percentage": 11.47,
+            "percentageTokens": 10.95,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/components/RealBoard.tsx": {
+            "lines": 272,
+            "tokens": 2588,
+            "sources": 1,
+            "clones": 1,
+            "duplicatedLines": 8,
+            "duplicatedTokens": 84,
+            "percentage": 2.94,
+            "percentageTokens": 3.25,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/components/ErrorBoundary.tsx": {
+            "lines": 46,
+            "tokens": 366,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/components/CommandPalette.tsx": {
+            "lines": 374,
+            "tokens": 3062,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/components/CommandHintsBar.tsx": {
+            "lines": 58,
+            "tokens": 422,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/components/ClientErrorTap.tsx": {
+            "lines": 54,
+            "tokens": 424,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/components/ClientErrorBoundary.tsx": {
+            "lines": 75,
+            "tokens": 570,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/components/ChatMessage.tsx": {
+            "lines": 20,
+            "tokens": 254,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/components/Chat.tsx": {
+            "lines": 217,
+            "tokens": 3042,
+            "sources": 1,
+            "clones": 2,
+            "duplicatedLines": 12,
+            "duplicatedTokens": 162,
+            "percentage": 5.53,
+            "percentageTokens": 5.33,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/components/BoardFilters.tsx": {
+            "lines": 216,
+            "tokens": 1760,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/components/BoardColumn.tsx": {
+            "lines": 48,
+            "tokens": 418,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/components/Board.tsx": {
+            "lines": 171,
+            "tokens": 1930,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/components/AnalyzeDrawer.tsx": {
+            "lines": 208,
+            "tokens": 1313,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/components/AnalysisBanner.tsx": {
+            "lines": 132,
+            "tokens": 906,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/components/AgentStrip.tsx": {
+            "lines": 55,
+            "tokens": 501,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/components/AIControlPanel.tsx": {
+            "lines": 586,
+            "tokens": 5181,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/ai/page.tsx": {
+            "lines": 10,
+            "tokens": 71,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/page.tsx": {
+            "lines": 4,
+            "tokens": 31,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/layout.tsx": {
+            "lines": 38,
+            "tokens": 307,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          }
+        },
+        "total": {
+          "lines": 5186,
+          "tokens": 46905,
+          "sources": 42,
+          "clones": 6,
+          "duplicatedLines": 69,
+          "duplicatedTokens": 687,
+          "percentage": 1.33,
+          "percentageTokens": 1.46,
+          "newDuplicatedLines": 0,
+          "newClones": 0
+        }
+      },
+      "css": {
+        "sources": {
+          "app/components/board2/Board2.module.css": {
+            "lines": 132,
+            "tokens": 1051,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/ui/button.module.css": {
+            "lines": 58,
+            "tokens": 494,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/styles/tokens.css": {
+            "lines": 26,
+            "tokens": 161,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/styles/brand.css": {
+            "lines": 31,
+            "tokens": 275,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/components/workspace.module.css": {
+            "lines": 128,
+            "tokens": 899,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/components/TaskPanel.module.css": {
+            "lines": 43,
+            "tokens": 547,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/components/TaskCard.module.css": {
+            "lines": 58,
+            "tokens": 573,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/components/Tag.module.css": {
+            "lines": 14,
+            "tokens": 153,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/components/ChatMessage.module.css": {
+            "lines": 28,
+            "tokens": 327,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/components/Chat.module.css": {
+            "lines": 58,
+            "tokens": 714,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/components/BoardColumn.module.css": {
+            "lines": 121,
+            "tokens": 756,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/components/AnalysisBanner.tsx": {
+            "lines": 61,
+            "tokens": 448,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "app/globals.css": {
+            "lines": 310,
+            "tokens": 2063,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          }
+        },
+        "total": {
+          "lines": 1068,
+          "tokens": 8461,
+          "sources": 13,
+          "clones": 0,
+          "duplicatedLines": 0,
+          "duplicatedTokens": 0,
+          "percentage": 0,
+          "percentageTokens": 0,
+          "newDuplicatedLines": 0,
+          "newClones": 0
+        }
+      },
+      "json": {
+        "sources": {
+          "app/api/mcp/tools.json": {
+            "lines": 21,
+            "tokens": 493,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          }
+        },
+        "total": {
+          "lines": 21,
+          "tokens": 493,
+          "sources": 1,
+          "clones": 0,
+          "duplicatedLines": 0,
+          "duplicatedTokens": 0,
+          "percentage": 0,
+          "percentageTokens": 0,
+          "newDuplicatedLines": 0,
+          "newClones": 0
+        }
+      }
+    },
+    "total": {
+      "lines": 18887,
+      "tokens": 171654,
+      "sources": 153,
+      "clones": 22,
+      "duplicatedLines": 641,
+      "duplicatedTokens": 6520,
+      "percentage": 3.39,
+      "percentageTokens": 3.8,
+      "newDuplicatedLines": 0,
+      "newClones": 0
+    }
+  },
+  "duplicates": [
+    {
+      "format": "tsx",
+      "lines": 15,
+      "fragment": "if (!over) return\n\n    const activeRawId = String(active.id).replace(/^card-/, '')\n    const fromCol = findColumnByCardId(activeRawId)\n    if (!fromCol) return\n\n    const dest = getDestination(String(over.id))\n    if (!dest) return\n\n    const { toCol, toIndex } = dest\n    const fromIndex = fromCol.cards.findIndex(c => idOf(c.id) === activeRawId)\n    if (fromIndex < 0) return\n\n    const sameColumn = idOf(fromCol.id) === idOf(toCol.id)\n    const preview",
+      "tokens": 0,
+      "firstFile": {
+        "name": "app/components/board2/Board2.tsx",
+        "start": 146,
+        "end": 160,
+        "startLoc": {
+          "line": 146,
+          "column": 5,
+          "position": 1948
+        },
+        "endLoc": {
+          "line": 160,
+          "column": 8,
+          "position": 2116
+        }
+      },
+      "secondFile": {
+        "name": "app/components/board2/Board2.tsx",
+        "start": 125,
+        "end": 138,
+        "startLoc": {
+          "line": 125,
+          "column": 5,
+          "position": 1667
+        },
+        "endLoc": {
+          "line": 138,
+          "column": 12,
+          "position": 1834
+        }
+      }
+    },
+    {
+      "format": "typescript",
+      "lines": 10,
+      "fragment": ": {\n      const { taskId, label } = params || {}\n      if (!taskId || !label) throw new Error('taskId/label required')\n      if (kind !== 'TaskCafe') throw new Error('labels not supported')\n      const kb = new TaskCafeClient({\n        url: process.env.TaskCafe_URL!,\n        username: process.env.TaskCafe_USERNAME!,\n        password: process.env.TaskCafe_PASSWORD!\n      })\n      const",
+      "tokens": 0,
+      "firstFile": {
+        "name": "app/api/mcp/route.ts",
+        "start": 172,
+        "end": 181,
+        "startLoc": {
+          "line": 172,
+          "column": 15,
+          "position": 2493
+        },
+        "endLoc": {
+          "line": 181,
+          "column": 6,
+          "position": 2613
+        }
+      },
+      "secondFile": {
+        "name": "app/api/mcp/route.ts",
+        "start": 159,
+        "end": 168,
+        "startLoc": {
+          "line": 159,
+          "column": 12,
+          "position": 2292
+        },
+        "endLoc": {
+          "line": 168,
+          "column": 6,
+          "position": 2412
+        }
+      }
+    },
+    {
+      "format": "typescript",
+      "lines": 6,
+      "fragment": "const snapshot = await findCardSnapshot(ctx, taskId)\n        await provider.moveTask(projectId, taskId, toColumnId, position)\n        if (snapshot && !opts.skipUndo) {\n          await pushUndo({ method: 'move_card', params: { taskId, toColumnId: snapshot.columnId, position: snapshot.position }, label: `Move ${snapshot.title}` })\n        }\n      }",
+      "tokens": 0,
+      "firstFile": {
+        "name": "app/api/mcp/route.ts",
+        "start": 205,
+        "end": 210,
+        "startLoc": {
+          "line": 205,
+          "column": 9,
+          "position": 3041
+        },
+        "endLoc": {
+          "line": 210,
+          "column": 2,
+          "position": 3149
+        }
+      },
+      "secondFile": {
+        "name": "app/api/mcp/route.ts",
+        "start": 87,
+        "end": 92,
+        "startLoc": {
+          "line": 87,
+          "column": 7,
+          "position": 1122
+        },
+        "endLoc": {
+          "line": 92,
+          "column": 7,
+          "position": 1230
+        }
+      }
+    },
+    {
+      "format": "typescript",
+      "lines": 15,
+      "fragment": ", state)\n      for (const op of ops) {\n        if (op.type === 'move_empty') {\n          if (backlog && op.fromColumnId !== backlog.id) {\n            await invoke('move_card', { taskId: op.taskId, toColumnId: backlog.id }, ctx)\n          }\n        } else if (op.type === 'rename') {\n          await invoke('update_card', { taskId: op.taskId, title: op.title }, ctx)\n        } else if (op.type === 'mark_duplicate') {\n          await invoke('update_card', { taskId: op.taskId, title: op.title }, ctx)\n        }\n      }\n      return { ok: true, result: report }\n    }\n    case 'undo_last'",
+      "tokens": 0,
+      "firstFile": {
+        "name": "app/api/mcp/route.ts",
+        "start": 261,
+        "end": 275,
+        "startLoc": {
+          "line": 261,
+          "column": 2,
+          "position": 4011
+        },
+        "endLoc": {
+          "line": 275,
+          "column": 12,
+          "position": 4231
+        }
+      },
+      "secondFile": {
+        "name": "app/api/mcp/route.ts",
+        "start": 234,
+        "end": 248,
+        "startLoc": {
+          "line": 234,
+          "column": 8,
+          "position": 3548
+        },
+        "endLoc": {
+          "line": 248,
+          "column": 14,
+          "position": 3768
+        }
+      }
+    },
+    {
+      "format": "javascript",
+      "lines": 30,
+      "fragment": " }}>\n                            {analysis.complexity}\n                          </div>\n                        </div>\n                        <div>\n                          <span style={{ fontSize: 12, color: '#6b7280' }}>Est. Hours</span>\n                          <div style={{ fontSize: 14, fontWeight: 500, color: '#000023' }}>\n                            {analysis.estimatedHours}h\n                          </div>\n                        </div>\n                        <div>\n                          <span style={{ fontSize: 12, color: '#6b7280' }}>Days Stale</span>\n                          <div style={{ fontSize: 14, fontWeight: 500, color: '#000023' }}>\n                            {analysis.staleness}\n                          </div>\n                        </div>\n                        <div>\n                          <span style={{ fontSize: 12, color: '#6b7280' }}>Blocking</span>\n                          <div style={{ fontSize: 14, fontWeight: 500, color: '#000023' }}>\n                            {analysis.blockingRisk ? 'Yes' : 'No'}\n                          </div>\n                        </div>\n                      </div>\n                    </div>\n                  )}\n\n                  {/* Suggestions */}\n                  <div>\n                    <h3 style={{\n                      fontSize",
+      "tokens": 0,
+      "firstFile": {
+        "name": "app/components/TaskPanel.tsx",
+        "start": 436,
+        "end": 465,
+        "startLoc": {
+          "line": 436,
+          "column": 10,
+          "position": 3089
+        },
+        "endLoc": {
+          "line": 465,
+          "column": 31,
+          "position": 3383
+        }
+      },
+      "secondFile": {
+        "name": "app/components/TaskPanel.tsx",
+        "start": 433,
+        "end": 447,
+        "startLoc": {
+          "line": 433,
+          "column": 3,
+          "position": 3031
+        },
+        "endLoc": {
+          "line": 447,
+          "column": 10,
+          "position": 3203
+        }
+      }
+    },
+    {
+      "format": "javascript",
+      "lines": 57,
+      "fragment": "}}>\n                Carregando...\n              </div>\n              <div style={{\n                width: 300,\n                padding: '16px',\n                background: 'var(--surface)',\n                border: '1px solid var(--line)',\n                borderRadius: 'var(--radius-lg)',\n                textAlign: 'center',\n                color: 'var(--ink-500)'\n              }}>\n                Carregando...\n              </div>\n              <div style={{\n                width: 300,\n                padding: '16px',\n                background: 'var(--surface)',\n                border: '1px solid var(--line)',\n                borderRadius: 'var(--radius-lg)',\n                textAlign: 'center',\n                color: 'var(--ink-500)'\n              }}>\n                Carregando...\n              </div>\n            </>\n          ) : (\n            columns.map(col => (\n              <BoardColumn\n                key={col.id}\n                id={col.id}\n                title={col.title}\n                tasks={col.tasks?.map(task => ({\n                  id: task.id,\n                  title: task.title,\n                  description: task.description,\n                  tags: task.tags,\n                  priority: task.priority,\n                  staleDays: (task as any).staleDays,\n                  due: (task as any).due,\n                  columnName: col.title\n                })) || []}\n                onTaskClick={(task) => {\n                  setSelectedTask({ ...task, column: col.title })\n                  setShowTaskPanel(true)\n                }}\n              />\n            ))\n          )}\n        </div>\n        </div>\n      </div>\n\n      {/* Subtle version indicator - only in development */}\n      {process.env.NODE_ENV !== 'production' && (\n        <div style={{\n          position",
+      "tokens": 0,
+      "firstFile": {
+        "name": "app/components/SafeWorkspace.tsx",
+        "start": 624,
+        "end": 680,
+        "startLoc": {
+          "line": 624,
+          "column": 15,
+          "position": 5887
+        },
+        "endLoc": {
+          "line": 680,
+          "column": 19,
+          "position": 6276
+        }
+      },
+      "secondFile": {
+        "name": "app/components/SafeWorkspace.tsx",
+        "start": 612,
+        "end": 639,
+        "startLoc": {
+          "line": 612,
+          "column": 2,
+          "position": 5819
+        },
+        "endLoc": {
+          "line": 639,
+          "column": 22,
+          "position": 5964
+        }
+      }
+    },
+    {
+      "format": "tsx",
+      "lines": 13,
+      "fragment": ",\n      timestamp: new Date()\n    }\n\n    setMessages(prev => [...prev, userMsg])\n    setInput('')\n    setLoading(true)\n\n    try {\n      const res = await fetch('/api/chat', {\n        method: 'POST',\n        headers: { 'Content-Type': 'application/json' },\n        body: JSON.stringify({ message: input",
+      "tokens": 0,
+      "firstFile": {
+        "name": "app/components/SafeWorkspace.tsx",
+        "start": 221,
+        "end": 233,
+        "startLoc": {
+          "line": 221,
+          "column": 6,
+          "position": 2269
+        },
+        "endLoc": {
+          "line": 233,
+          "column": 6,
+          "position": 2369
+        }
+      },
+      "secondFile": {
+        "name": "app/components/SafeWorkspace.tsx",
+        "start": 165,
+        "end": 176,
+        "startLoc": {
+          "line": 165,
+          "column": 8,
+          "position": 1743
+        },
+        "endLoc": {
+          "line": 176,
+          "column": 8,
+          "position": 1842
+        }
+      }
+    },
+    {
+      "format": "tsx",
+      "lines": 18,
+      "fragment": "})\n      })\n      \n      const data = await res.json()\n      \n      if (data.message || data.response) {\n        const assistantMsg: Message = {\n          id: (Date.now() + 1).toString(),\n          role: 'assistant',\n          content: data.message || data.response,\n          timestamp: new Date()\n        }\n        setMessages(prev => [...prev, assistantMsg])\n        \n        // Store undo token and action count if provided\n        if (data.undoToken) {\n          setLastUndoToken(data.undoToken)\n        }",
+      "tokens": 0,
+      "firstFile": {
+        "name": "app/components/SafeWorkspace.tsx",
+        "start": 233,
+        "end": 250,
+        "startLoc": {
+          "line": 233,
+          "column": 2,
+          "position": 2371
+        },
+        "endLoc": {
+          "line": 250,
+          "column": 2,
+          "position": 2523
+        }
+      },
+      "secondFile": {
+        "name": "app/components/SafeWorkspace.tsx",
+        "start": 176,
+        "end": 193,
+        "startLoc": {
+          "line": 176,
+          "column": 2,
+          "position": 1844
+        },
+        "endLoc": {
+          "line": 193,
+          "column": 13,
+          "position": 1993
+        }
+      }
+    },
+    {
+      "format": "tsx",
+      "lines": 13,
+      "fragment": ")\n        }\n        \n        // Trigger board refresh after AI action\n        const boardRes = await fetch('/api/board/sync')\n        const boardData = await boardRes.json()\n        if (boardData?.ok && boardData?.state) {\n          const normalizedState = normalizeBoard(boardData.state)\n          setColumns(normalizedState.columns)\n        }\n      }\n    } catch (err) {\n      console.error('Chat error:'",
+      "tokens": 0,
+      "firstFile": {
+        "name": "app/components/SafeWorkspace.tsx",
+        "start": 252,
+        "end": 264,
+        "startLoc": {
+          "line": 252,
+          "column": 7,
+          "position": 2556
+        },
+        "endLoc": {
+          "line": 264,
+          "column": 14,
+          "position": 2658
+        }
+      },
+      "secondFile": {
+        "name": "app/components/SafeWorkspace.tsx",
+        "start": 197,
+        "end": 209,
+        "startLoc": {
+          "line": 197,
+          "column": 2,
+          "position": 2068
+        },
+        "endLoc": {
+          "line": 209,
+          "column": 17,
+          "position": 2169
+        }
+      }
+    },
+    {
+      "format": "tsx",
+      "lines": 9,
+      "fragment": ")\n      \n      if (data?.ok && data?.state) {\n        setColumns(data.state.columns || [])\n        setSyncCount(data.state.syncCount || 0)\n        if (data.state.lastSync) {\n          setLastSync(new Date(data.state.lastSync))\n        }\n        console",
+      "tokens": 0,
+      "firstFile": {
+        "name": "app/components/RealBoard.tsx",
+        "start": 59,
+        "end": 67,
+        "startLoc": {
+          "line": 59,
+          "column": 5,
+          "position": 506
+        },
+        "endLoc": {
+          "line": 67,
+          "column": 8,
+          "position": 590
+        }
+      },
+      "secondFile": {
+        "name": "app/components/WorkingBoard.tsx",
+        "start": 43,
+        "end": 51,
+        "startLoc": {
+          "line": 43,
+          "column": 2,
+          "position": 382
+        },
+        "endLoc": {
+          "line": 51,
+          "column": 2,
+          "position": 466
+        }
+      }
+    },
+    {
+      "format": "tsx",
+      "lines": 7,
+      "fragment": "taskId} — Undo`, action: { label: 'Undo', onClick: () => {\n              callMcp('undo_last')\n                .then(() => window.dispatchEvent(new Event('board-refresh')))\n                .catch(() => {});\n            } } });\n          }\n        }",
+      "tokens": 0,
+      "firstFile": {
+        "name": "app/components/Chat.tsx",
+        "start": 74,
+        "end": 80,
+        "startLoc": {
+          "line": 74,
+          "column": 2,
+          "position": 1137
+        },
+        "endLoc": {
+          "line": 80,
+          "column": 2,
+          "position": 1218
+        }
+      },
+      "secondFile": {
+        "name": "app/components/Chat.tsx",
+        "start": 66,
+        "end": 72,
+        "startLoc": {
+          "line": 66,
+          "column": 3,
+          "position": 979
+        },
+        "endLoc": {
+          "line": 72,
+          "column": 6,
+          "position": 1060
+        }
+      }
+    },
+    {
+      "format": "javascript",
+      "lines": 26,
+      "fragment": "}}>\n            Mudanças sugeridas ({suggestions.length})\n          </h2>\n          <button\n            onClick={onClose}\n            style={{\n              width: 32,\n              height: 32,\n              borderRadius: 6,\n              border: 'none',\n              backgroundColor: 'transparent',\n              cursor: 'pointer',\n              fontSize: 18,\n              color: '#6b7280',\n              display: 'flex',\n              alignItems: 'center',\n              justifyContent: 'center'\n            }}\n          >\n            ✕\n          </button>\n        </div>\n\n        {/* Suggestions List */}\n        <div style={{\n          flex",
+      "tokens": 0,
+      "firstFile": {
+        "name": "app/components/AnalyzeDrawer.tsx",
+        "start": 77,
+        "end": 102,
+        "startLoc": {
+          "line": 77,
+          "column": 11,
+          "position": 529
+        },
+        "endLoc": {
+          "line": 102,
+          "column": 15,
+          "position": 653
+        }
+      },
+      "secondFile": {
+        "name": "app/components/TaskPanel.tsx",
+        "start": 164,
+        "end": 191,
+        "startLoc": {
+          "line": 164,
+          "column": 15,
+          "position": 1354
+        },
+        "endLoc": {
+          "line": 191,
+          "column": 18,
+          "position": 1480
+        }
+      }
+    },
+    {
+      "format": "typescript",
+      "lines": 18,
+      "fragment": "{\n      enabled: true,\n      intervalMinutes: 5,\n      rules: {\n        autoMoveStale: true,\n        smartPrioritize: true,\n        detectDuplicates: true,\n        autoArchive: true,\n        bottleneckDetection: true\n      },\n      thresholds: {\n        staleHours: 72,\n        urgentHours: 48,\n        bottleneckLimit: 10,\n        archiveDays: 7\n      }\n    }\n  }",
+      "tokens": 0,
+      "firstFile": {
+        "name": "lib/services/board-monitor.ts",
+        "start": 42,
+        "end": 59,
+        "startLoc": {
+          "line": 42,
+          "column": 2,
+          "position": 270
+        },
+        "endLoc": {
+          "line": 59,
+          "column": 2,
+          "position": 370
+        }
+      },
+      "secondFile": {
+        "name": "app/api/ai/status/route.ts",
+        "start": 18,
+        "end": 36,
+        "startLoc": {
+          "line": 18,
+          "column": 2,
+          "position": 135
+        },
+        "endLoc": {
+          "line": 36,
+          "column": 6,
+          "position": 237
+        }
+      }
+    },
+    {
+      "format": "typescript",
+      "lines": 16,
+      "fragment": ",\n        context,\n        board\n      })\n      \n      scoredTasks.push({\n        task,\n        score: score.total,\n        reasoning: score.reasoning,\n        estimatedTime: this.estimateTaskTime(task),\n        dependencies: this.findDependencies(task, board),\n        risks: this.identifyTaskRisks(task)\n      })\n    }\n    \n    // Sort by score",
+      "tokens": 0,
+      "firstFile": {
+        "name": "lib/services/ai-coach.ts",
+        "start": 139,
+        "end": 154,
+        "startLoc": {
+          "line": 139,
+          "column": 6,
+          "position": 1142
+        },
+        "endLoc": {
+          "line": 154,
+          "column": 17,
+          "position": 1234
+        }
+      },
+      "secondFile": {
+        "name": "lib/services/ai-coach.ts",
+        "start": 121,
+        "end": 136,
+        "startLoc": {
+          "line": 121,
+          "column": 5,
+          "position": 1012
+        },
+        "endLoc": {
+          "line": 136,
+          "column": 20,
+          "position": 1104
+        }
+      }
+    },
+    {
+      "format": "typescript",
+      "lines": 6,
+      "fragment": "const users: any[] = await this.getProjectUsers(projectId).catch(() => [])\n    const userById = new Map<number, any>()\n    for (const u of Array.isArray(users) ? users : Object.values(users || {})) {\n      userById.set(Number(u.id), u)\n    }\n    const",
+      "tokens": 0,
+      "firstFile": {
+        "name": "lib/TaskCafe-client/real.ts",
+        "start": 321,
+        "end": 326,
+        "startLoc": {
+          "line": 321,
+          "column": 5,
+          "position": 3251
+        },
+        "endLoc": {
+          "line": 326,
+          "column": 6,
+          "position": 3359
+        }
+      },
+      "secondFile": {
+        "name": "lib/TaskCafe-client/real.ts",
+        "start": 282,
+        "end": 288,
+        "startLoc": {
+          "line": 282,
+          "column": 7,
+          "position": 2686
+        },
+        "endLoc": {
+          "line": 288,
+          "column": 34,
+          "position": 2796
+        }
+      }
+    },
+    {
+      "format": "typescript",
+      "lines": 9,
+      "fragment": "(.+)$/i,\n    ];\n    \n    for (const pattern of patterns) {\n      const match = body.match(pattern);\n      if (match) {\n        const taskRef = match[1];\n        const task = parseId(taskRef) || taskRef;\n        const comment",
+      "tokens": 0,
+      "firstFile": {
+        "name": "lib/agent/parse.ts",
+        "start": 424,
+        "end": 432,
+        "startLoc": {
+          "line": 424,
+          "column": 2,
+          "position": 4413
+        },
+        "endLoc": {
+          "line": 432,
+          "column": 8,
+          "position": 4500
+        }
+      },
+      "secondFile": {
+        "name": "lib/agent/parse.ts",
+        "start": 403,
+        "end": 411,
+        "startLoc": {
+          "line": 403,
+          "column": 2,
+          "position": 4224
+        },
+        "endLoc": {
+          "line": 411,
+          "column": 9,
+          "position": 4311
+        }
+      }
+    },
+    {
+      "format": "typescript",
+      "lines": 6,
+      "fragment": ": z.string().nullable().optional(),\n    status: z.enum(['all','active','done']).nullable().optional(),\n    assignee: z.string().nullable().optional()\n  }),\n  z.object({\n    type: z.literal('bulk_move'",
+      "tokens": 0,
+      "firstFile": {
+        "name": "lib/agent/interpreter.ts",
+        "start": 39,
+        "end": 44,
+        "startLoc": {
+          "line": 39,
+          "column": 7,
+          "position": 398
+        },
+        "endLoc": {
+          "line": 44,
+          "column": 12,
+          "position": 479
+        }
+      },
+      "secondFile": {
+        "name": "lib/agent/interpreter.ts",
+        "start": 32,
+        "end": 37,
+        "startLoc": {
+          "line": 32,
+          "column": 6,
+          "position": 300
+        },
+        "endLoc": {
+          "line": 37,
+          "column": 15,
+          "position": 381
+        }
+      }
+    },
+    {
+      "format": "typescript",
+      "lines": 10,
+      "fragment": "const columns = await this.TaskCafe.getColumns(projectId)\n          const targetColumn = columns.find((c: any) => \n            c.title.toLowerCase() === args.toColumn.toLowerCase()\n          )\n\n          if (!targetColumn) {\n            throw new Error(`Column not found: ${args.toColumn}`)\n          }\n\n          const",
+      "tokens": 0,
+      "firstFile": {
+        "name": "lib/agent/function-agent.ts",
+        "start": 344,
+        "end": 353,
+        "startLoc": {
+          "line": 344,
+          "column": 11,
+          "position": 2599
+        },
+        "endLoc": {
+          "line": 353,
+          "column": 6,
+          "position": 2691
+        }
+      },
+      "secondFile": {
+        "name": "lib/agent/function-agent.ts",
+        "start": 211,
+        "end": 220,
+        "startLoc": {
+          "line": 211,
+          "column": 11,
+          "position": 1437
+        },
+        "endLoc": {
+          "line": 220,
+          "column": 6,
+          "position": 1529
+        }
+      }
+    },
+    {
+      "format": "typescript",
+      "lines": 22,
+      "fragment": "interface Task {\n  id: number\n  title: string\n  description?: string\n  column_id: number\n  position: number\n  project_id: number\n  color_id?: string\n  owner_id?: number\n  creator_id?: number\n  date_creation?: number\n  date_modification?: number\n  date_completed?: number\n  date_due?: number\n  is_active?: number\n  tags?: string[]\n  score?: number\n  priority?: number\n  nb_comments?: number\n}\n\ninterface",
+      "tokens": 0,
+      "firstFile": {
+        "name": "lib/TaskCafe-client.ts",
+        "start": 7,
+        "end": 28,
+        "startLoc": {
+          "line": 7,
+          "column": 1,
+          "position": 27
+        },
+        "endLoc": {
+          "line": 28,
+          "column": 10,
+          "position": 159
+        }
+      },
+      "secondFile": {
+        "name": "lib/TaskCafe-client/real.ts",
+        "start": 7,
+        "end": 28,
+        "startLoc": {
+          "line": 7,
+          "column": 2,
+          "position": 29
+        },
+        "endLoc": {
+          "line": 28,
+          "column": 7,
+          "position": 161
+        }
+      }
+    },
+    {
+      "format": "typescript",
+      "lines": 338,
+      "fragment": "interface Column {\n  id: number\n  title: string\n  position: number\n  project_id: number\n  task_limit?: number\n  description?: string\n}\n\nexport class TaskCafeClient {\n  private config: TaskCafeConfig\n  private requestId = 0\n\n  constructor(config: TaskCafeConfig) {\n    this.config = config\n  }\n\n  async request<T = any>(method: string, params: any = {}): Promise<T> {\n    const requestTimestamp = Date.now()\n    const response = await fetch(this.config.url, {\n      method: 'POST',\n      headers: {\n        'Content-Type': 'application/json',\n        'Authorization': 'Basic ' + Buffer.from(`${this.config.username}:${this.config.password}`).toString('base64'),\n        'Cache-Control': 'no-cache, no-store, must-revalidate',\n        'Pragma': 'no-cache',\n        'X-Request-ID': `${method}-${requestTimestamp}-${this.requestId}`\n      },\n      cache: 'no-store',\n      body: JSON.stringify({\n        jsonrpc: '2.0',\n        method,\n        id: ++this.requestId,\n        params\n      })\n    })\n\n    const data = await response.json()\n    \n    \n    if (data.error) {\n      throw new Error(data.error.message)\n    }\n    \n    return data.result\n  }\n\n  async getTasks(projectId: number): Promise<Task[]> {\n    return this.request('getAllTasks', { project_id: projectId })\n  }\n\n  async getTask(taskId: number): Promise<Task> {\n    return this.request('getTask', { task_id: taskId })\n  }\n\n  async createTask(\n    projectId: number, \n    title: string, \n    columnId?: number, \n    description?: string,\n    options?: {\n      owner_id?: number,\n      date_due?: string,\n      tags?: string[],\n      score?: number,\n      priority?: number,\n      color_id?: string\n    }\n  ): Promise<number> {\n    return this.request('createTask', {\n      project_id: projectId,\n      title,\n      column_id: columnId,\n      description,\n      ...(options || {})\n    })\n  }\n\n  async updateTask(taskId: number, updates: Partial<Task>): Promise<boolean> {\n    return this.request('updateTask', { id: taskId, ...updates })\n  }\n\n  async assignTask(taskId: number, username: string): Promise<boolean> {\n    // First get user by username\n    const users = await this.request('getAllUsers', {})\n    const user = users.find((u: any) => u.username === username || u.name === username)\n    if (!user) {\n      throw new Error(`User '${username}' not found`)\n    }\n    return this.setTaskOwner(taskId, user.id)\n  }\n\n  async addTaskLabel(taskId: number, label: string): Promise<boolean> {\n    const task = await this.getTask(taskId)\n    const currentTags = task.tags || []\n    if (!currentTags.includes(label)) {\n      currentTags.push(label)\n    }\n    return this.updateTask(taskId, { tags: currentTags } as any)\n  }\n\n  async setTaskDueDate(taskId: number, dueDate: string): Promise<boolean> {\n    return this.updateTask(taskId, { date_due: dueDate } as any)\n  }\n\n  async addTaskComment(taskId: number, comment: string): Promise<number> {\n    return this.request('createComment', {\n      task_id: taskId,\n      content: comment,\n      user_id: 0 // 0 for system/bot comments\n    })\n  }\n\n  async updateTaskScore(taskId: number, score: number): Promise<boolean> {\n    return this.updateTask(taskId, { score } as any)\n  }\n\n  async setTaskOwner(taskId: number, ownerId: number): Promise<boolean> {\n    return this.updateTask(taskId, { owner_id: ownerId } as any)\n  }\n\n  async moveTask(taskId: number, columnId: number, projectId: number = 1, position?: number, swimlaneId: number = 1): Promise<boolean> {\n    return this.request('moveTaskPosition', {\n      project_id: projectId,\n      task_id: taskId,\n      column_id: columnId,\n      position: position || 1,\n      swimlane_id: swimlaneId\n    })\n  }\n\n  async removeTask(taskId: number): Promise<boolean> {\n    return this.request('removeTask', { task_id: taskId })\n  }\n\n  async getColumns(projectId: number): Promise<Column[]> {\n    return this.request('getColumns', { project_id: projectId })\n  }\n\n  async searchTasks(projectId: number, query: string): Promise<Task[]> {\n    return this.request('searchTasks', {\n      project_id: projectId,\n      query\n    })\n  }\n\n  async addComment(taskId: number, content: string): Promise<number> {\n    return this.request('createComment', {\n      task_id: taskId,\n      content,\n      user_id: 0  // 0 for system/API user\n    })\n  }\n\n  // Attempt to fetch task comments; gracefully throw if unsupported\n  async getTaskComments(taskId: number): Promise<any[]> {\n    try {\n      // Some installs expose getAllComments(task_id)\n      const res = await this.request('getAllComments', { task_id: taskId })\n      if (Array.isArray(res)) return res\n    } catch (_) {\n      // fall through and try alternative\n    }\n    try {\n      // Alternative method name in some forks\n      const res = await this.request('getTaskComments', { task_id: taskId })\n      if (Array.isArray(res)) return res\n    } catch (err) {\n      throw err\n    }\n    return []\n  }\n\n  async getProjectUsers(projectId: number): Promise<any[]> {\n    return this.request('getProjectUsers', { project_id: projectId })\n  }\n\n  async setTaskTags(taskId: number, tags: string[]): Promise<boolean> {\n    // Try canonical bulk setter\n    try {\n      const ok = await this.request('setTaskTags', { task_id: taskId, tags })\n      if (ok) return true\n    } catch (_) {\n      // fallback attempts below\n    }\n    // Fallback: remove all then add one by one\n    try {\n      await this.request('removeAllTaskTags', { task_id: taskId })\n      for (const tag of tags) {\n        await this.request('addTaskTag', { task_id: taskId, tag })\n      }\n      return true\n    } catch (err) {\n      throw err\n    }\n  }\n\n  async getProjectTags(projectId: number): Promise<string[]> {\n    // Attempt various method names seen across installations\n    try {\n      const res = await this.request('getAllTags', { project_id: projectId })\n      if (Array.isArray(res)) return res.map((t: any) => String(t.name ?? t).trim()).filter(Boolean)\n    } catch (_) {}\n    try {\n      const res = await this.request('getProjectTags', { project_id: projectId })\n      if (Array.isArray(res)) return res.map((t: any) => String(t.name ?? t).trim()).filter(Boolean)\n    } catch (_) {}\n    // As a last resort, empty list to indicate unsupported without erroring\n    return []\n  }\n\n  // Alias for getTasks to match expected naming\n  async listProjectTasks(projectId: number): Promise<Task[]> {\n    return this.getTasks(projectId)\n  }\n\n  // Wrapper for moveTask with position support\n  async moveTaskPosition(\n    projectId: number,\n    taskId: number,\n    columnId: number,\n    position: number = 1,\n    swimlaneId: number = 1\n  ): Promise<boolean> {\n    return this.moveTask(taskId, columnId, projectId, position, swimlaneId)\n  }\n\n  async getBoardState(projectId: number = 1, swimlaneId: number = 1) {\n    // Try native board endpoint first\n    try {\n      const board: any = await this.request('getBoard', { project_id: projectId })\n      \n      // Validate response\n      if (!board || !Array.isArray(board) || !board[0]?.columns) {\n        console.warn('[getBoardState] Invalid getBoard response structure, using fallback')\n        throw new Error('Invalid board structure')\n      }\n      \n      // Get total task count from getBoard\n      const boardTaskCount = board[0].columns.reduce((sum: number, col: any) => \n        sum + (col.tasks?.length || 0), 0)\n      \n      // Always validate when board appears empty - force check every time\n      if (boardTaskCount === 0 && projectId) {\n        // Double-check with getAllTasks to ensure we're not missing tasks\n        const allTasks = await this.request('getAllTasks', { project_id: projectId })\n        const activeTaskCount = allTasks.filter((t: any) => t.is_active === 1).length\n        \n        if (activeTaskCount > 0) {\n          console.warn(`[getBoardState] Data mismatch: getBoard returned 0 tasks but getAllTasks found ${activeTaskCount} active tasks. Using fallback.`)\n          throw new Error('getBoard returned empty when tasks exist')\n        }\n      }\n      \n      const users: any[] = await this.getProjectUsers(projectId).catch(() => [])\n      const userById = new Map<number, any>()\n      for (const u of Array.isArray(users) ? users : Object.values(users || {})) {\n        userById.set(Number(u.id), u)\n      }\n      \n      // Successfully use getBoard data\n      return {\n        columns: board[0].columns.map((c: any) => ({\n            id: c.id,\n            name: c.title || c.name,\n            cards: (c.tasks || []).map((t: any) => ({\n              id: t.id,\n              title: t.title,\n              description: t.description || '',\n              assignees: (() => {\n                const uname = t.assignee_username || (userById.get(Number(t.owner_id))?.username)\n                return uname ? [uname] : []\n              })(),\n              is_active: t.is_active,\n              // normalize common meta\n              due_date: t.date_due || null,\n              time_estimated: t.time_estimated ?? null,\n              time_spent: t.time_spent ?? null,\n              nb_comments: t.nb_comments ?? undefined,\n              tags: Array.isArray(t.tags) ? t.tags : (t.category ? [t.category] : [])\n            }))\n          }))\n      }\n    } catch (err) {\n      console.log('[getBoardState] Falling back to getAllTasks method. Reason:', err instanceof Error ? err.message : 'Unknown error')\n      // Fall back to manual construction below\n    }\n\n    // Fallback: build from columns + tasks\n    console.log('[getBoardState] Using fallback method with getAllTasks')\n    const columns: any[] = await this.request('getColumns', { project_id: projectId })\n    const tasks: any[] = await this.request('getAllTasks', { project_id: projectId })\n    console.log(`[getBoardState] Fallback found ${tasks.length} total tasks, ${tasks.filter((t: any) => t.is_active === 1).length} active`)\n    const users: any[] = await this.getProjectUsers(projectId).catch(() => [])\n    const userById = new Map<number, any>()\n    for (const u of Array.isArray(users) ? users : Object.values(users || {})) {\n      userById.set(Number(u.id), u)\n    }\n    const byColumn = new Map<number, any[]>()\n    \n    for (const col of columns) {\n      byColumn.set(col.id, [])\n    }\n    \n    for (const t of tasks) {\n      const columnTasks = byColumn.get(t.column_id)\n      if (columnTasks) {\n        columnTasks.push(t)\n      }\n    }\n\n    return {\n      columns: columns\n        .sort((a, b) => a.position - b.position)\n        .map(c => ({\n          id: c.id,\n          name: c.title || c.name,\n          cards: (byColumn.get(c.id) || [])\n            .sort((a, b) => a.position - b.position)\n            .map(t => ({\n              id: t.id,\n              title: t.title,\n              description: t.description || '',\n              assignees: (() => {\n                const uname = (t as any).assignee_username || userById.get(Number(t.owner_id))?.username\n                return uname ? [uname] : []\n              })(),\n              is_active: t.is_active,\n              due_date: t.date_due || null,\n              time_estimated: t.time_estimated ?? null,\n              time_spent: t.time_spent ?? null,\n              nb_comments: t.nb_comments ?? undefined,\n              tags: Array.isArray((t as any).tags) ? (t as any).tags : (t.category ? [t.category] : [])\n            }))\n        }))\n    }\n  }\n}",
+      "tokens": 0,
+      "firstFile": {
+        "name": "lib/TaskCafe-client.ts",
+        "start": 28,
+        "end": 365,
+        "startLoc": {
+          "line": 28,
+          "column": 1,
+          "position": 159
+        },
+        "endLoc": {
+          "line": 365,
+          "column": 2,
+          "position": 3823
+        }
+      },
+      "secondFile": {
+        "name": "lib/TaskCafe-client/real.ts",
+        "start": 28,
+        "end": 365,
+        "startLoc": {
+          "line": 28,
+          "column": 2,
+          "position": 163
+        },
+        "endLoc": {
+          "line": 365,
+          "column": 2,
+          "position": 3827
+        }
+      }
+    },
+    {
+      "format": "typescript",
+      "lines": 9,
+      "fragment": ": col.title,\n              position: col.position,\n              tasks: tasks\n                .filter((t: any) => t.column_id === col.id)\n                .sort((a: any, b: any) => a.position - b.position)\n                .map((t: any) => ({\n                  id: t.id,\n                  title: t.title,\n                  description: t.description ||",
+      "tokens": 0,
+      "firstFile": {
+        "name": "lib/board-state-manager.ts",
+        "start": 111,
+        "end": 119,
+        "startLoc": {
+          "line": 111,
+          "column": 6,
+          "position": 1153
+        },
+        "endLoc": {
+          "line": 119,
+          "column": 3,
+          "position": 1271
+        }
+      },
+      "secondFile": {
+        "name": "lib/board-state.ts",
+        "start": 151,
+        "end": 159,
+        "startLoc": {
+          "line": 151,
+          "column": 5,
+          "position": 1151
+        },
+        "endLoc": {
+          "line": 159,
+          "column": 2,
+          "position": 1268
+        }
+      }
+    },
+    {
+      "format": "typescript",
+      "lines": 10,
+      "fragment": "}))\n            })),\n          lastSync: new Date(),\n          syncCount: ++this.syncCount\n        }\n        const changed = this.detectChanges(this.state, newState)\n        if (changed) this.emit('change', { old: this.state, new: newState })\n        this.state = newState\n        return newState\n      } catch (err2",
+      "tokens": 0,
+      "firstFile": {
+        "name": "lib/board-state-manager.ts",
+        "start": 124,
+        "end": 133,
+        "startLoc": {
+          "line": 124,
+          "column": 17,
+          "position": 1356
+        },
+        "endLoc": {
+          "line": 133,
+          "column": 5,
+          "position": 1460
+        }
+      },
+      "secondFile": {
+        "name": "lib/board-state-manager.ts",
+        "start": 91,
+        "end": 101,
+        "startLoc": {
+          "line": 91,
+          "column": 11,
+          "position": 924
+        },
+        "endLoc": {
+          "line": 101,
+          "column": 4,
+          "position": 1029
+        }
+      }
+    }
+  ]
+}

@@ -35,9 +35,14 @@ function resolveBaseUrl() {
 
 export async function callMcp<T = any>(method: McpMethod, params?: Record<string, any>): Promise<T> {
   const base = resolveBaseUrl()
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+  const token = process.env.MCP_TOKEN?.trim()
+  if (token) {
+    headers['x-mcp-token'] = token
+  }
   const res = await fetch(`${base}/api/mcp`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     body: JSON.stringify({ method, params })
   })
   if (!res.ok) {

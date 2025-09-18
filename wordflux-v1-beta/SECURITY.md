@@ -22,7 +22,7 @@
 
 #### Resolution Applied:
 1. **Immediate Action**: Stopped and removed all exposed containers
-2. **Security Hardening**: Kept only essential Kanboard container on localhost
+2. **Security Hardening**: Kept only essential TaskCafe container on localhost
 3. **Verification**: Confirmed no public port exposures remain
 
 ### Current Security Configuration
@@ -30,12 +30,12 @@
 #### ✅ Secure Setup:
 ```bash
 # Current container configuration (SECURE)
-wordflux-kanboard: 127.0.0.1:8090 → 80/tcp
+wordflux-TaskCafe: 127.0.0.1:8090 → 80/tcp
 ```
 
 #### Network Architecture:
 ```
-Internet → Nginx (80) → PM2 (localhost:3000) → Kanboard (localhost:8090)
+Internet → Nginx (80) → PM2 (localhost:3000) → TaskCafe (localhost:8090)
 ```
 
 All services bound to localhost only, accessible via Nginx reverse proxy.
@@ -55,7 +55,7 @@ All services bound to localhost only, accessible via Nginx reverse proxy.
 ### 3. Application Security
 - ✅ Environment variables stored in .env.local (not in repository)
 - ✅ API keys and passwords secured
-- ✅ Kanboard API on localhost only
+- ✅ TaskCafe API on localhost only
 - ✅ JSON-RPC authentication required
 
 ### 4. Monitoring & Auditing
@@ -115,12 +115,12 @@ OPENAI_API_KEY="sk-actual-key" # Never do this
 ### For API Access:
 ```bash
 # ✅ SECURE - Localhost only with auth
-KANBOARD_URL=http://localhost:8090/jsonrpc.php
-KANBOARD_USERNAME=jsonrpc
-KANBOARD_PASSWORD=secure-token
+TaskCafe_URL=http://localhost:8090/jsonrpc.php
+TaskCafe_USERNAME=jsonrpc
+TaskCafe_PASSWORD=secure-token
 
 # ❌ INSECURE - Public exposure
-KANBOARD_URL=http://0.0.0.0:8090/jsonrpc.php
+TaskCafe_URL=http://0.0.0.0:8090/jsonrpc.php
 ```
 
 ## Incident Response
@@ -159,7 +159,7 @@ docker ps --format "table {{.Names}}\t{{.Ports}}"
 | Date | Action | Status |
 |------|--------|--------|
 | 2025-09-12 | Removed 9 exposed Docker containers | ✅ Complete |
-| 2025-09-12 | Secured Kanboard to localhost only | ✅ Complete |
+| 2025-09-12 | Secured TaskCafe to localhost only | ✅ Complete |
 | 2025-09-12 | Updated backup script for SQLite | ✅ Complete |
 | 2025-09-12 | Fixed board state polling errors | ✅ Complete |
 | 2025-09-12 | Configured health monitoring | ✅ Complete |

@@ -1,0 +1,20 @@
+[
+  {
+    "id": "c2f65499-3a88-4d66-ab2a-2caffd9da736",
+    "title": "Alpha – urgent open parts",
+    "priority": "urgent",
+    "points": 8,
+    "openParts": 2,
+    "slaOver": false,
+    "idleOver": false
+  },
+  {
+    "id": "f1255f50-098c-48cb-861a-193473ea1fdc",
+    "title": "Beta – high done parts",
+    "priority": "high",
+    "points": 5,
+    "openParts": 0,
+    "slaOver": false,
+    "idleOver": false
+  }
+]

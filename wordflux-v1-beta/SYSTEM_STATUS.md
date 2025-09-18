@@ -15,9 +15,9 @@
 |---------|--------|---------|
 | **Application** | ✅ Online | PM2 process wf-v1-beta running |
 | **Web Server** | ✅ Active | Nginx serving on port 80 |
-| **Kanboard API** | ✅ Connected | localhost:8090 responding |
+| **TaskCafe API** | ✅ Connected | localhost:8090 responding |
 | **OpenAI Integration** | ✅ Working | GPT-5-mini configured |
-| **Database** | ✅ Healthy | SQLite embedded in Kanboard |
+| **Database** | ✅ Healthy | SQLite embedded in TaskCafe |
 | **Backups** | ✅ Automated | Daily at 2 AM UTC |
 | **Monitoring** | ✅ Active | Health checks every 5 minutes |
 
@@ -59,7 +59,7 @@ Status: Running
 ### Docker Containers
 ```
 NAME                STATUS              PORTS
-wordflux-kanboard   Up 2 hours          127.0.0.1:8090->80/tcp
+wordflux-TaskCafe   Up 2 hours          127.0.0.1:8090->80/tcp
 ```
 
 ### PM2 Process Manager
@@ -107,7 +107,7 @@ wordflux-kanboard   Up 2 hours          127.0.0.1:8090->80/tcp
 
 ---
 
-## Kanboard Status
+## TaskCafe Status
 
 ### Project Configuration:
 - **Project ID**: 1
@@ -143,9 +143,9 @@ pm2 status
 curl -s http://localhost:3000/api/health
 ```
 
-### Check Kanboard:
+### Check TaskCafe:
 ```bash
-docker ps | grep kanboard
+docker ps | grep TaskCafe
 curl -s http://localhost:8090
 ```
 

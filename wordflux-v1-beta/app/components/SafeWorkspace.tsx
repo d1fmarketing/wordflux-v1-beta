@@ -13,7 +13,6 @@ import { AgentStrip } from './AgentStrip'
 import { TaskPanel } from './TaskPanel'
 import { AnalyzeDrawer, Suggestion } from './AnalyzeDrawer'
 import ChatMessage from './ChatMessage'
-import Tag from './Tag'
 import BoardColumn from './BoardColumn'
 import ThemeToggle from './ThemeToggle'
 import { i18n } from '../ui/i18n'
@@ -28,7 +27,6 @@ import {
   CHAT_MIN_PX, CHAT_PREFERRED_PX, CHAT_MAX_PX, POLL_FOREGROUND_MS, POLL_BACKGROUND_MS
 } from '../ui/tokens'
 import styles from './workspace.module.css'
-import TaskCard from './TaskCard'
 
 interface Message {
   id: string
@@ -656,12 +654,9 @@ export default function SafeWorkspace() {
                 tasks={col.tasks?.map(task => ({
                   id: task.id,
                   title: task.title,
+                  name: (task as any).name,
                   description: task.description,
-                  tags: task.tags,
-                  priority: task.priority,
-                  staleDays: (task as any).staleDays,
-                  due: (task as any).due,
-                  columnName: col.title
+                  dueDate: (task as any).dueDate ?? task.date_due ?? null,
                 })) || []}
                 onTaskClick={(task) => {
                   setSelectedTask({ ...task, column: col.title })

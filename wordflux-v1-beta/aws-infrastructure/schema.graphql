@@ -1,0 +1,50 @@
+type Card {
+  id: ID!
+  title: String!
+  description: String
+  columnId: ID!
+  boardId: ID!
+  priority: String
+  assigneeId: ID
+  createdAt: AWSDateTime!
+  updatedAt: AWSDateTime!
+}
+
+type Column {
+  id: ID!
+  name: String!
+  boardId: ID!
+  cards: [Card!]!
+  position: Int!
+}
+
+type BoardState {
+  id: ID!
+  columns: [Column!]!
+  updatedAt: AWSDateTime!
+}
+
+type Mutation {
+  moveCard(cardId: ID!, fromColumn: ID!, toColumn: ID!): Card
+  approveCard(cardId: ID!): Card
+  rejectCard(cardId: ID!, reason: String!): Card
+  createCard(title: String!, columnId: ID!): Card
+  updateCard(id: ID!, title: String, description: String): Card
+  deleteCard(id: ID!): Boolean
+}
+
+type Query {
+  getBoardState(boardId: ID!): BoardState
+  getCard(id: ID!): Card
+}
+
+type Subscription {
+  onCardMoved(boardId: ID!): Card
+    @aws_subscribe(mutations: ["moveCard"])
+  onCardApproved(boardId: ID!): Card
+    @aws_subscribe(mutations: ["approveCard"])
+  onCardRejected(boardId: ID!): Card
+    @aws_subscribe(mutations: ["rejectCard"])
+  onBoardStateChanged(boardId: ID!): BoardState
+    @aws_subscribe(mutations: ["moveCard", "approveCard", "rejectCard", "createCard", "deleteCard"])
+}

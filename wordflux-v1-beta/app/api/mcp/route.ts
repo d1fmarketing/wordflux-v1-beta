@@ -2,9 +2,14 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getBoardProvider } from '@/lib/providers'
 import { detectProvider } from '@/lib/board-provider'
 import { TaskCafeClient } from '@/lib/providers/taskcafe-client'
+import type { FilterSpec, Priority } from '@/lib/filter-spec'
+import { parseDerivedMetadata } from '@/lib/card-derivations'
+import { filterCardsFromState } from '@/lib/filter-evaluator'
+import { normalizeColumnName } from '@/lib/filter-utils'
 import fs from 'fs'
 import path from 'path'
 import { pushUndo, popUndo, UndoRecord } from '@/lib/mcp/undo-store'
+import { canonicalColumnTitle } from '@/lib/board-legacy'
 
 export const dynamic = 'force-dynamic'
 
@@ -55,13 +60,90 @@ async function findCardSnapshot(ctx: Context, taskId: string | number) {
           description: card.description,
           dueDate: card.due_date ?? card.dueDate ?? null,
           points: card.points ?? card.score ?? null,
-          labels: card.tags || card.labels || [],
+          priority: card.priority ?? null,
+          labels: card.labels || card.tags || [],
           assignees: card.assignees || []
         }
       }
     }
   }
   return null
+}
+
+const TOKEN_PATTERNS = {
+  points: /\[(\d+)\s*pts?\]/i,
+  sla: /\[sla:\s*(\d+)\s*h\]/i,
+  start: /\[start:\s*(\d{4}-\d{2}-\d{2})\]/i,
+};
+
+function stripTokenValue(input: string, pattern: RegExp) {
+  return input.replace(pattern, '').replace(/\s{2,}/g, ' ').trim();
+}
+
+function upsertToken(description: string, pattern: RegExp, tokenBody: string | null) {
+  const base = description ?? '';
+  const cleaned = stripTokenValue(base, pattern);
+  if (!tokenBody) {
+    return cleaned;
+  }
+  const token = tokenBody.startsWith('[') ? tokenBody : `[${tokenBody}]`;
+  return `${token} ${cleaned}`.trim();
+}
+
+function ensurePointsToken(description: string, points: number | null) {
+  return upsertToken(description, TOKEN_PATTERNS.points, points !== null ? `${points}pts` : null);
+}
+
+function ensureSlaToken(description: string, hours: number | null) {
+  return upsertToken(description, TOKEN_PATTERNS.sla, hours !== null ? `sla:${hours}h` : null);
+}
+
+function ensureStartToken(description: string, isoDate: string | null) {
+  return upsertToken(description, TOKEN_PATTERNS.start, isoDate ? `start:${isoDate}` : null);
+}
+
+async function resolveColumnId(ctx: Context, columnInput?: string | number | null) {
+  if (!columnInput) return null
+  const input = String(columnInput).trim()
+  if (!input) return null
+
+  const state = await ctx.provider.getBoardState(ctx.projectId)
+  const columns = Array.isArray(state?.columns)
+    ? state.columns.slice().sort((a: any, b: any) => (a.position ?? 0) - (b.position ?? 0))
+    : []
+
+  if (!columns.length) return null
+
+  if (/^-?\d+$/.test(input)) {
+    const numericIndex = Number.parseInt(input, 10) - 1
+    if (numericIndex >= 0 && numericIndex < columns.length) {
+      return columns[numericIndex].id
+    }
+  }
+
+  const normalizedInput = normalizeColumnName(input)
+
+  for (const column of columns) {
+    if (normalizeColumnName(String(column.id)) === normalizedInput) {
+      return column.id
+    }
+  }
+
+  for (const column of columns) {
+    const name = normalizeColumnName(String(column.name ?? column.title ?? ''))
+    if (name && name === normalizedInput) {
+      return column.id
+    }
+  }
+
+  for (let index = 0; index < columns.length; index += 1) {
+    const canonical = normalizeColumnName(canonicalColumnTitle(index, columns[index]?.name ?? columns[index]?.title ?? ''))
+    if (canonical === normalizedInput) {
+      return columns[index].id
+    }
+  }
+
+  return columns[0]?.id ?? null
 }
 
 type InvokeOptions = { skipUndo?: boolean }
@@ -73,10 +155,26 @@ async function invoke(method: string, params: any, ctx: Context, opts: InvokeOpt
       const state = await provider.getBoardState(projectId)
       return { ok: true, result: state }
     }
+    case 'filter_cards': {
+      const where: FilterSpec = params?.where || {}
+      const state = await provider.getBoardState(projectId)
+      const { columns, matches } = filterCardsFromState(state, where)
+      return { ok: true, result: { columns, matches, filter: where } }
+    }
     case 'create_card': {
-      const { title, columnId, description } = params || {}
+      const { title, columnId, column, description } = params || {}
       if (!title) throw new Error('title required')
-      const taskId = await provider.createTask(projectId, title, columnId, description)
+
+      let targetColumnId: string | number | null | undefined = columnId
+      if (!targetColumnId) {
+        targetColumnId = await resolveColumnId(ctx, column || 'Backlog')
+      }
+
+      if (!targetColumnId) {
+        throw new Error(`Column not found: ${column || columnId}`)
+      }
+
+      const taskId = await provider.createTask(projectId, title, targetColumnId, description)
       const undo: UndoRecord = { method: 'remove_card', params: { taskId }, label: `Create ${title}` }
       if (!opts.skipUndo) await pushUndo(undo)
       return { ok: true, result: { taskId }, undo }
@@ -139,6 +237,45 @@ async function invoke(method: string, params: any, ctx: Context, opts: InvokeOpt
       }
       return { ok: true, result: { due } }
     }
+    case 'set_points': {
+      const { taskId, points } = params || {}
+      if (!taskId) throw new Error('taskId required')
+      const numeric = points === null || points === undefined ? null : Number(points)
+      if (numeric !== null && Number.isNaN(numeric)) {
+        throw new Error('points must be numeric')
+      }
+      const snapshot = await findCardSnapshot(ctx, taskId)
+      const currentDescription = snapshot?.description ?? ''
+      const nextDescription = ensurePointsToken(currentDescription, numeric)
+      await provider.updateTask(projectId, taskId, { description: nextDescription })
+      return { ok: true }
+    }
+    case 'set_sla': {
+      const { taskId, hours } = params || {}
+      if (!taskId) throw new Error('taskId required')
+      const numeric = hours === null || hours === undefined ? null : Number(hours)
+      if (numeric !== null && Number.isNaN(numeric)) {
+        throw new Error('hours must be numeric')
+      }
+      const snapshot = await findCardSnapshot(ctx, taskId)
+      const currentDescription = snapshot?.description ?? ''
+      const nextDescription = ensureSlaToken(currentDescription, numeric)
+      await provider.updateTask(projectId, taskId, { description: nextDescription })
+      return { ok: true }
+    }
+    case 'set_start': {
+      const { taskId, date } = params || {}
+      if (!taskId) throw new Error('taskId required')
+      const iso = date ? String(date) : null
+      if (iso && !/^\d{4}-\d{2}-\d{2}$/.test(iso)) {
+        throw new Error('date must be YYYY-MM-DD')
+      }
+      const snapshot = await findCardSnapshot(ctx, taskId)
+      const currentDescription = snapshot?.description ?? ''
+      const nextDescription = ensureStartToken(currentDescription, iso)
+      await provider.updateTask(projectId, taskId, { description: nextDescription })
+      return { ok: true }
+    }
     case 'assign_card': {
       const { taskId, assignee } = params || {}
       if (!taskId || !assignee) throw new Error('taskId/assignee required')
@@ -195,6 +332,29 @@ async function invoke(method: string, params: any, ctx: Context, opts: InvokeOpt
       })
       const commentId = await kb.addComment(Number(taskId), content)
       return { ok: true, result: { commentId } }
+    }
+    case 'set_priority': {
+      const { taskId, priority } = params || {}
+      if (!taskId || priority === undefined) throw new Error('taskId/priority required')
+      if (kind !== 'taskcafe') throw new Error('priority not supported')
+      const kb = typeof (provider as any).updateTaskPriority === 'function'
+        ? provider
+        : new TaskCafeClient({
+            url: process.env.TASKCAFE_URL!,
+            username: process.env.TASKCAFE_USERNAME!,
+            password: process.env.TASKCAFE_PASSWORD!,
+            projectId: process.env.TASKCAFE_PROJECT_ID
+          })
+      const snapshot = await findCardSnapshot(ctx, taskId)
+      if (typeof (kb as any).updateTaskPriority !== 'function') {
+        throw new Error('updateTaskPriority not supported')
+      }
+      await (kb as any).updateTaskPriority(taskId, priority)
+      if (snapshot && !opts.skipUndo) {
+        const prev = snapshot.priority ?? 'none'
+        await pushUndo({ method: 'set_priority', params: { taskId, priority: prev }, label: `Priority ${snapshot.title}` })
+      }
+      return { ok: true }
     }
     case 'bulk_move': {
       const { tasks = [], toColumnId } = params || {}
@@ -291,11 +451,10 @@ const globalRate = (globalThis as any).__MCP_RATE__ || ((globalThis as any).__MC
 const RATE_WINDOW_MS = 60_000
 const RATE_LIMIT = Number(process.env.MCP_RATE_LIMIT || '60')
 
-const backlogRegex = /(backlog|todo|to-do|to do|inbox|ideas|analysis|planning|intake|icebox)/i
-const readyRegex = /(ready|up next|queued|planned)/i
-const progressRegex = /(in progress|work in progress|wip|doing|active|current|dev|coding|building|implementing)/i
-const reviewRegex = /(review|qa|qc|verify|verification|testing|validation|check|staging|uat)/i
-const doneRegex = /(done|complete|completed|finished|closed|shipped|deployed|live|released|published|archived)/i
+const backlogRegex = /(backlog)/i
+const progressRegex = /(in progress|work in progress|wip)/i
+const reviewRegex = /(review)/i
+const doneRegex = /(done|complete|completed|finished)/i
 
 function canonicalColumn(name: string, hasBacklog: boolean) {
   const lower = (name || '').toLowerCase()
@@ -303,8 +462,6 @@ function canonicalColumn(name: string, hasBacklog: boolean) {
   if (reviewRegex.test(lower)) return 'Review'
   if (doneRegex.test(lower)) return 'Done'
   if (progressRegex.test(lower)) return 'In Progress'
-  if (!hasBacklog && readyRegex.test(lower)) return 'Backlog'
-  if (readyRegex.test(lower)) return 'Ready'
   return name
 }
 
@@ -388,8 +545,10 @@ export async function POST(req: NextRequest) {
   try {
     const requiredToken = process.env.MCP_TOKEN
     if (requiredToken) {
-      const header = (req.headers.get('x-mcp-token') || req.headers.get('authorization') || '').trim()
-      if (header !== requiredToken) {
+      const rawHeader = (req.headers.get('x-mcp-token') || req.headers.get('authorization') || '').trim()
+      const normalizedHeader = rawHeader.replace(/^Bearer\s+/i, '').replace(/^Token\s+/i, '').trim()
+      const expected = requiredToken.trim()
+      if (!normalizedHeader || normalizedHeader !== expected) {
         return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 })
       }
     }

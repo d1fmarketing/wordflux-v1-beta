@@ -19,7 +19,7 @@ const ToastHost = dynamicLoad(() => import('../components/ToastHost'), {
 export default function WorkspacePage() {
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--surface)' }}>
-      <div style={{ flex: '0 0 360px', borderRight: '1px solid var(--line)', minWidth: 0 }}>
+      <div style={{ flex: '0 0 280px', borderRight: '1px solid var(--line)', minWidth: 0 }}>
         <Chat />
       </div>
       <div style={{ flex: '1 1 auto', minWidth: 0, position: 'relative' }}>

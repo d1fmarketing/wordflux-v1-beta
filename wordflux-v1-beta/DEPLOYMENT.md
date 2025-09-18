@@ -27,10 +27,10 @@ npm install
 cp .env.example .env.local
 # Edit .env.local with your API keys
 
-# Start Kanboard
-docker run -d --name kanboard \
+# Start TaskCafe
+docker run -d --name TaskCafe \
   -p 127.0.0.1:8090:80 \
-  kanboard/kanboard:latest
+  TaskCafe/TaskCafe:latest
 
 # Run development server
 npm run dev
@@ -66,11 +66,11 @@ netlify deploy --prod
 OPENAI_API_KEY=sk-...
 OPENAI_MODEL=gpt-5-mini
 
-# Kanboard Configuration
-KANBOARD_URL=http://localhost:8090/jsonrpc.php
-KANBOARD_USERNAME=jsonrpc
-KANBOARD_PASSWORD=your-token
-KANBOARD_PROJECT_ID=1
+# TaskCafe Configuration
+TaskCafe_URL=http://localhost:8090/jsonrpc.php
+TaskCafe_USERNAME=jsonrpc
+TaskCafe_PASSWORD=your-token
+TaskCafe_PROJECT_ID=1
 ```
 
 ### Optional Variables
@@ -105,7 +105,7 @@ HEALTH_WEBHOOK_URL=https://your-webhook.com
                            ┌───────────────────┴───────────────────┐
                            ▼                                       ▼
                     ┌─────────────┐                        ┌─────────────┐
-                    │  Kanboard   │                        │   OpenAI    │
+                    │  TaskCafe   │                        │   OpenAI    │
                     │ localhost:  │                        │   GPT-5     │
                     │    8090     │                        │    API      │
                     └─────────────┘                        └─────────────┘
@@ -119,7 +119,7 @@ HEALTH_WEBHOOK_URL=https://your-webhook.com
 - Intelligent task understanding and execution
 
 ### Kanban Board
-- Real-time synchronization with Kanboard
+- Real-time synchronization with TaskCafe
 - Drag-and-drop task management
 - 4 columns: Backlog, Ready, Work in progress, Done
 - Auto-sync every 3 seconds
@@ -137,8 +137,8 @@ HEALTH_WEBHOOK_URL=https://your-webhook.com
 # Start application
 pm2 start npm --name wf-v1-beta -- start
 
-# Start Kanboard
-docker start wordflux-kanboard
+# Start TaskCafe
+docker start wordflux-TaskCafe
 
 # Start Nginx
 sudo systemctl start nginx
@@ -149,8 +149,8 @@ sudo systemctl start nginx
 # Stop application
 pm2 stop wf-v1-beta
 
-# Stop Kanboard
-docker stop wordflux-kanboard
+# Stop TaskCafe
+docker stop wordflux-TaskCafe
 
 # Stop Nginx
 sudo systemctl stop nginx
@@ -165,7 +165,7 @@ sudo systemctl status nginx
 
 # View logs
 pm2 logs wf-v1-beta
-docker logs wordflux-kanboard
+docker logs wordflux-TaskCafe
 sudo tail -f /var/log/nginx/error.log
 
 # Health check
@@ -201,11 +201,11 @@ npm run build
 pm2 restart wf-v1-beta
 ```
 
-#### Kanboard Connection Failed
+#### TaskCafe Connection Failed
 ```bash
 # Check container
-docker ps | grep kanboard
-docker logs wordflux-kanboard
+docker ps | grep TaskCafe
+docker logs wordflux-TaskCafe
 
 # Test connection
 curl -X POST http://localhost:8090/jsonrpc.php \
@@ -219,7 +219,7 @@ curl http://localhost:3000/api/board/state
 
 # Restart services
 pm2 restart wf-v1-beta
-docker restart wordflux-kanboard
+docker restart wordflux-TaskCafe
 ```
 
 ## Performance Optimization

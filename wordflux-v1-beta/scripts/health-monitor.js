@@ -2,6 +2,7 @@
 // Health Monitor - runs once; schedule via cron every 5 minutes
 
 const fs = require('fs')
+const net = require('net')
 
 const HEALTH_LOG = '/home/ubuntu/logs/health.log'
 const BASE = process.env.PUBLIC_BASE || 'http://localhost:3000'
@@ -10,6 +11,7 @@ const WEBHOOK = process.env.HEALTH_WEBHOOK_URL || ''
 const ENDPOINTS = [
   { name: 'App Health', url: `${BASE}/api/health` },
   { name: 'Board State', url: `${BASE}/api/board/state` },
+  { name: 'Board Diagnostics', url: `${BASE}/api/board/diagnostics` },
   { name: 'Nginx', url: `${NGINX_BASE}/nginx-health` }
 ]
 
@@ -42,6 +44,28 @@ async function checkHealth() {
       console.error(`❌ ${ep.name}: ${String(err.message || err)}`)
     }
   }
+
+  await new Promise(resolve => {
+    const start = Date.now()
+    const socket = net.createConnection({ host: '127.0.0.1', port: 5432 }, () => {
+      const duration = Date.now() - start
+      results.push({ endpoint: 'TaskCafe Postgres', status: 'UP', duration: `${duration}ms`, timestamp })
+      socket.end()
+      resolve()
+    })
+
+    socket.setTimeout(5000)
+    socket.on('timeout', () => {
+      results.push({ endpoint: 'TaskCafe Postgres', status: 'ERROR', error: 'Connection timeout', timestamp })
+      socket.destroy()
+      resolve()
+    })
+
+    socket.on('error', (err) => {
+      results.push({ endpoint: 'TaskCafe Postgres', status: 'ERROR', error: String(err.message || err), timestamp })
+      resolve()
+    })
+  })
 
   try {
     fs.mkdirSync('/home/ubuntu/logs', { recursive: true })

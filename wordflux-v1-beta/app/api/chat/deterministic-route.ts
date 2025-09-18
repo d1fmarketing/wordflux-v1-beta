@@ -19,6 +19,18 @@ const TIDY_PREVIEW_TTL_MS = parseInt(process.env.TIDY_PREVIEW_TTL_MS || '1800000
 const TIDY_COOLDOWN_MS = parseInt(process.env.TIDY_COOLDOWN_MS || '3600000', 10)
 let LAST_UNDO_TOKEN: string | null = null
 
+function normalizeColumnName(input?: string | null) {
+  if (!input) return ''
+  return input
+    .toLowerCase()
+    .replace(/[^a-z0-9\s#-]/g, '')
+    .replace(/\b(move|put|send|drop|shift)\s+(the\s+)?/g, '')
+    .replace(/\b(in|into|to)\s+(the\s+)?/g, '')
+    .replace(/\b(the|a|an)\s+/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
 function requesterKey(req?: Request) {
   try {
     const headers: any = (req as any)?.headers
@@ -111,28 +123,58 @@ async function withRetry<T>(
   return withRetryJitter(fn, tries, baseMs);
 }
 
-async function getColumnsMap(): Promise<Record<string, { id: number; title: string }>> {
-  const columns = await kb.getColumns(PROJECT_ID);
-  const map: Record<string, { id: number; title: string }> = {};
+async function getColumnsMap(): Promise<Record<string, { id: number; title: string; tasks: any[] }>> {
+  const state = await kb.getBoardState(PROJECT_ID);
+  const columns = Array.isArray(state?.columns) ? state.columns : [];
+  const map: Record<string, { id: number; title: string; tasks: any[] }> = {};
   
   for (const col of columns) {
-    const key = col.title.toLowerCase();
-    map[key] = { id: col.id, title: col.title };
-    
+    const label = String(col.title ?? col.name ?? '').trim();
+    const entry = {
+      id: col.id,
+      title: label || String(col.name ?? col.title ?? ''),
+      tasks: Array.isArray((col as any).cards)
+        ? (col as any).cards
+        : Array.isArray((col as any).tasks)
+          ? (col as any).tasks
+          : []
+    };
+
+    if (label) {
+      const key = label.toLowerCase();
+      map[key] = entry;
+
+      const normalized = normalizeColumnName(label);
+      if (normalized && !map[normalized]) {
+        map[normalized] = entry;
+      }
+    }
+
     // Also map common variations
-    if (key.includes('backlog')) {
-      map['backlog'] = { id: col.id, title: col.title };
+    const normalizedKey = label.toLowerCase();
+    if (normalizedKey.includes('backlog')) {
+      map['backlog'] = entry;
+      map['the backlog'] = entry;
     }
-    if (key.includes('ready')) {
-      map['ready'] = { id: col.id, title: col.title };
+    if (normalizedKey.includes('ready')) {
+      map['ready'] = entry;
+      map['the ready'] = entry;
     }
-    if (key.includes('progress')) {
-      map['in progress'] = { id: col.id, title: col.title };
-      map['wip'] = { id: col.id, title: col.title };
+    if (normalizedKey.includes('progress')) {
+      map['in progress'] = entry;
+      map['wip'] = entry;
+      map['the work in progress'] = entry;
     }
-    if (key.includes('done')) {
-      map['done'] = { id: col.id, title: col.title };
-      map['complete'] = { id: col.id, title: col.title };
+    if (normalizedKey.includes('done')) {
+      map['done'] = entry;
+      map['complete'] = entry;
+    }
+    // Index by raw column id for direct lookups
+    if (col.id !== undefined && col.id !== null) {
+      const idKey = String(col.id).toLowerCase();
+      if (!map[idKey]) {
+        map[idKey] = entry;
+      }
     }
   }
   
@@ -144,14 +186,80 @@ async function resolveTask(ref: number | string): Promise<any> {
     return await kb.getTask(ref);
   }
   
+  const raw = String(ref).trim();
+  if (!(globalThis as any).__WF_DEBUG_RESOLVE_TASK__) {
+    (globalThis as any).__WF_DEBUG_RESOLVE_TASK__ = true
+    console.debug('[deterministic] resolveTask raw', raw)
+  }
+  const cleaned = raw
+    .replace(/^task\s+/i, '')
+    .replace(/^card\s+/i, '')
+    .replace(/^["'#]+|["'#]+$/g, '')
+    .trim();
+  if (!(globalThis as any).__WF_DEBUG_RESOLVE_TASK_CLEANED__) {
+    (globalThis as any).__WF_DEBUG_RESOLVE_TASK_CLEANED__ = true
+    console.debug('[deterministic] resolveTask cleaned', cleaned)
+  }
+  
+  if (/^#?\d+$/.test(cleaned)) {
+    const numericId = cleaned.replace(/^#/, '');
+    const direct = await kb.getTask(numericId);
+    if (direct) return direct;
+  }
+
   // Search by title
-  const tasks = await kb.searchTasks(PROJECT_ID, String(ref));
+  const tasks = await kb.searchTasks(PROJECT_ID, cleaned || raw);
   if (!tasks || tasks.length === 0) {
+    const columnsByName = await getColumnsMap();
+    for (const entry of Object.values(columnsByName)) {
+      const tasksInColumn = entry?.tasks || [];
+      for (const task of tasksInColumn) {
+        const title = String(task?.title || '').toLowerCase();
+        if (title === cleaned.toLowerCase() || title.includes(cleaned.toLowerCase())) {
+          return {
+            id: task.id,
+            title: task.title,
+            description: task.description,
+            column_id: entry.id
+          };
+        }
+      }
+    }
+    try {
+      const snapshot = await callMcp('list_cards', {} as any);
+      const columns = Array.isArray(snapshot?.columns) ? snapshot.columns : [];
+      for (const column of columns) {
+        for (const card of column.cards || []) {
+          if (!card) continue;
+          const title = String(card.title || '').trim().toLowerCase();
+          if (title === cleaned.toLowerCase() || title.includes(cleaned.toLowerCase())) {
+            return {
+              id: card.id,
+              title: card.title,
+              description: card.description,
+              column_id: column.id
+            };
+          }
+        }
+      }
+    } catch (fallbackError) {
+      console.warn('[deterministic] board snapshot fallback failed', fallbackError);
+    }
     throw new Error(`Task not found: "${ref}"`);
   }
   
   // Handle ambiguity
   if (tasks.length > 1) {
+    const normalizedTitle = cleaned.toLowerCase()
+    const exactMatches = tasks.filter(t => String(t.title || '').toLowerCase() === normalizedTitle)
+    if (exactMatches.length === 1) {
+      return exactMatches[0]
+    }
+
+    if (tasks.every(t => String(t.title || '').toLowerCase() === String(tasks[0].title || '').toLowerCase())) {
+      return tasks[0]
+    }
+
     const suggestions = tasks.slice(0, 5).map(t => ({
       id: t.id,
       title: t.title,
@@ -200,45 +308,45 @@ async function executeAction(
         ? `${formatTagsForDisplay(autoTags)} ${action.title}`
         : action.title;
         
+      // Determine target column (explicit or remembered default)
+      let columnName = action.column;
+
+      if (!columnName && request) {
+        const defaultCol = userContextManager.getDefaultColumn(request);
+        if (defaultCol) columnName = defaultCol;
+      }
+
+      if (!columnName) columnName = 'Backlog';
+
+      if (columnName && /(ready|up next|queued|planned)/i.test(String(columnName))) {
+        columnName = 'Backlog';
+      }
+
+      if (!(globalThis as any).__WF_DEBUG_CREATE__) {
+        (globalThis as any).__WF_DEBUG_CREATE__ = true
+        console.debug('[deterministic] executing create_task', { columnName, action })
+      }
+
+      const columnLookupKey = String(columnName).toLowerCase();
+      const normalizedKey = normalizeColumnName(columnName) || columnLookupKey;
+      const col = columnsByName[normalizedKey] || columnsByName[columnLookupKey];
+      if (!col) {
+        throw new Error(`Column not found: ${columnName}`);
+      }
+
       const taskId = await withRetry(() =>
         kb.createTask(
           PROJECT_ID,
           titleWithEmojis,
-          undefined, // column_id will be set via move
+          col.id,
           action.description
         )
       ) as number;
-      
-      // Determine target column (explicit or remembered default)
-      let col = undefined;
-      let columnName = action.column;
-      
-      if (!columnName && request) {
-        // Try to use remembered default column
-        const defaultCol = userContextManager.getDefaultColumn(request);
-        if (defaultCol) {
-          columnName = defaultCol;
-        }
+
+      if (request && columnName) {
+        userContextManager.setLastUsedColumn(request, col.title);
       }
-      
-      // Default to Backlog if no column specified
-      if (!columnName) {
-        columnName = 'Backlog';
-      }
-      
-      // Remap Ready -> Backlog for create
-      if (columnName && /(ready|up next|queued|planned)/i.test(String(columnName))) { columnName = 'Backlog' }
-      // Move to the target column
-      col = columnsByName[columnName.toLowerCase()];
-      if (col) {
-        await kb.moveTaskPosition(PROJECT_ID, taskId, col.id, 1, SWIMLANE_ID);
-        
-        // Remember this column for next time
-        if (request && action.column) {
-          userContextManager.setLastUsedColumn(request, col.title);
-        }
-      }
-      
+
       // Track task creation
       if (request) {
         userContextManager.incrementTaskCount(request);
@@ -268,7 +376,7 @@ async function executeAction(
       return { 
         taskId, 
         title: action.title,
-        column: col?.title || action.column || 'Backlog'  // Return canonical name
+        column: col.title
       };
     }
 
@@ -277,7 +385,7 @@ async function executeAction(
       if (!task) throw new Error(`Task not found: ${action.task}`);
       
       const targetName = /(ready|up next|queued|planned)/i.test(String(action.column)) ? 'Review' : action.column;
-      const toColumn = columnsByName[targetName.toLowerCase()];
+      const toColumn = columnsByName[normalizeColumnName(targetName) || targetName.toLowerCase()];
       if (!toColumn) throw new Error(`Column not found: ${action.column}`);
       
       const fromColumnId = task.column_id;
@@ -408,7 +516,7 @@ async function executeAction(
       const tasks = await kb.listProjectTasks(PROJECT_ID);
       let filtered = tasks;
       if (action.column) {
-        const col = columnsByName[action.column.toLowerCase()];
+        const col = columnsByName[normalizeColumnName(action.column) || action.column.toLowerCase()];
         if (col) filtered = filtered.filter((t: any) => t.column_id === col.id);
       }
       if ((action as any).filter) {
@@ -540,7 +648,7 @@ async function executeAction(
           updated.push(tid)
         }
       } else if ((action as any).first && (action as any).column) {
-        const col = columnsByName[(action as any).column.toLowerCase()]
+        const col = columnsByName[normalizeColumnName((action as any).column) || (action as any).column.toLowerCase()]
         if (col) {
           const tasks = await kb.listProjectTasks(PROJECT_ID)
           const list = tasks.filter((t: any) => t.column_id === col.id).sort((a:any,b:any)=> (a.position||0) - (b.position||0)).slice(0, (action as any).first)
