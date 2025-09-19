@@ -1,28 +1,25 @@
-"use client"
+'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import styles from './Board2.module.css'
+import { cn } from '@/lib/utils'
+import type { BoardCard } from './Board2'
 
 type Priority = string | number | null | undefined
 
-interface CardProps {
-  id?: string | number
-  title: string
-  description?: string |
-    null
-  due_date?: string | null
-  due?: string | null
-  tags?: Array<string | { name?: string | null } | null>
-  assignees?: Array<string | { name?: string | null } | null>
-  priority?: Priority
-  points?: number | string | null
-  created_at?: string | null
+type CardProps = BoardCard & {
+  expanded?: boolean
+  onToggleExpand?: () => void
+  onMove?: () => void
+  onAgent?: () => void
   memberDirectory?: Map<string, { initials?: string | null; color?: string | null; username?: string | null }>
 }
 
-function normalizePriority(priority: Priority): string | null {
+function normalizePriority(priority: Priority, derived?: string | null): string | null {
+  if (derived) return derived
   if (priority === null || priority === undefined) return null
   if (typeof priority === 'number') {
+    if (priority >= 4) return 'urgent'
     if (priority >= 3) return 'high'
     if (priority === 2) return 'medium'
     if (priority === 1) return 'low'
@@ -30,19 +27,20 @@ function normalizePriority(priority: Priority): string | null {
   }
   const normalized = priority.trim().toLowerCase()
   if (!normalized) return null
-  if (['p0', 'critical', 'alta', 'high', 'urgent'].includes(normalized)) return 'high'
-  if (['p1', 'medium', 'medium-high', 'media'].includes(normalized)) return 'medium'
-  if (['p2', 'low', 'baixa'].includes(normalized)) return 'low'
+  if (['urgent', 'critical', 'p0', '🔥'].includes(normalized)) return 'urgent'
+  if (['high', 'alta', 'p1'].includes(normalized)) return 'high'
+  if (['medium', 'media', 'p2'].includes(normalized)) return 'medium'
+  if (['low', 'baixa', 'p3', 'p4'].includes(normalized)) return 'low'
   return normalized
 }
 
-function getPriorityLabel(priority: Priority): string | null {
-  const normalized = normalizePriority(priority)
-  if (!normalized) return null
-  if (normalized === 'high') return 'High'
-  if (normalized === 'medium') return 'Medium'
-  if (normalized === 'low') return 'Low'
-  return normalized.replace(/\b\w/g, (ch) => ch.toUpperCase())
+function getPriorityLabel(priority: string | null): string | null {
+  if (!priority) return null
+  if (priority === 'urgent') return 'Urgent'
+  if (priority === 'high') return 'High'
+  if (priority === 'medium') return 'Medium'
+  if (priority === 'low') return 'Low'
+  return priority.replace(/\b\w/g, ch => ch.toUpperCase())
 }
 
 function formatDate(input?: string | null): string | null {
@@ -55,47 +53,12 @@ function formatDate(input?: string | null): string | null {
   }).format(date)
 }
 
-function formatDateTime(input?: string | null): string | null {
-  if (!input) return null
-  const date = new Date(input)
-  if (Number.isNaN(date.getTime())) return null
-  return new Intl.DateTimeFormat(undefined, {
-    month: 'short',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit'
-  }).format(date)
-}
-
-function stringHash(value: string): number {
-  let hash = 0
-  for (let i = 0; i < value.length; i += 1) {
-    hash = (hash << 5) - hash + value.charCodeAt(i)
-    hash |= 0
-  }
-  return Math.abs(hash)
-}
-
-function getTagStyles(tag: string): { backgroundColor: string; color: string } {
-  const palette = [
-    { bg: 'rgba(76, 126, 255, 0.16)', fg: 'var(--ink-900)' },
-    { bg: 'rgba(16, 185, 129, 0.18)', fg: 'var(--ink-900)' },
-    { bg: 'rgba(245, 158, 11, 0.22)', fg: 'var(--ink-900)' },
-    { bg: 'rgba(244, 114, 182, 0.22)', fg: 'var(--ink-900)' },
-    { bg: 'rgba(59, 130, 246, 0.20)', fg: 'var(--ink-50, #fff)' },
-    { bg: 'rgba(99, 102, 241, 0.20)', fg: 'var(--ink-50, #fff)' }
-  ] as const
-  const idx = tag ? stringHash(tag.toLowerCase()) % palette.length : 0
-  return { backgroundColor: palette[idx].bg, color: palette[idx].fg }
-}
-
 function normalizeTags(tags?: CardProps['tags']): string[] {
   if (!tags) return []
   return tags
     .map((tag) => {
       if (!tag) return null
       if (typeof tag === 'string') return tag
-      if (typeof tag === 'object') return tag.name ?? null
       return null
     })
     .filter((tag): tag is string => Boolean(tag))
@@ -107,7 +70,6 @@ function normalizeAssignees(assignees?: CardProps['assignees']): string[] {
     .map((person) => {
       if (!person) return null
       if (typeof person === 'string') return person
-      if (typeof person === 'object') return person.name ?? null
       return null
     })
     .filter((name): name is string => Boolean(name))
@@ -138,6 +100,7 @@ function formatDuration(ms: number): string {
 
 export function Card(props: CardProps) {
   const {
+    id,
     title,
     description,
     due,
@@ -147,17 +110,21 @@ export function Card(props: CardProps) {
     priority,
     points,
     created_at,
-    memberDirectory
+    derived,
+    memberDirectory,
+    expanded,
+    onToggleExpand,
+    onMove,
+    onAgent
   } = props
 
   const normalizedTags = normalizeTags(tags)
   const normalizedAssignees = normalizeAssignees(assignees)
-  const normalizedPriority = normalizePriority(priority)
-  const priorityLabel = getPriorityLabel(priority)
-  const numericPoints = typeof points === 'number' ? points : points ? Number(points) : null
+  const normalizedPriority = normalizePriority(priority, derived?.priority ?? null)
+  const priorityLabel = getPriorityLabel(normalizedPriority)
+  const numericPoints = typeof points === 'number' ? points : points ? Number(points) : derived?.points ?? null
 
   const [tick, setTick] = useState(0)
-  const [descriptionExpanded, setDescriptionExpanded] = useState(false)
 
   useEffect(() => {
     const interval = window.setInterval(() => setTick((value) => value + 1), 60000)
@@ -172,37 +139,19 @@ export function Card(props: CardProps) {
     const now = Date.now()
     const diff = dueMs - now
     const status = diff < 0 ? 'overdue' : diff <= 1000 * 60 * 60 * 48 ? 'soon' : 'ok'
-    const label = diff < 0 ? `Overdue by ${formatDuration(diff)}` : `Due in ${formatDuration(diff)}`
-    const dueShort = formatDateTime(rawDue)
-
-    let progress: number | null = null
-    if (created_at) {
-      const start = Date.parse(created_at)
-      if (!Number.isNaN(start) && dueMs > start) {
-        const ratio = (now - start) / (dueMs - start)
-        progress = Math.min(100, Math.max(0, ratio * 100))
-      }
-    }
-
-    const statusLabel = status === 'overdue' ? 'Overdue' : status === 'soon' ? 'Due soon' : 'On track'
+    const label = diff < 0 ? `Due ${formatDuration(diff)} ago` : `Due in ${formatDuration(diff)}`
+    const dueShort = formatDate(rawDue)
 
     return {
       label,
       dueShort,
-      status,
-      progress,
-      statusLabel
+      status
     } as const
-  }, [due, due_date, created_at, tick])
+  }, [due, due_date, tick])
 
   const createdLabel = useMemo(() => formatDate(created_at), [created_at])
-  const dueDateLabel = useMemo(() => formatDate(due ?? due_date ?? null), [due, due_date])
-  const isLongDescription = description != null && description.length > 220
-  const displayDescription = useMemo(() => {
-    if (!description) return null
-    if (descriptionExpanded || description.length <= 220) return description
-    return `${description.slice(0, 220)}…`
-  }, [description, descriptionExpanded])
+  const hasChecklist = derived?.totalParts && derived.totalParts > 0
+  const completedParts = hasChecklist ? (derived?.totalParts ?? 0) - (derived?.openParts ?? 0) : 0
 
   const resolveMember = useCallback((name: string) => {
     if (!memberDirectory || !name) return null
@@ -212,96 +161,174 @@ export function Card(props: CardProps) {
       || null
   }, [memberDirectory])
 
+  const handleClick = useCallback(() => {
+    onToggleExpand?.()
+  }, [onToggleExpand])
+
+  const supportFlags = [
+    derived?.slaOver ? '⏱ SLA' : null,
+    derived?.idleOver ? '🕰 idle' : null,
+    derived?.overdue ? '⚠ overdue' : null
+  ].filter(Boolean) as string[]
+
+  const detailText = description ?? derived?.sanitizedDescription ?? null
+
+  const metaItems = useMemo(() => {
+    const items: Array<{ key: string; icon?: string; label: string }> = []
+    if (dueInfo?.label) items.push({ key: 'due', icon: '📅', label: dueInfo.label })
+    if (numericPoints !== null && !Number.isNaN(numericPoints) && numericPoints > 0) {
+      items.push({ key: 'points', label: `${numericPoints} pts` })
+    }
+    if (createdLabel) items.push({ key: 'created', icon: '🕑', label: createdLabel })
+    return items
+  }, [dueInfo?.label, numericPoints, createdLabel])
+
   return (
-    <div className={styles.card} role="article" data-priority={normalizedPriority ?? undefined}>
-      <div className={styles.cardTop}>
-        <div className={styles.titleBlock}>
-          <h4 className={styles.cardTitle}>{title}</h4>
-          <div className={styles.badgeRow}>
-            {dueInfo?.label && (
-              <span className={`${styles.timerBadge} ${styles[`timerBadge--${dueInfo.status}`]}`}>
-                ⏱ {dueInfo.label}
-              </span>
+    <article
+      role="article"
+      onClick={handleClick}
+      data-testid={`card-${String(id)}`}
+      data-expanded={expanded ? 'true' : undefined}
+      className={cn(
+        styles.cardBase,
+        'group/card text-sm leading-snug'
+      )}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <h4 className={cn(styles.titleClamp, 'text-sm font-semibold leading-snug text-[rgba(246,247,255,0.95)]')}>{title}</h4>
+        {priorityLabel && (
+          <span
+            className={cn(
+              styles.priorityChip,
+              normalizedPriority === 'urgent' && styles.priorityChipUrgent,
+              normalizedPriority === 'high' && styles.priorityChipHigh,
+              normalizedPriority === 'medium' && styles.priorityChipMedium,
+              normalizedPriority === 'low' && styles.priorityChipLow
             )}
-            {dueInfo?.dueShort && (
-              <span className={styles.metaChip}>📅 {dueInfo.dueShort}</span>
-            )}
-            {createdLabel && (
-              <span className={styles.metaChip}>🕑 Created {createdLabel}</span>
-            )}
-          </div>
-        </div>
-        <div className={styles.cardIndicators}>
-          {priorityLabel && normalizedPriority && (
-            <span className={`${styles.priorityChip} ${styles[`priorityChip--${normalizedPriority}`]}`}>
-              {priorityLabel}
-            </span>
-          )}
-          {numericPoints !== null && !Number.isNaN(numericPoints) && (
-            <span className={styles.pointsChip}>{numericPoints} pts</span>
-          )}
-        </div>
+          >
+            {priorityLabel}
+          </span>
+        )}
       </div>
 
-      {displayDescription && (
-        <>
-          <p className={styles.cardDescription} title={isLongDescription ? description ?? undefined : undefined}>
-            {displayDescription}
-          </p>
-          {isLongDescription && (
-            <button
-              type="button"
-              className={styles.expandButton}
-              onClick={() => setDescriptionExpanded((value) => !value)}
-            >
-              {descriptionExpanded ? 'Show less' : 'Show more'}
-            </button>
-          )}
-        </>
-      )}
-
-      {dueInfo?.progress != null && (
-        <div className={styles.progressTrack} aria-hidden>
-          <div className={styles.progressBar} style={{ width: `${dueInfo.progress}%` }} />
-        </div>
-      )}
-
-      {normalizedTags.length > 0 && (
-        <div className={styles.tags}>
-          {normalizedTags.map(tag => (
-            <span key={tag} className={styles.tag} style={getTagStyles(tag)}>
-              {tag}
+      {(metaItems.length > 0 || supportFlags.length > 0) && (
+        <div className={styles.metaRow}>
+          {metaItems.map(({ key, icon, label }) => (
+            <span key={key}>
+              {icon && <span aria-hidden>{icon}</span>}
+              {label}
             </span>
+          ))}
+          {supportFlags.map(flag => (
+            <span key={`flag-${flag}`} className={styles.metaHot}>{flag}</span>
           ))}
         </div>
       )}
 
-      <div className={styles.cardFooter}>
-        <div className={styles.footerLeft}>
-          {dueInfo && (
-            <span className={`${styles.footerStatus} ${styles[`footerStatus--${dueInfo.status}`]}`}>
-              {dueInfo.statusLabel}
-            </span>
-          )}
-          {dueDateLabel && !dueInfo && <span className={styles.metaChip}>📅 {dueDateLabel}</span>}
-        </div>
-        <div className={styles.assignees} aria-label={normalizedAssignees.length ? `Assigned to ${normalizedAssignees.join(', ')}` : 'Unassigned'}>
+      <div className="mt-1.5 flex items-center justify-between gap-3 text-[rgba(188,191,220,0.78)]">
+        <div className={styles.avatarGroup} aria-label={normalizedAssignees.length ? `Assigned to ${normalizedAssignees.join(', ')}` : 'Unassigned'}>
           {normalizedAssignees.length > 0 ? (
-            normalizedAssignees.map(name => (
-              <span
-                key={name}
-                className={styles.avatar}
-                title={name}
-                style={{ background: resolveMember(name)?.color || undefined }}
-              >
-                {resolveMember(name)?.initials || initials(name)}
-              </span>
-            ))
+            normalizedAssignees.slice(0, 3).map(name => {
+              const member = resolveMember(name)
+              return (
+                <span
+                  key={name}
+                  className={styles.avatar}
+                  title={name}
+                  style={{ background: member?.color || 'rgba(229,12,120,0.35)' }}
+                >
+                  {member?.initials || initials(name)}
+                </span>
+              )
+            })
           ) : (
             <span className={styles.unassigned}>Unassigned</span>
           )}
+          {normalizedAssignees.length > 3 && (
+            <span className={styles.avatarOverflow}>+{normalizedAssignees.length - 3}</span>
+          )}
         </div>
+        {hasChecklist && (
+          <div className={styles.progressTrack} aria-hidden>
+            <div className={styles.progressBar} style={{ width: `${Math.min(100, Math.max(0, (completedParts / (derived?.totalParts ?? 1)) * 100))}%` }} />
+          </div>
+        )}
       </div>
-    </div>
+
+      <span className={styles.cardDivider} aria-hidden />
+
+      <div className={cn(styles.cardActions, 'text-[rgba(214,216,230,0.8)]')}>
+        <button
+          type="button"
+          onClick={(event) => {
+            event.stopPropagation()
+            onMove?.()
+          }}
+          className={styles.ghostBtn}
+        >
+          Move
+        </button>
+        <button
+          type="button"
+          onClick={(event) => {
+            event.stopPropagation()
+            onToggleExpand?.()
+          }}
+          className={styles.ghostBtn}
+        >
+          {expanded ? 'Less' : 'More'}
+        </button>
+        <button
+          type="button"
+          onClick={(event) => {
+            event.stopPropagation()
+            onAgent?.()
+          }}
+          className={styles.ghostBtn}
+        >
+          Agent
+        </button>
+      </div>
+
+      {expanded && (
+        <div className={styles.details} onClick={(event) => event.stopPropagation()}>
+          {detailText && (
+            <div className="mb-2 whitespace-pre-wrap text-xs text-[rgba(214,216,230,0.88)]">
+              {detailText}
+            </div>
+          )}
+          <div className="flex flex-wrap items-center gap-2 text-[11px]">
+            {normalizedTags.slice(0, 8).map(tag => (
+              <span key={tag} className={styles.tag}>{tag}</span>
+            ))}
+            {normalizedAssignees.length > 0 && (
+              <span className={styles.chip}>👤 {normalizedAssignees.join(', ')}</span>
+            )}
+          </div>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <button
+              type="button"
+              className={styles.ghostBtn}
+              onClick={(event) => {
+                event.stopPropagation()
+                onAgent?.()
+              }}
+            >
+              Make urgent + set SLA 24h
+            </button>
+            <button
+              type="button"
+              className={styles.ghostBtn}
+              onClick={(event) => {
+                event.stopPropagation()
+                onMove?.()
+              }}
+            >
+              Move to Review
+            </button>
+          </div>
+        </div>
+      )}
+    </article>
   )
 }

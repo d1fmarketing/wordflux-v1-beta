@@ -4,8 +4,8 @@ const regex = {
   points: /\[(\d+)\s*pts\]/i,
   start: /\[start:\s*(\d{4}-\d{2}-\d{2})\]/i,
   delivery: /\[delivery:\s*(\d{4}-\d{2}-\d{2})\]/i,
-  sla: /\[sla:\s*(\d+)\s*h\]/i,
-  idle: /\[idle:\s*(\d+)\s*h\]/i,
+  sla: /\[sla:\s*(-?[0-9]+(?:\.[0-9]+)?)\s*h\]/i,
+  idle: /\[idle:\s*(-?[0-9]+(?:\.[0-9]+)?)\s*h\]/i,
   repeat: /\[repeat:\s*(daily|weekly|monthly)\]/i,
 };
 
@@ -24,6 +24,17 @@ function derivePriority(labels: string[]): Priority | null {
     return slug;
   }
   return null;
+}
+
+function parseHours(raw: string | null): number | null {
+  if (raw == null) return null;
+  const asNumber = Number(raw);
+  if (!Number.isFinite(asNumber)) return null;
+  return Math.max(0, asNumber);
+}
+
+function hoursToMs(hours: number): number {
+  return Math.max(0, hours) * 3600000;
 }
 
 export function parseDerivedMetadata(
@@ -76,17 +87,21 @@ export function parseDerivedMetadata(
   const now = new Date();
   const overdue = Boolean(dueDate && options.column !== 'Done' && dueDate.getTime() < now.getTime());
 
-  const slaHours = slaToken.match ? Number(slaToken.match) : null;
+  const slaHours = parseHours(slaToken.match);
   const createdAt = options.createdAt ? new Date(options.createdAt) : null;
-  const slaOver = Boolean(
-    slaHours && createdAt && (now.getTime() - createdAt.getTime()) / 3600000 > slaHours && options.column !== 'Done'
-  );
+  const slaOver =
+    slaHours !== null &&
+    createdAt !== null &&
+    options.column !== 'Done' &&
+    now.getTime() - createdAt.getTime() >= hoursToMs(slaHours);
 
-  const idleHours = idleToken.match ? Number(idleToken.match) : null;
+  const idleHours = parseHours(idleToken.match);
   const lastActivityAt = options.lastActivityAt ? new Date(options.lastActivityAt) : createdAt;
-  const idleOver = Boolean(
-    idleHours && lastActivityAt && (now.getTime() - lastActivityAt.getTime()) / 3600000 > idleHours && options.column !== 'Done'
-  );
+  const idleOver =
+    idleHours !== null &&
+    lastActivityAt !== null &&
+    options.column !== 'Done' &&
+    now.getTime() - lastActivityAt.getTime() >= hoursToMs(idleHours);
 
   const awaitingApproval = Boolean(
     options.column && /review/i.test(options.column) || labels.some(label => label === 'awaiting-approval')

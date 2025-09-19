@@ -11,18 +11,27 @@ import { computePosition, STEP } from '@/lib/positioning'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import type { BoardMember } from '@/lib/board-provider'
 import { BoardHeader } from './BoardHeader'
+import { cn } from '@/lib/utils'
+import useMediaQuery from '@/hooks/useMediaQuery'
+import type { DerivedCardMetadata } from '@/lib/filter-spec'
 
 export type BoardCard = {
   id: string | number
   title: string
   description?: string
+  description_rendered?: string
   tags?: string[]
-  due_date?: string | null
+  labels?: string[]
   assignees?: string[]
+  due_date?: string | null
+  due?: string | null
   priority?: string | number | null
   points?: number | string | null
   position?: number
   created_at?: string | null
+  updated_at?: string | null
+  last_activity_at?: string | null
+  derived?: DerivedCardMetadata | null
 }
 
 export type BoardColumn = {
@@ -44,9 +53,10 @@ function colKey(id: string | number) { return `col-${idOf(id)}` }
 function columnWeight(name: string): number {
   const n = name.toLowerCase()
   if (/backlog/.test(n)) return 1
-  if (/in progress/.test(n)) return 2
-  if (/review/.test(n)) return 3
-  if (/done/.test(n)) return 4
+  if (/ready|triage|capture/.test(n)) return 2
+  if (/in progress|work in progress|wip|doing/.test(n)) return 3
+  if (/review|qa|approval|awaiting/.test(n)) return 4
+  if (/done|complete|finished/.test(n)) return 5
   return 999
 }
 
@@ -62,12 +72,10 @@ export default function Board2() {
   )
 
   const handleBoardChanged = useCallback(() => {
-    console.log('[WS] Board update received')
     mutate()
   }, [mutate])
 
-  const handleCardMoved = useCallback((payload: unknown) => {
-    console.log('[WS] Card moved:', payload)
+  const handleCardMoved = useCallback(() => {
     mutate()
   }, [mutate])
 
@@ -79,7 +87,6 @@ export default function Board2() {
   const [cols, setCols] = useState<BoardColumn[]>([])
   useEffect(() => { if (data?.columns) setCols(sortColumns(data.columns)) }, [data?.columns])
 
-  // Chat-driven filter: allowed card ids; null => show all
   const [allowedIds, setAllowedIds] = useState<Set<string> | null>(null)
   useEffect(() => {
     function onFilter(ev: any) {
@@ -119,7 +126,6 @@ export default function Board2() {
     return () => window.removeEventListener('wf-highlight' as any, onHighlight)
   }, [])
 
-  // Add board-refresh listener to update UI after MCP operations
   useEffect(() => {
     const handleRefresh = () => {
       mutate()
@@ -156,50 +162,41 @@ export default function Board2() {
   const headerMetrics = useMemo(() => {
     const now = new Date()
     let overdue = 0
+    let slaBreached = 0
     let inProgress = 0
-    let donePoints = 0
-    const assigneeSet = new Set<string>()
+    let velocity = 0
 
     for (const col of cols) {
-      const isInProgress = /in progress/i.test(col.name)
-      const isDone = /done/i.test(col.name)
+      const normalized = (col.canonicalName || col.name || '').toLowerCase()
+      const isInProgress = /in progress|work in progress|doing|wip/.test(normalized)
+      const isDone = /done|complete|finished/.test(normalized)
       for (const card of col.cards || []) {
-        if (card.due_date) {
+        const derived = card.derived
+        if (derived?.overdue) overdue += 1
+        else if (card.due_date) {
           const due = new Date(card.due_date)
-          if (!Number.isNaN(due.getTime()) && due < now) {
-            overdue += 1
-          }
+          if (!Number.isNaN(due.getTime()) && due < now && !isDone) overdue += 1
         }
-        if (isInProgress) {
-          inProgress += 1
-        }
+        if (derived?.slaOver) slaBreached += 1
+        if (isInProgress) inProgress += 1
         if (isDone) {
           const value = typeof card.points === 'number'
             ? card.points
             : card.points != null
               ? Number(card.points)
-              : NaN
-          if (Number.isFinite(value)) donePoints += value
-        }
-        if (Array.isArray(card.assignees)) {
-          card.assignees
-            .filter(Boolean)
-            .forEach(name => assigneeSet.add(String(name)))
+              : derived?.points ?? null
+          if (Number.isFinite(value)) velocity += Number(value)
         }
       }
     }
 
-    const memberCount = memberDirectory.size > 0
-      ? memberDirectory.size
-      : assigneeSet.size
-
     return {
       overdue,
+      slaBreached,
       inProgress,
-      teamSize: memberCount,
-      velocity: donePoints
+      velocity
     }
-  }, [cols, memberDirectory])
+  }, [cols])
 
   function findColumnByCardId(cardId: string | number) { return cols.find(c => c.cards.some(card => idOf(card.id) === idOf(cardId))) }
 
@@ -293,6 +290,26 @@ export default function Board2() {
       .catch(() => mutate())
   }
 
+  const isMobile = useMediaQuery('(max-width: 767px)')
+
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
+
+  const toggleExpand = useCallback((id: string | number) => {
+    const key = String(id)
+    setExpandedIds(prev => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
+  }, [])
+
+  useEffect(() => {
+    if (expandedIds.size === 0) {
+      window.dispatchEvent(new Event('wf-chat-context-clear'))
+    }
+  }, [expandedIds])
+
   if (isLoading && !data) return <div style={{ padding: 16 }}>Loading board…</div>
 
   const base = cols
@@ -307,28 +324,58 @@ export default function Board2() {
     : sortColumns(base)
 
   return (
-    <>
-      <BoardHeader metrics={headerMetrics} loading={isLoading} />
+    <div className={styles.boardWrapper} data-testid="board-shell">
+      <BoardHeader
+        metrics={headerMetrics}
+        loading={isLoading}
+        className={styles.headerBar}
+        pillClassName={styles.headerPill}
+        pillActiveClassName={styles.headerPillHot}
+      />
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragOver={onDragOver} onDragEnd={onDragEnd}>
-        <div className={styles.boardRoot} role="list" aria-label="Kanban columns">
-          {displayCols.map((col) => (
-            <div key={col.id} role="listitem">
-              <SortableContext items={col.cards.map(c => cardKey(c.id))} strategy={rectSortingStrategy}>
-                <Column
-                  id={col.id}
-                  name={col.displayName || (col as any).originalName || col.name}
-                  canonicalName={col.canonicalName || col.name}
-                  cards={col.cards}
-                  droppableId={colKey(col.id)}
-                  dropIndex={dropHint && idOf(dropHint.colId) === idOf(col.id) ? dropHint.index : undefined}
-                  highlightIds={highlightIds}
-                  memberDirectory={memberDirectory}
-                />
-              </SortableContext>
-            </div>
-          ))}
+        <div
+          className={cn(styles.boardRoot)}
+          role="list"
+          aria-label="Kanban columns"
+          data-testid="board-grid"
+        >
+          {displayCols.map((col) => {
+            const label = col.displayName || (col as any).originalName || col.name
+            const handleToggleExpand = (cardId: string | number) => {
+              const key = String(cardId)
+              const willExpand = !expandedIds.has(key)
+              toggleExpand(cardId)
+              if (willExpand) {
+                const card = col.cards.find(cc => idOf(cc.id) === key)
+                if (card) {
+                  window.dispatchEvent(new CustomEvent('wf-chat-context', {
+                    detail: { scope: `Act on: ${card.title}` }
+                  }))
+                }
+              }
+            }
+            return (
+              <div key={col.id} role="listitem" className={cn(styles.columnShell, 'min-w-0')}>
+                <SortableContext items={col.cards.map(c => cardKey(c.id))} strategy={rectSortingStrategy}>
+                  <Column
+                    id={col.id}
+                    name={label}
+                    canonicalName={col.canonicalName || col.name}
+                    cards={col.cards}
+                    droppableId={colKey(col.id)}
+                    dropIndex={dropHint && idOf(dropHint.colId) === idOf(col.id) ? dropHint.index : undefined}
+                    highlightIds={highlightIds}
+                    memberDirectory={memberDirectory}
+                    isMobile={isMobile}
+                    expandedIds={expandedIds}
+                    onToggleExpand={handleToggleExpand}
+                  />
+                </SortableContext>
+              </div>
+            )
+          })}
         </div>
       </DndContext>
-    </>
+    </div>
   )
 }

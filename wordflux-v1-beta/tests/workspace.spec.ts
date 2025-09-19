@@ -28,13 +28,13 @@ test.describe('Workspace smoke tests', () => {
     await expect(boardHeader).toBeInViewport()
   })
 
-  test('chat width is fixed at 384px', async ({ page }) => {
+  test('chat width stays within design clamp', async ({ page }) => {
     await page.goto('/workspace')
     await page.waitForSelector('[data-testid="chat-panel"]')
     const chatPanel = page.locator('[data-testid="chat-panel"]')
     const box = await chatPanel.boundingBox()
-    expect(box?.width).toBeGreaterThan(380)
-    expect(box?.width).toBeLessThan(390)
+    expect(box?.width).toBeGreaterThanOrEqual(320)
+    expect(box?.width).toBeLessThanOrEqual(420)
   })
 
   test('can type in chat input', async ({ page }) => {
@@ -45,4 +45,3 @@ test.describe('Workspace smoke tests', () => {
     await expect(chatInput).toHaveValue('Test message')
   })
 })
-

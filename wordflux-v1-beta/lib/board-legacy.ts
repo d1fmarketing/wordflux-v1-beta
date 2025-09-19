@@ -1,6 +1,6 @@
 import type { BoardState } from './board-state-manager'
 
-export const LEGACY_COLUMN_TITLES = ['Backlog', 'Ready', 'Work in progress', 'Done'] as const
+export const LEGACY_COLUMN_TITLES = ['Backlog', 'Ready', 'Work in progress', 'Review', 'Done'] as const
 
 const NAME_ALIASES: Record<string, string> = {
   backlog: 'Backlog',
@@ -13,9 +13,10 @@ const NAME_ALIASES: Record<string, string> = {
   'work in progress': 'Work in progress',
   wip: 'Work in progress',
   doing: 'Work in progress',
-  review: 'Work in progress',
-  testing: 'Work in progress',
-  qa: 'Work in progress',
+  review: 'Review',
+  testing: 'Review',
+  qa: 'Review',
+  approval: 'Review',
   done: 'Done',
   complete: 'Done',
   completed: 'Done',

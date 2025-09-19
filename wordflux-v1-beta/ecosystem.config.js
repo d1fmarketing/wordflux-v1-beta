@@ -7,7 +7,7 @@ module.exports = {
       cwd: '/home/ubuntu/wordflux-v1-beta',
       env: {
         NODE_ENV: 'production',
-        PORT: 3001,
+        PORT: 3000,
         HOST: '127.0.0.1',
         BOARD_BACKEND: 'taskcafe',
         TASKCAFE_URL: 'http://127.0.0.1:3333',

@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { i18n } from '../ui/i18n'
 import styles from './Chat.module.css'
 import { callMcp } from '@/lib/mcp-client'
 
@@ -23,7 +22,9 @@ export default function Chat() {
   const [loading, setLoading] = useState(false)
   const [suggestions, setSuggestions] = useState<string[]>([])
   const [status, setStatus] = useState<string | null>(null)
+  const [context, setContext] = useState<string | null>(null)
   const endRef = useRef<HTMLDivElement>(null)
+  const sendFnRef = useRef(send)
 
   useEffect(() => {
     try {
@@ -44,6 +45,39 @@ export default function Chat() {
       endRef.current.scrollIntoView({ behavior: 'smooth' })
     }
   }, [messages])
+
+  useEffect(() => {
+    function handleContext(ev: any) {
+      const scope = ev?.detail?.scope
+      setContext(scope || null)
+    }
+    function clearContext() {
+      setContext(null)
+    }
+    window.addEventListener('wf-chat-context' as any, handleContext)
+    window.addEventListener('wf-chat-context-clear' as any, clearContext)
+    return () => {
+      window.removeEventListener('wf-chat-context' as any, handleContext)
+      window.removeEventListener('wf-chat-context-clear' as any, clearContext)
+    }
+  }, [])
+
+  useEffect(() => {
+    function handleSuggest(ev: CustomEvent<{ message?: string; send?: boolean }>) {
+      const detail = ev?.detail || {}
+      const message = typeof detail.message === 'string' ? detail.message.trim() : ''
+      if (!message) return
+      setInput(message)
+      if (detail.send !== false) {
+        setTimeout(() => {
+          const fn = sendFnRef.current
+          if (fn) void fn(message)
+        }, 0)
+      }
+    }
+    window.addEventListener('wf-chat-suggest' as any, handleSuggest as EventListener)
+    return () => window.removeEventListener('wf-chat-suggest' as any, handleSuggest as EventListener)
+  }, [])
 
   async function send(msg?: string) {
     const text = (msg !== undefined ? msg : input).trim()
@@ -159,66 +193,88 @@ export default function Chat() {
     }
   }
 
+  sendFnRef.current = send
+
   function onKey(e: React.KeyboardEvent) {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() }
   }
 
   return (
-    <div className={styles.container}>
-      <div className={styles.header}>
-        <h2 className={styles.heading}>{i18n.chat.title}</h2>
-        <p className={styles.subtitle}>{i18n.chat.subtitle}</p>
-      </div>
+    <div className={styles.container} data-testid="chat-shell">
+      <div className={styles.inner} data-testid="chat-inner">
+        <div className={styles.header}>
+        <div className={styles.headerTitle}>
+          <span className={styles.statusDot} aria-hidden />
+          <div>
+            <h2 className={styles.heading}>WordFlux AI</h2>
+            <p className={styles.subtitle}>Connected to TaskCafe</p>
+          </div>
+        </div>
+        <span className={styles.pilotLabel}>Agent cockpit</span>
+        </div>
 
-      <div className={styles.messages} role="log" aria-live="polite" aria-relevant="additions">
-        {messages.map(m => (
-          <div key={m.id} className={[styles.row, m.role === 'user' ? styles.rowUser : ''].join(' ')}>
-            <div className={[styles.bubble, m.role === 'user' ? styles.bubbleUser : ''].join(' ')}>
-              <div style={{ fontSize: 14 }}>{m.content}</div>
-              <div className={[styles.timestamp, m.role === 'user' ? styles.timestampUser : ''].join(' ')}>
-                {m.timestamp.toLocaleTimeString()}
+        {context && (
+          <div className={styles.contextBar}>
+            <span className={styles.contextLabel}>Scope</span>
+            <span className={styles.contextValue}>{context}</span>
+            <button type="button" onClick={() => setContext(null)} className={styles.contextClear}>
+              Clear
+            </button>
+          </div>
+        )}
+
+        <div className={styles.messages} role="log" aria-live="polite" aria-relevant="additions">
+          {messages.map(m => (
+            <div key={m.id} className={[styles.row, m.role === 'user' ? styles.rowUser : ''].join(' ')}>
+              <div className={[styles.bubble, m.role === 'user' ? styles.bubbleUser : ''].join(' ')}>
+                <div style={{ fontSize: 14 }}>{m.content}</div>
+                <div className={[styles.timestamp, m.role === 'user' ? styles.timestampUser : ''].join(' ')}>
+                  {m.timestamp.toLocaleTimeString()}
+                </div>
               </div>
             </div>
-          </div>
-        ))}
-        <div ref={endRef} />
-      </div>
+          ))}
+          <div ref={endRef} />
+        </div>
 
-      <div className={styles.footer}>
-        {suggestions.length > 0 && (
-          <div className={styles.suggestions}>
-            {suggestions.map(s => (
-              <button key={s} onClick={() => send(s)} disabled={loading} className={styles.suggestionBtn}>
-                {s}
-              </button>
-            ))}
+        <div className={styles.footer}>
+          {suggestions.length > 0 && (
+            <div className={styles.suggestions}>
+              {suggestions.map(s => (
+                <button key={s} onClick={() => send(s)} disabled={loading} className={styles.suggestionBtn}>
+                  {s}
+                </button>
+              ))}
+            </div>
+          )}
+          {status && (
+            <div className={styles.status} aria-live="polite">{status}</div>
+          )}
+          <div className={styles.inputRow}>
+            <input
+              type="text"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={onKey}
+              placeholder="Tell me what you want and I’ll organize the board."
+              disabled={loading}
+              aria-label="Chat command input"
+              data-testid="chat-input"
+              className={styles.input}
+            />
+            <button
+              onClick={() => send()}
+              disabled={loading || !input.trim()}
+              aria-label="Send message"
+              title="Send message"
+              data-testid="chat-send"
+              className={styles.sendBtn}
+            >
+              <span className={styles.sendText}>{loading ? 'Sending' : 'Send'}</span>
+              <span className={styles.sendIcon} aria-hidden>{loading ? '…' : '↗'}</span>
+            </button>
           </div>
-        )}
-        {status && (
-          <div className={styles.status} aria-live="polite">{status}</div>
-        )}
-        <div className={styles.inputRow}>
-          <input
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={onKey}
-            placeholder="Tell me what you want and I’ll organize the board."
-            disabled={loading}
-            aria-label="Chat command input"
-            data-testid="chat-input"
-            className={styles.input}
-          />
-          <button
-            onClick={() => send()}
-            disabled={loading || !input.trim()}
-            aria-label="Send message"
-            title="Send message"
-            data-testid="chat-send"
-            className={styles.sendBtn}
-          >
-            {loading ? '…' : 'Send'}
-          </button>
+          <div className={styles.footerHint}>Press ↵ to send · Shift + ↵ for a new line</div>
         </div>
       </div>
     </div>
