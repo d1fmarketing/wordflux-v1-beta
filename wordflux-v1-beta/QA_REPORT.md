@@ -25,6 +25,9 @@
 - artifacts/html/index.html
 - artifacts/report.json
 
+## PR
+- feat/layout-grid-chat → main
+
 ## Diffs
 - app/components/Chat.module.css / Chat.tsx — layout flex, grid fix e listener de sugestões
 - app/components/board2/Board2.module.css / Column.tsx — col width clamp + headers sticky utilitário
