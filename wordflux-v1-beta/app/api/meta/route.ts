@@ -27,12 +27,15 @@ function getSSEStatus(): 'live' | 'reconnecting' | 'offline' {
 
 export async function GET() {
   const commit = await getGitCommit()
+  const agent = process.env.AGENT_NAME || 'gpt5'
+  const model = process.env.AGENT_MODEL || 'gpt-5-thinking'
   const agentMode = (process.env.AGENT_MODE || 'mcp').toLowerCase()
   const sseStatus = getSSEStatus()
 
   const response = {
     ok: true,
-    agent: 'claude',
+    agent,              // "gpt5"
+    model,              // "gpt-5-thinking"
     mode: agentMode,
     sse: sseStatus,
     quiet: true,

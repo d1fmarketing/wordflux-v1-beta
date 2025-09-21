@@ -1,8 +1,0 @@
-{"version":8,"type":"context-options","origin":"library","browserName":"","options":{},"platform":"linux","wallTime":1758473704019,"monotonicTime":12034.176,"sdkLanguage":"javascript","contextId":"request-context@f45eff3fe73e3802bca912e9a04b8ae4","title":"api/chat.spec.ts:128 › Chat API Tests › Chat GPT-5 function calling integration"}
-{"type":"before","callId":"call@44","startTime":12036.588,"class":"APIRequestContext","method":"fetch","params":{"url":"http://52.4.68.118/api/chat","method":"POST","jsonData":"{\"message\":\"Create a high priority bug task about login issues\"}","timeout":15000},"stepId":"pw:api@22","beforeSnapshot":"before@call@44"}
-{"type":"log","callId":"call@44","time":12037.366,"message":"→ POST http://52.4.68.118/api/chat"}
-{"type":"log","callId":"call@44","time":12037.385,"message":"  user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.7339.16 Safari/537.36"}
-{"type":"log","callId":"call@44","time":12037.391,"message":"  accept: */*"}
-{"type":"log","callId":"call@44","time":12037.395,"message":"  accept-encoding: gzip,deflate,br"}
-{"type":"log","callId":"call@44","time":12037.399,"message":"  content-type: application/json"}
-{"type":"log","callId":"call@44","time":12037.404,"message":"  content-length: 64"}
