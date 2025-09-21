@@ -17,14 +17,14 @@ docker compose up -d
 ```
 
 ## Manual Smoke Test
-- Health: `curl -s http://localhost:3001/api/health | jq`
-- Board state: `curl -s http://localhost:3001/api/board/state | jq '{columns:(.state.columns|length)}'`
-- Chat create: `curl -s -X POST http://localhost:3001/api/chat -H 'Content-Type: application/json' -d '{"message":"create a task called quick test"}' | jq`
+- Health: `curl -s http://localhost:3000/api/health | jq`
+- Board state: `curl -s http://localhost:3000/api/board/state | jq '{columns:(.state.columns|length)}'`
+- Chat create: `curl -s -X POST http://localhost:3000/api/chat -H 'Content-Type: application/json' -d '{"message":"create a task called quick test"}' | jq`
 - DnD: drag a card within/between columns and verify it persists.
 
 Or run the script:
 ```
-./scripts/smoke.sh http://localhost:3001
+./scripts/smoke.sh http://localhost:3000
 ```
 
 ## PR Checklist
