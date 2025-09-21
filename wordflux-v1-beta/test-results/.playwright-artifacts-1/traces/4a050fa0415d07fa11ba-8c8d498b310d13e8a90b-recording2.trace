@@ -1,0 +1,21 @@
+{"version":8,"type":"context-options","origin":"library","browserName":"","options":{},"platform":"linux","wallTime":1758473695647,"monotonicTime":3662.124,"sdkLanguage":"javascript","contextId":"request-context@7921d294f700404ec48bebdb44f652d7","title":"api/board.spec.ts:123 › Board API Tests › Handle malformed requests gracefully"}
+{"type":"before","callId":"call@25","startTime":3664.532,"class":"APIRequestContext","method":"fetch","params":{"url":"http://52.4.68.118/api/board/create","method":"POST","jsonData":"{\"description\":\"Invalid task\"}","timeout":15000},"stepId":"pw:api@22","beforeSnapshot":"before@call@25"}
+{"type":"log","callId":"call@25","time":3665.888,"message":"→ POST http://52.4.68.118/api/board/create"}
+{"type":"log","callId":"call@25","time":3665.911,"message":"  user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.7339.16 Safari/537.36"}
+{"type":"log","callId":"call@25","time":3665.921,"message":"  accept: */*"}
+{"type":"log","callId":"call@25","time":3665.93,"message":"  accept-encoding: gzip,deflate,br"}
+{"type":"log","callId":"call@25","time":3665.938,"message":"  content-type: application/json"}
+{"type":"log","callId":"call@25","time":3665.946,"message":"  content-length: 30"}
+{"type":"log","callId":"call@25","time":3698.272,"message":"← 400 Bad Request"}
+{"type":"log","callId":"call@25","time":3698.314,"message":"  server: nginx/1.24.0 (Ubuntu)"}
+{"type":"log","callId":"call@25","time":3698.324,"message":"  date: Sun, 21 Sep 2025 16:54:55 GMT"}
+{"type":"log","callId":"call@25","time":3698.332,"message":"  content-type: application/json"}
+{"type":"log","callId":"call@25","time":3698.341,"message":"  transfer-encoding: chunked"}
+{"type":"log","callId":"call@25","time":3698.349,"message":"  connection: keep-alive"}
+{"type":"log","callId":"call@25","time":3698.358,"message":"  content-security-policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline';"}
+{"type":"log","callId":"call@25","time":3698.366,"message":"  referrer-policy: strict-origin-when-cross-origin"}
+{"type":"log","callId":"call@25","time":3698.374,"message":"  x-content-type-options: nosniff"}
+{"type":"log","callId":"call@25","time":3698.382,"message":"  x-frame-options: DENY"}
+{"type":"log","callId":"call@25","time":3698.39,"message":"  x-xss-protection: 1; mode=block"}
+{"type":"log","callId":"call@25","time":3698.398,"message":"  vary: RSC, Next-Router-State-Tree, Next-Router-Prefetch"}
+{"type":"after","callId":"call@25","endTime":3698.633,"result":{"response":{"url":"http://52.4.68.118/api/board/create","status":400,"statusText":"Bad Request","headers":[{"name":"Server","value":"nginx/1.24.0 (Ubuntu)"},{"name":"Date","value":"Sun, 21 Sep 2025 16:54:55 GMT"},{"name":"Content-Type","value":"application/json"},{"name":"Transfer-Encoding","value":"chunked"},{"name":"Connection","value":"keep-alive"},{"name":"content-security-policy","value":"default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline';"},{"name":"referrer-policy","value":"strict-origin-when-cross-origin"},{"name":"x-content-type-options","value":"nosniff"},{"name":"x-frame-options","value":"DENY"},{"name":"x-xss-protection","value":"1; mode=block"},{"name":"vary","value":"RSC, Next-Router-State-Tree, Next-Router-Prefetch"}],"fetchUid":"67278a0a03178325f8ffa75232ada2bb"}},"afterSnapshot":"after@call@25"}

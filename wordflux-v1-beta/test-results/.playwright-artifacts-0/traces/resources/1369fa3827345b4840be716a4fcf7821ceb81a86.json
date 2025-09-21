@@ -1,0 +1,1 @@
+{"ok":false,"source":"mcp-error","message":"taskId/column required","response":"taskId/column required","actions":[{"type":"move","error":"taskId/column required"}],"results":[],"metrics":{"deterministic":false,"mcp":true,"duration_ms":9119,"source":"mcp-error"},"boardUpdated":false,"suggestions":[]}

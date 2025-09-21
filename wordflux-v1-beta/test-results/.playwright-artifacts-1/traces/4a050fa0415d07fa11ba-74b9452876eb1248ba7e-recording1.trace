@@ -1,0 +1,20 @@
+{"version":8,"type":"context-options","origin":"library","browserName":"","options":{},"platform":"linux","wallTime":1758473695401,"monotonicTime":3415.69,"sdkLanguage":"javascript","contextId":"request-context@b7d7d03da86ca74ac3c81e42315efe91","title":"api/board.spec.ts:108 › Board API Tests › GET /api/board/diagnostics returns system health"}
+{"type":"before","callId":"call@15","startTime":3417.672,"class":"APIRequestContext","method":"fetch","params":{"url":"http://52.4.68.118/api/board/diagnostics","method":"GET","timeout":15000},"stepId":"pw:api@22","beforeSnapshot":"before@call@15"}
+{"type":"log","callId":"call@15","time":3418.403,"message":"→ GET http://52.4.68.118/api/board/diagnostics"}
+{"type":"log","callId":"call@15","time":3418.428,"message":"  user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.7339.16 Safari/537.36"}
+{"type":"log","callId":"call@15","time":3418.441,"message":"  accept: */*"}
+{"type":"log","callId":"call@15","time":3418.451,"message":"  accept-encoding: gzip,deflate,br"}
+{"type":"log","callId":"call@15","time":3632.681,"message":"← 200 OK"}
+{"type":"log","callId":"call@15","time":3632.7,"message":"  server: nginx/1.24.0 (Ubuntu)"}
+{"type":"log","callId":"call@15","time":3632.71,"message":"  date: Sun, 21 Sep 2025 16:54:55 GMT"}
+{"type":"log","callId":"call@15","time":3632.721,"message":"  content-type: application/json"}
+{"type":"log","callId":"call@15","time":3632.729,"message":"  transfer-encoding: chunked"}
+{"type":"log","callId":"call@15","time":3632.738,"message":"  connection: keep-alive"}
+{"type":"log","callId":"call@15","time":3632.746,"message":"  content-security-policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline';"}
+{"type":"log","callId":"call@15","time":3632.755,"message":"  referrer-policy: strict-origin-when-cross-origin"}
+{"type":"log","callId":"call@15","time":3632.764,"message":"  x-content-type-options: nosniff"}
+{"type":"log","callId":"call@15","time":3632.772,"message":"  x-frame-options: DENY"}
+{"type":"log","callId":"call@15","time":3632.78,"message":"  x-xss-protection: 1; mode=block"}
+{"type":"log","callId":"call@15","time":3632.789,"message":"  vary: RSC, Next-Router-State-Tree, Next-Router-Prefetch"}
+{"type":"log","callId":"call@15","time":3632.797,"message":"  cache-control: no-cache, no-store, must-revalidate"}
+{"type":"after","callId":"call@15","endTime":3632.974,"result":{"response":{"url":"http://52.4.68.118/api/board/diagnostics","status":200,"statusText":"OK","headers":[{"name":"Server","value":"nginx/1.24.0 (Ubuntu)"},{"name":"Date","value":"Sun, 21 Sep 2025 16:54:55 GMT"},{"name":"Content-Type","value":"application/json"},{"name":"Transfer-Encoding","value":"chunked"},{"name":"Connection","value":"keep-alive"},{"name":"content-security-policy","value":"default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline';"},{"name":"referrer-policy","value":"strict-origin-when-cross-origin"},{"name":"x-content-type-options","value":"nosniff"},{"name":"x-frame-options","value":"DENY"},{"name":"x-xss-protection","value":"1; mode=block"},{"name":"vary","value":"RSC, Next-Router-State-Tree, Next-Router-Prefetch"},{"name":"cache-control","value":"no-cache, no-store, must-revalidate"}],"fetchUid":"9e92a5c4d27d00cb2fbf74766b825136"}},"afterSnapshot":"after@call@15"}

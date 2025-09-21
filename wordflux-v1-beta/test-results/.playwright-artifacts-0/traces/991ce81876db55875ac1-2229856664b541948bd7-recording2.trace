@@ -1,0 +1,24 @@
+{"version":8,"type":"context-options","origin":"library","browserName":"","options":{},"platform":"linux","wallTime":1758473696615,"monotonicTime":4629.724,"sdkLanguage":"javascript","contextId":"request-context@24d677a410f7be124f0e38f6c787a9ee","title":"api/chat.spec.ts:6 › Chat API Tests › POST /api/chat responds to basic messages"}
+{"type":"before","callId":"call@28","startTime":4631.606,"class":"APIRequestContext","method":"fetch","params":{"url":"http://52.4.68.118/api/chat","method":"POST","jsonData":"{\"message\":\"Hello, can you help me?\"}","timeout":15000},"stepId":"pw:api@22","beforeSnapshot":"before@call@28"}
+{"type":"log","callId":"call@28","time":4632.32,"message":"→ POST http://52.4.68.118/api/chat"}
+{"type":"log","callId":"call@28","time":4632.336,"message":"  user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.7339.16 Safari/537.36"}
+{"type":"log","callId":"call@28","time":4632.342,"message":"  accept: */*"}
+{"type":"log","callId":"call@28","time":4632.346,"message":"  accept-encoding: gzip,deflate,br"}
+{"type":"log","callId":"call@28","time":4632.351,"message":"  content-type: application/json"}
+{"type":"log","callId":"call@28","time":4632.355,"message":"  content-length: 37"}
+{"type":"log","callId":"call@28","time":6535.761,"message":"← 200 OK"}
+{"type":"log","callId":"call@28","time":6535.779,"message":"  server: nginx/1.24.0 (Ubuntu)"}
+{"type":"log","callId":"call@28","time":6535.784,"message":"  date: Sun, 21 Sep 2025 16:54:58 GMT"}
+{"type":"log","callId":"call@28","time":6535.789,"message":"  content-type: application/json"}
+{"type":"log","callId":"call@28","time":6535.793,"message":"  transfer-encoding: chunked"}
+{"type":"log","callId":"call@28","time":6535.798,"message":"  connection: keep-alive"}
+{"type":"log","callId":"call@28","time":6535.803,"message":"  content-security-policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline';"}
+{"type":"log","callId":"call@28","time":6535.807,"message":"  referrer-policy: strict-origin-when-cross-origin"}
+{"type":"log","callId":"call@28","time":6535.811,"message":"  x-content-type-options: nosniff"}
+{"type":"log","callId":"call@28","time":6535.815,"message":"  x-frame-options: DENY"}
+{"type":"log","callId":"call@28","time":6535.82,"message":"  x-xss-protection: 1; mode=block"}
+{"type":"log","callId":"call@28","time":6535.824,"message":"  vary: RSC, Next-Router-State-Tree, Next-Router-Prefetch"}
+{"type":"log","callId":"call@28","time":6535.828,"message":"  x-ratelimit-limit: 100"}
+{"type":"log","callId":"call@28","time":6535.833,"message":"  x-ratelimit-remaining: 99"}
+{"type":"log","callId":"call@28","time":6535.837,"message":"  x-ratelimit-reset: 1758473758508"}
+{"type":"after","callId":"call@28","endTime":6535.97,"result":{"response":{"url":"http://52.4.68.118/api/chat","status":200,"statusText":"OK","headers":[{"name":"Server","value":"nginx/1.24.0 (Ubuntu)"},{"name":"Date","value":"Sun, 21 Sep 2025 16:54:58 GMT"},{"name":"Content-Type","value":"application/json"},{"name":"Transfer-Encoding","value":"chunked"},{"name":"Connection","value":"keep-alive"},{"name":"content-security-policy","value":"default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline';"},{"name":"referrer-policy","value":"strict-origin-when-cross-origin"},{"name":"x-content-type-options","value":"nosniff"},{"name":"x-frame-options","value":"DENY"},{"name":"x-xss-protection","value":"1; mode=block"},{"name":"vary","value":"RSC, Next-Router-State-Tree, Next-Router-Prefetch"},{"name":"x-ratelimit-limit","value":"100"},{"name":"x-ratelimit-remaining","value":"99"},{"name":"x-ratelimit-reset","value":"1758473758508"}],"fetchUid":"0e5474389b63673bdfc219ce551e0434"}},"afterSnapshot":"after@call@28"}

@@ -1,0 +1,59 @@
+{"version":8,"type":"context-options","origin":"library","browserName":"","options":{},"platform":"linux","wallTime":1758473695906,"monotonicTime":3921.339,"sdkLanguage":"javascript","contextId":"request-context@4e5fd421fe453079f47a4a01a6a85011","title":"api/board.spec.ts:152 › Board API Tests › Board state consistency after modifications"}
+{"type":"before","callId":"call@62","startTime":3923.131,"class":"APIRequestContext","method":"fetch","params":{"url":"http://52.4.68.118/api/board/sync","method":"GET","timeout":15000},"stepId":"pw:api@22","beforeSnapshot":"before@call@62"}
+{"type":"log","callId":"call@62","time":3923.54,"message":"→ GET http://52.4.68.118/api/board/sync"}
+{"type":"log","callId":"call@62","time":3923.552,"message":"  user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.7339.16 Safari/537.36"}
+{"type":"log","callId":"call@62","time":3923.556,"message":"  accept: */*"}
+{"type":"log","callId":"call@62","time":3923.559,"message":"  accept-encoding: gzip,deflate,br"}
+{"type":"log","callId":"call@62","time":3954.081,"message":"← 200 OK"}
+{"type":"log","callId":"call@62","time":3954.107,"message":"  server: nginx/1.24.0 (Ubuntu)"}
+{"type":"log","callId":"call@62","time":3954.115,"message":"  date: Sun, 21 Sep 2025 16:54:55 GMT"}
+{"type":"log","callId":"call@62","time":3954.12,"message":"  content-type: application/json"}
+{"type":"log","callId":"call@62","time":3954.126,"message":"  transfer-encoding: chunked"}
+{"type":"log","callId":"call@62","time":3954.132,"message":"  connection: keep-alive"}
+{"type":"log","callId":"call@62","time":3954.137,"message":"  content-security-policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline';"}
+{"type":"log","callId":"call@62","time":3954.143,"message":"  referrer-policy: strict-origin-when-cross-origin"}
+{"type":"log","callId":"call@62","time":3954.148,"message":"  x-content-type-options: nosniff"}
+{"type":"log","callId":"call@62","time":3954.153,"message":"  x-frame-options: DENY"}
+{"type":"log","callId":"call@62","time":3954.158,"message":"  x-xss-protection: 1; mode=block"}
+{"type":"log","callId":"call@62","time":3954.164,"message":"  vary: RSC, Next-Router-State-Tree, Next-Router-Prefetch"}
+{"type":"log","callId":"call@62","time":3954.169,"message":"  cache-control: no-cache, no-store, must-revalidate"}
+{"type":"after","callId":"call@62","endTime":3955.053,"result":{"response":{"url":"http://52.4.68.118/api/board/sync","status":200,"statusText":"OK","headers":[{"name":"Server","value":"nginx/1.24.0 (Ubuntu)"},{"name":"Date","value":"Sun, 21 Sep 2025 16:54:55 GMT"},{"name":"Content-Type","value":"application/json"},{"name":"Transfer-Encoding","value":"chunked"},{"name":"Connection","value":"keep-alive"},{"name":"content-security-policy","value":"default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline';"},{"name":"referrer-policy","value":"strict-origin-when-cross-origin"},{"name":"x-content-type-options","value":"nosniff"},{"name":"x-frame-options","value":"DENY"},{"name":"x-xss-protection","value":"1; mode=block"},{"name":"vary","value":"RSC, Next-Router-State-Tree, Next-Router-Prefetch"},{"name":"cache-control","value":"no-cache, no-store, must-revalidate"}],"fetchUid":"62650478dc461eda63eed98e96c40248"}},"afterSnapshot":"after@call@62"}
+{"type":"before","callId":"call@65","startTime":3958.68,"class":"APIRequestContext","method":"fetch","params":{"url":"http://52.4.68.118/api/board/create","method":"POST","jsonData":"{\"title\":\"Consistency Test 1758473695942\",\"column_id\":1}","timeout":15000},"stepId":"pw:api@23","beforeSnapshot":"before@call@65"}
+{"type":"log","callId":"call@65","time":3959.335,"message":"→ POST http://52.4.68.118/api/board/create"}
+{"type":"log","callId":"call@65","time":3959.346,"message":"  user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.7339.16 Safari/537.36"}
+{"type":"log","callId":"call@65","time":3959.35,"message":"  accept: */*"}
+{"type":"log","callId":"call@65","time":3959.353,"message":"  accept-encoding: gzip,deflate,br"}
+{"type":"log","callId":"call@65","time":3959.356,"message":"  content-type: application/json"}
+{"type":"log","callId":"call@65","time":3959.359,"message":"  content-length: 56"}
+{"type":"log","callId":"call@65","time":6560.202,"message":"← 200 OK"}
+{"type":"log","callId":"call@65","time":6560.231,"message":"  server: nginx/1.24.0 (Ubuntu)"}
+{"type":"log","callId":"call@65","time":6560.237,"message":"  date: Sun, 21 Sep 2025 16:54:58 GMT"}
+{"type":"log","callId":"call@65","time":6560.241,"message":"  content-type: application/json"}
+{"type":"log","callId":"call@65","time":6560.244,"message":"  transfer-encoding: chunked"}
+{"type":"log","callId":"call@65","time":6560.248,"message":"  connection: keep-alive"}
+{"type":"log","callId":"call@65","time":6560.251,"message":"  content-security-policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline';"}
+{"type":"log","callId":"call@65","time":6560.256,"message":"  referrer-policy: strict-origin-when-cross-origin"}
+{"type":"log","callId":"call@65","time":6560.259,"message":"  x-content-type-options: nosniff"}
+{"type":"log","callId":"call@65","time":6560.262,"message":"  x-frame-options: DENY"}
+{"type":"log","callId":"call@65","time":6560.265,"message":"  x-xss-protection: 1; mode=block"}
+{"type":"log","callId":"call@65","time":6560.269,"message":"  vary: RSC, Next-Router-State-Tree, Next-Router-Prefetch"}
+{"type":"after","callId":"call@65","endTime":6560.411,"result":{"response":{"url":"http://52.4.68.118/api/board/create","status":200,"statusText":"OK","headers":[{"name":"Server","value":"nginx/1.24.0 (Ubuntu)"},{"name":"Date","value":"Sun, 21 Sep 2025 16:54:58 GMT"},{"name":"Content-Type","value":"application/json"},{"name":"Transfer-Encoding","value":"chunked"},{"name":"Connection","value":"keep-alive"},{"name":"content-security-policy","value":"default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline';"},{"name":"referrer-policy","value":"strict-origin-when-cross-origin"},{"name":"x-content-type-options","value":"nosniff"},{"name":"x-frame-options","value":"DENY"},{"name":"x-xss-protection","value":"1; mode=block"},{"name":"vary","value":"RSC, Next-Router-State-Tree, Next-Router-Prefetch"}],"fetchUid":"8d9647e00e7c8fc688751d3e89e58771"}},"afterSnapshot":"after@call@65"}
+{"type":"before","callId":"call@67","startTime":6591.401,"class":"APIRequestContext","method":"fetch","params":{"url":"http://52.4.68.118/api/board/sync","method":"GET","timeout":15000},"stepId":"pw:api@24","beforeSnapshot":"before@call@67"}
+{"type":"log","callId":"call@67","time":6593.083,"message":"→ GET http://52.4.68.118/api/board/sync"}
+{"type":"log","callId":"call@67","time":6593.103,"message":"  user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.7339.16 Safari/537.36"}
+{"type":"log","callId":"call@67","time":6593.108,"message":"  accept: */*"}
+{"type":"log","callId":"call@67","time":6593.111,"message":"  accept-encoding: gzip,deflate,br"}
+{"type":"log","callId":"call@67","time":6713.992,"message":"← 200 OK"}
+{"type":"log","callId":"call@67","time":6714.019,"message":"  server: nginx/1.24.0 (Ubuntu)"}
+{"type":"log","callId":"call@67","time":6714.026,"message":"  date: Sun, 21 Sep 2025 16:54:58 GMT"}
+{"type":"log","callId":"call@67","time":6714.031,"message":"  content-type: application/json"}
+{"type":"log","callId":"call@67","time":6714.036,"message":"  transfer-encoding: chunked"}
+{"type":"log","callId":"call@67","time":6714.041,"message":"  connection: keep-alive"}
+{"type":"log","callId":"call@67","time":6714.046,"message":"  content-security-policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline';"}
+{"type":"log","callId":"call@67","time":6714.051,"message":"  referrer-policy: strict-origin-when-cross-origin"}
+{"type":"log","callId":"call@67","time":6714.056,"message":"  x-content-type-options: nosniff"}
+{"type":"log","callId":"call@67","time":6714.061,"message":"  x-frame-options: DENY"}
+{"type":"log","callId":"call@67","time":6714.065,"message":"  x-xss-protection: 1; mode=block"}
+{"type":"log","callId":"call@67","time":6714.071,"message":"  vary: RSC, Next-Router-State-Tree, Next-Router-Prefetch"}
+{"type":"log","callId":"call@67","time":6714.076,"message":"  cache-control: no-cache, no-store, must-revalidate"}
+{"type":"after","callId":"call@67","endTime":6715.616,"result":{"response":{"url":"http://52.4.68.118/api/board/sync","status":200,"statusText":"OK","headers":[{"name":"Server","value":"nginx/1.24.0 (Ubuntu)"},{"name":"Date","value":"Sun, 21 Sep 2025 16:54:58 GMT"},{"name":"Content-Type","value":"application/json"},{"name":"Transfer-Encoding","value":"chunked"},{"name":"Connection","value":"keep-alive"},{"name":"content-security-policy","value":"default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline';"},{"name":"referrer-policy","value":"strict-origin-when-cross-origin"},{"name":"x-content-type-options","value":"nosniff"},{"name":"x-frame-options","value":"DENY"},{"name":"x-xss-protection","value":"1; mode=block"},{"name":"vary","value":"RSC, Next-Router-State-Tree, Next-Router-Prefetch"},{"name":"cache-control","value":"no-cache, no-store, must-revalidate"}],"fetchUid":"7e47c224b7e4f630d511a3ff8ddb37b2"}},"afterSnapshot":"after@call@67"}
