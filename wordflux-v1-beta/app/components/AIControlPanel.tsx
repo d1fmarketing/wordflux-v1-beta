@@ -104,20 +104,13 @@ export function AIControlPanel() {
   const [statistics, setStatistics] = useState<any>(null)
   const [activeTab, setActiveTab] = useState('overview')
 
-  // Load initial state
-  useEffect(() => {
-    loadState()
-    const interval = setInterval(loadState, 5000) // Refresh every 5s
-    return () => clearInterval(interval)
-  }, [])
-
-  const loadState = async () => {
+  const loadState = useCallback(async () => {
     try {
       const res = await fetch('/api/ai/status')
       const data = await res.json()
       
-      setFeatures(data.features || features)
-      setMonitorConfig(data.config || monitorConfig)
+      setFeatures(prev => data.features ?? prev)
+      setMonitorConfig(prev => data.config ?? prev)
       setIsMonitorRunning(data.isRunning || false)
       setEvents(data.events || [])
       setActionHistory(data.actionHistory || [])
@@ -125,7 +118,14 @@ export function AIControlPanel() {
     } catch (error) {
       console.error('Failed to load AI status:', error)
     }
-  }
+  }, [])
+
+  // Load initial state
+  useEffect(() => {
+    void loadState()
+    const interval = setInterval(() => { void loadState() }, 5000) // Refresh every 5s
+    return () => clearInterval(interval)
+  }, [loadState])
 
   const toggleFeature = async (feature: keyof AIFeatures) => {
     const newFeatures = { ...features, [feature]: !features[feature] }

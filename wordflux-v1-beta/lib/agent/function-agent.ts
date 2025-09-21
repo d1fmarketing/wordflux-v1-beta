@@ -62,7 +62,7 @@ Examples
 • User: preview needed (>3 actions)
 → PREVIEW: move 3 tasks → In Progress; tag 2 tasks → urgent; assign 1 task → RJ
 • After apply
-→ CONFIRMATION: Created #482 "Ship hero page" in Ready.
+→ CONFIRMATION: Created task "Ship hero page" in Ready.
 
 Never output anything outside these formats.`
   }
@@ -154,9 +154,11 @@ Never output anything outside these formats.`
         // Generate a simple confirmation based on actions
         const action = actions[0];
         if (action.type === 'kb_create_task') {
-          reply = `Created #${action.taskId} in ${action.column}.`;
+          const titleSegment = action.title ? `"${action.title}" ` : ''
+          reply = `Created task ${titleSegment}in ${action.column}.`.replace(/\s{2,}/g, ' ')
         } else if (action.type === 'kb_move_task') {
-          reply = `Moved #${action.taskId} to ${action.toColumn}.`;
+          const destination = action.toColumn ? ` to ${action.toColumn}` : ''
+          reply = `Moved task${destination}.`
         } else {
           reply = 'Action completed.';
         }

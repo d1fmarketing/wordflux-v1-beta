@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import styles from './Chat.module.css'
 import { callMcp } from '@/lib/mcp-client'
+import { cn } from '@/lib/utils'
 
 interface Message {
   id: string
@@ -15,7 +16,7 @@ export default function Chat() {
   const [messages, setMessages] = useState<Message[]>([{
     id: '1',
     role: 'assistant',
-    content: 'Hi! I can help manage your board. Try: "Create a task" or "Move task to done"',
+    content: 'Olá! Posso criar, mover e resumir tarefas para você. Experimente "Crie uma tarefa em Doing" ou "Resumo do quadro".',
     timestamp: new Date()
   }])
   const [input, setInput] = useState('')
@@ -86,8 +87,9 @@ export default function Chat() {
     setMessages(prev => [...prev, user])
     setInput('')
     setLoading(true)
-    setStatus(null)
+    setStatus('Invocando WordFlux AI…')
     const handleResult = (data: any) => {
+      const highlightIds: string[] = []
       const bot: Message = { id: (Date.now() + 1).toString(), role: 'assistant', content: data.response || data.message || 'I processed your request.', timestamp: new Date() }
       setMessages(prev => [...prev, bot])
       if (data.suggestions && Array.isArray(data.suggestions)) setSuggestions(data.suggestions)
@@ -95,10 +97,11 @@ export default function Chat() {
       try {
         const toast = (window as any).wfToast as undefined | ((t: { text: string; action?: { label: string; onClick: () => void } }) => void);
         if (toast && Array.isArray(data.results)) {
-          const created = data.results.find((r: any) => r?.type === 'create_task' && r?.result?.taskId);
+          const created = data.results.find((r: any) => (r?.type === 'create_card' || r?.type === 'create_task') && r?.result?.taskId);
           if (created?.result?.taskId) {
-            const taskId = created.result.taskId;
-            toast({ text: `Created #${taskId} — Undo`, action: { label: 'Undo', onClick: () => {
+            const taskId = String(created.result.taskId);
+            highlightIds.push(taskId);
+            toast({ text: `Criada #${taskId} — Desfazer`, action: { label: 'Desfazer', onClick: () => {
               callMcp('undo_last')
                 .then(() => window.dispatchEvent(new Event('board-refresh')))
                 .catch(() => {});
@@ -106,7 +109,7 @@ export default function Chat() {
           }
           const moved = data.results.find((r: any) => r?.type === 'move_task' && r?.result?.taskId);
           if (moved?.result?.taskId && data.undoToken) {
-            toast({ text: `Moved #${moved.result.taskId} — Undo`, action: { label: 'Undo', onClick: () => {
+            toast({ text: `Movida #${moved.result.taskId} — Desfazer`, action: { label: 'Desfazer', onClick: () => {
               callMcp('undo_last')
                 .then(() => window.dispatchEvent(new Event('board-refresh')))
                 .catch(() => {});
@@ -130,6 +133,12 @@ export default function Chat() {
         }
       } catch (err) {
         console.error('[Chat] Failed to apply filter/highlight:', err)
+      }
+
+      if (highlightIds.length && typeof window !== 'undefined') {
+        window.setTimeout(() => {
+          window.dispatchEvent(new CustomEvent('wf-highlight', { detail: { ids: highlightIds } }))
+        }, 220)
       }
 
       if (data.boardUpdated || (Array.isArray(data.actions) && data.actions.length > 0)) window.dispatchEvent(new Event('board-refresh'))
@@ -200,36 +209,42 @@ export default function Chat() {
   }
 
   return (
-    <div className={styles.container} data-testid="chat-shell">
-      <div className={styles.inner} data-testid="chat-inner">
-        <div className={styles.header}>
-        <div className={styles.headerTitle}>
-          <span className={styles.statusDot} aria-hidden />
-          <div>
-            <h2 className={styles.heading}>WordFlux AI</h2>
-            <p className={styles.subtitle}>Connected to TaskCafe</p>
+    <section className={styles.container} data-testid="chat-shell">
+      <div className={styles.panel} data-testid="chat-inner">
+        <header className={styles.header}>
+          <div className={styles.headerGroup}>
+            <span className={styles.statusDot} aria-hidden>
+              <span className={styles.statusPulse} />
+            </span>
+            <div className={styles.agentMeta}>
+              <h2 className={styles.agentName}>WordFlux AI</h2>
+              <p className={styles.agentSubtitle}>IA pronta para comandar o fluxo</p>
+            </div>
           </div>
-        </div>
-        <span className={styles.pilotLabel}>Agent cockpit</span>
-        </div>
+          <span className={styles.headerBadge}>Agent cockpit</span>
+        </header>
 
         {context && (
-          <div className={styles.contextBar}>
-            <span className={styles.contextLabel}>Scope</span>
-            <span className={styles.contextValue}>{context}</span>
-            <button type="button" onClick={() => setContext(null)} className={styles.contextClear}>
-              Clear
+          <div className={styles.scopeBar}>
+            <div className={styles.scopeTitle}>Contexto ativo</div>
+            <div className={styles.scopeValue} title={context}>{context}</div>
+            <button
+              type="button"
+              onClick={() => setContext(null)}
+              className={styles.scopeClear}
+            >
+              Limpar
             </button>
           </div>
         )}
 
         <div className={styles.messages} role="log" aria-live="polite" aria-relevant="additions">
           {messages.map(m => (
-            <div key={m.id} className={[styles.row, m.role === 'user' ? styles.rowUser : ''].join(' ')}>
-              <div className={[styles.bubble, m.role === 'user' ? styles.bubbleUser : ''].join(' ')}>
-                <div style={{ fontSize: 14 }}>{m.content}</div>
-                <div className={[styles.timestamp, m.role === 'user' ? styles.timestampUser : ''].join(' ')}>
-                  {m.timestamp.toLocaleTimeString()}
+            <div key={m.id} className={cn(styles.messageRow, m.role === 'user' && styles.messageRowUser)}>
+              <div className={cn(styles.bubble, m.role === 'user' ? styles.bubbleUser : styles.bubbleAssistant)}>
+                <div className={styles.bubbleBody}>{m.content}</div>
+                <div className={cn(styles.bubbleMeta, m.role === 'user' && styles.bubbleMetaUser)}>
+                  {m.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </div>
               </div>
             </div>
@@ -237,46 +252,58 @@ export default function Chat() {
           <div ref={endRef} />
         </div>
 
-        <div className={styles.footer}>
+        <footer className={styles.footer}>
+          {status && (
+            <div className={styles.statusBar} aria-live="polite">
+              <span className={styles.statusIndicator} />
+              <span>{status}</span>
+            </div>
+          )}
+
+          <div className={styles.composer}>
+            <div className={styles.composerField}>
+              <input
+                type="text"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={onKey}
+                placeholder="Fale com o copiloto — “crie épica urgente”, “resuma a sprint”…"
+                disabled={loading}
+                aria-label="Chat command input"
+                data-testid="chat-input"
+                className={styles.composerInput}
+              />
+              <button
+                onClick={() => send()}
+                disabled={loading || !input.trim()}
+                aria-label="Enviar mensagem"
+                title="Enviar"
+                data-testid="chat-send"
+                className={styles.composerSend}
+              >
+                <span>{loading ? 'Enviando' : 'Enviar'}</span>
+                <span aria-hidden>{loading ? '…' : '↗'}</span>
+              </button>
+            </div>
+            <div className={styles.footerHint}>↵ para enviar · Shift + ↵ nova linha</div>
+          </div>
+
           {suggestions.length > 0 && (
-            <div className={styles.suggestions}>
+            <div className={styles.suggestionTray}>
               {suggestions.map(s => (
-                <button key={s} onClick={() => send(s)} disabled={loading} className={styles.suggestionBtn}>
+                <button
+                  key={s}
+                  onClick={() => send(s)}
+                  disabled={loading}
+                  className={styles.suggestionChip}
+                >
                   {s}
                 </button>
               ))}
             </div>
           )}
-          {status && (
-            <div className={styles.status} aria-live="polite">{status}</div>
-          )}
-          <div className={styles.inputRow}>
-            <input
-              type="text"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={onKey}
-              placeholder="Tell me what you want and I’ll organize the board."
-              disabled={loading}
-              aria-label="Chat command input"
-              data-testid="chat-input"
-              className={styles.input}
-            />
-            <button
-              onClick={() => send()}
-              disabled={loading || !input.trim()}
-              aria-label="Send message"
-              title="Send message"
-              data-testid="chat-send"
-              className={styles.sendBtn}
-            >
-              <span className={styles.sendText}>{loading ? 'Sending' : 'Send'}</span>
-              <span className={styles.sendIcon} aria-hidden>{loading ? '…' : '↗'}</span>
-            </button>
-          </div>
-          <div className={styles.footerHint}>Press ↵ to send · Shift + ↵ for a new line</div>
-        </div>
+        </footer>
       </div>
-    </div>
+    </section>
   )
 }

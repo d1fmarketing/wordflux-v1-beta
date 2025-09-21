@@ -1,2 +1,5 @@
 tests/.auth/
 data/mcp-undo.json
+
+# Playwright auth state
+.auth/

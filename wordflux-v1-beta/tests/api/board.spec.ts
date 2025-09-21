@@ -215,7 +215,7 @@ test.describe('Board API Tests', () => {
       expect(Array.isArray(column.tasks)).toBeTruthy();
       
       // Column titles should match expected Kanban structure
-      expect(['Backlog', 'Ready', 'Work in progress', 'Done']).toContain(column.title);
+      expect(['Backlog', 'Ready', 'Work in progress', 'Review', 'Done']).toContain(column.title);
     });
   });
 });

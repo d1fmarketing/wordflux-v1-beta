@@ -19,9 +19,9 @@ export default function Workspace2() {
       <div style={{ flex: '0 0 360px', borderRight: '1px solid var(--line)', minWidth: 0 }}>
         <Chat />
       </div>
-      <div style={{ flex: '1 1 auto', minWidth: 0 }}>
+      <main id="board" data-theme="quiet" style={{ flex: '1 1 auto', minWidth: 0 }}>
         <Board2 />
-      </div>
+      </main>
     </div>
   )
 }

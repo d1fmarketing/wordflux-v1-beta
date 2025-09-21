@@ -8,6 +8,7 @@ import styles from './Board2.module.css'
 import { Card } from './Card'
 import type { BoardCard } from './Board2'
 import { cn } from '@/lib/utils'
+import { callMcp } from '@/lib/mcp-client'
 
 const SUGGESTION_PRESETS: Record<string, string[]> = {
   backlog: [
@@ -131,6 +132,8 @@ export function Column({
           onToggleExpand={() => onToggleExpand?.(card.id)}
           onMove={() => sendSuggestion(`Move #${card.id} to the next column`)}
           onAgent={() => sendSuggestion(`Set priority to urgent for #${card.id}`)}
+          columnName={displayName}
+          columnCanonical={canonicalName || name}
         />
       </div>
     )
@@ -142,7 +145,7 @@ export function Column({
       return (
         <div className={styles.doneHelper}>
           <div className="mb-2 text-[var(--ink-700)]">Done is clear</div>
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-3">
             <button type="button" className={styles.ghostBtn} onClick={() => sendSuggestion('Move last Review task to Done')}>
               Move last review → Done
             </button>
@@ -192,6 +195,7 @@ export function Column({
   const cardsClassName = cn(
     styles.cards,
     !isMobile && styles.cardsScrollable,
+    !isMobile && 'wf-board-scroll',
     isOver && styles.dropOver
   )
 
@@ -208,18 +212,132 @@ export function Column({
     const active = counterItems.filter(({ value }) => value > 0)
     if (active.length === 0) return null
     return (
-      <div className="flex flex-wrap gap-1.5 text-[10px] text-[rgba(186,190,216,0.78)]">
+      <div className="wf-counter-rail">
         {active.map(({ label, value }) => (
-          <span
-            key={label}
-            className="px-1.5 py-[2px] rounded-full border border-[rgba(229,12,120,0.35)] bg-[rgba(229,12,120,0.16)] text-[rgba(255,235,247,0.9)]"
-          >
-            {label} {value}
+          <span key={label} className={cn('wf-chip', 'is-active')}>
+            {label} · {value}
           </span>
         ))}
       </div>
     )
   }
+
+  const [showQuickAdd, setShowQuickAdd] = React.useState(false)
+  const [quickTitle, setQuickTitle] = React.useState('')
+  const [isCreating, setIsCreating] = React.useState(false)
+  const quickInputRef = React.useRef<HTMLInputElement | null>(null)
+
+  const closeQuickAdd = React.useCallback(() => {
+    setShowQuickAdd(false)
+    setQuickTitle('')
+    setIsCreating(false)
+  }, [])
+
+  React.useEffect(() => {
+    if (!showQuickAdd) return
+    const timeout = window.setTimeout(() => {
+      quickInputRef.current?.focus()
+    }, 80)
+    return () => window.clearTimeout(timeout)
+  }, [showQuickAdd])
+
+  const handleQuickSubmit = React.useCallback(async () => {
+    const title = quickTitle.trim()
+    if (!title || isCreating) return
+    setIsCreating(true)
+    try {
+      const result = await callMcp<{ taskId?: string | number }>('create_card', { title, columnId: id })
+      const createdId = result?.taskId != null ? String(result.taskId) : null
+      setQuickTitle('')
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('board-refresh'))
+        if (createdId) {
+          window.setTimeout(() => {
+            window.dispatchEvent(new CustomEvent('wf-highlight', { detail: { ids: [createdId] } }))
+          }, 200)
+        }
+        const toast = (window as any).wfToast as undefined | ((opts: { text: string; action?: { label: string; onClick: () => void } }) => void)
+        if (toast) {
+          toast({
+            text: `Tarefa criada em ${displayName}`,
+            action: {
+              label: 'Desfazer',
+              onClick: () => {
+                callMcp('undo_last')
+                  .then(() => window.dispatchEvent(new Event('board-refresh')))
+                  .catch(() => window.dispatchEvent(new Event('board-refresh')))
+              }
+            }
+          })
+        }
+      }
+    } catch (error) {
+      console.error(`[Column] Failed quick create in ${displayName}:`, error)
+      if (typeof window !== 'undefined') {
+        const toast = (window as any).wfToast as undefined | ((opts: { text: string }) => void)
+        toast?.({ text: 'Não consegui criar a tarefa. Tente novamente.' })
+      }
+    } finally {
+      setIsCreating(false)
+    }
+  }, [quickTitle, isCreating, id, displayName])
+
+  const quickAddControls = (
+    <div className="wf-quick-add flex flex-col gap-3">
+      {showQuickAdd ? (
+        <form
+          className="flex flex-col gap-3"
+          onSubmit={(event) => {
+            event.preventDefault()
+            void handleQuickSubmit()
+          }}
+        >
+          <input
+            ref={quickInputRef}
+            type="text"
+            value={quickTitle}
+            onChange={(event) => setQuickTitle(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Escape') {
+                event.preventDefault()
+                closeQuickAdd()
+              }
+            }}
+            placeholder={`Nova tarefa em ${displayName}`}
+            aria-label={`Criar tarefa na coluna ${displayName}`}
+            disabled={isCreating}
+            className="w-full rounded-md border border-[var(--line)] bg-[var(--surface)] px-3 py-3 text-sm text-[var(--ink-900)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-300)]"
+          />
+          <div className="flex items-center gap-3">
+            <button
+              type="submit"
+              className="wf-primary"
+              disabled={isCreating || !quickTitle.trim()}
+            >
+              {isCreating ? 'Criando…' : 'Adicionar'}
+            </button>
+            <button
+              type="button"
+              onClick={closeQuickAdd}
+              className="wf-chip"
+              disabled={isCreating}
+            >
+              Cancelar
+            </button>
+          </div>
+          <p className="text-[10px] text-[var(--ink-500)]">{isCreating ? 'Enviando para o agente…' : 'Enter confirma · Esc cancela'}</p>
+        </form>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setShowQuickAdd(true)}
+          className="wf-chip"
+        >
+          + Nova tarefa
+        </button>
+      )}
+    </div>
+  )
 
   if (isMobile) {
     return (
@@ -227,11 +345,13 @@ export function Column({
         ref={accordionRef}
         data-column-id={id}
         data-testid={`column-${String(id)}`}
-        className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] text-[var(--ink-700)]"
+        className={cn('wf-column', 'rounded-2xl border border-[var(--line)] bg-[var(--surface)] text-[var(--ink-700)]')}
       >
-        <summary className="flex list-none items-center justify-between gap-2 p-3 text-sm [&::-webkit-details-marker]:hidden">
-          <span className="font-medium text-[var(--ink-900)]">{displayName}</span>
-          <span className="text-[11px] text-[var(--ink-500)]">{cards?.length || 0}</span>
+        <summary className="flex list-none items-center justify-between gap-3 p-3 text-sm [&::-webkit-details-marker]:hidden">
+          <span className="wf-col-title">
+            {displayName}
+            <span className="wf-col-count">{cards?.length || 0}</span>
+          </span>
         </summary>
         <div className="space-y-3 px-3 pb-3 pt-1">
           {renderCounters()}
@@ -239,6 +359,7 @@ export function Column({
             {(!cards || cards.length === 0) && renderEmptyState()}
             {renderWithDropLine()}
           </div>
+          {quickAddControls}
         </div>
       </details>
     )
@@ -246,22 +367,32 @@ export function Column({
 
   return (
     <div
-      className={cn(styles.column, 'group/column')}
+      className={cn(styles.column, 'group/column', 'wf-column')}
       data-column-id={id}
       data-testid={`column-${String(id)}`}
     >
-      <header className={cn(styles.columnHeader, 'top-0 z-10 -mx-3 -mt-3 rounded-t-[calc(var(--radius)+2px)] border-b border-[rgba(60,62,104,0.48)] bg-[rgba(18,18,46,0.94)] px-3 py-2.5 backdrop-blur')}>
-        <div className="flex items-start justify-between gap-3 text-[rgba(214,216,230,0.9)]">
-          <div className="flex flex-col gap-0.5">
-            <h3 className="text-[10px] uppercase tracking-[0.2em] text-[rgba(245,246,255,0.92)]">{displayName}</h3>
-            <span className="text-[10px] text-[rgba(174,178,208,0.78)]">{cards?.length || 0} active</span>
+      <header className={cn(styles.columnHeader, 'wf-column-header')}>
+        <div className="flex items-center justify-between gap-3">
+          <h3 className="wf-col-title">
+            {displayName}
+            <span className="wf-col-count">{cards?.length || 0}</span>
+          </h3>
+          <div className="flex items-center gap-3">
+            {renderCounters()}
+            <button
+              type="button"
+              onClick={() => setShowQuickAdd(true)}
+              className="wf-chip"
+            >
+              +
+            </button>
           </div>
-          {renderCounters()}
         </div>
       </header>
       <div ref={setNodeRef} className={cardsClassName}>
         {(!cards || cards.length === 0) && renderEmptyState()}
         {renderWithDropLine()}
+        {quickAddControls}
       </div>
     </div>
   )

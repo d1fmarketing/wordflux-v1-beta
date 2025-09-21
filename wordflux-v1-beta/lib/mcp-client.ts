@@ -23,6 +23,7 @@ export type McpMethod =
   | 'undo_create'
   | 'undo_move'
   | 'undo_update'
+  | 'noop'
 
 function resolveBaseUrl() {
   const internal = process.env.MCP_INTERNAL_URL

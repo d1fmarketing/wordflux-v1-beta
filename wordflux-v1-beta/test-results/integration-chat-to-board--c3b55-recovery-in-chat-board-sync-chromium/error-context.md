@@ -1,0 +1,95 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - main [ref=e2]:
+    - main [ref=e3]:
+      - complementary [ref=e4]:
+        - generic [ref=e7]:
+          - generic [ref=e8]:
+            - generic [ref=e12]:
+              - heading "WordFlux AI" [level=2] [ref=e13]
+              - paragraph [ref=e14]: IA pronta para comandar o fluxo
+            - generic [ref=e15]: Agent cockpit
+          - log [ref=e16]:
+            - generic [ref=e18]:
+              - generic [ref=e19]: Olá! Posso criar, mover e resumir tarefas para você. Experimente "Crie uma tarefa em Doing" ou "Resumo do quadro".
+              - generic [ref=e20]: 02:49 AM
+          - generic [ref=e21]:
+            - generic [ref=e22]:
+              - generic [ref=e23]:
+                - textbox "Chat command input" [ref=e24]
+                - button "Enviar mensagem" [disabled] [ref=e25]:
+                  - generic [ref=e26]: Enviar
+                  - generic [ref=e27]: ↗
+              - generic [ref=e28]: ↵ para enviar · Shift + ↵ nova linha
+            - generic [ref=e29]:
+              - button "Board summary" [ref=e30] [cursor=pointer]
+              - button "Clear done" [ref=e31] [cursor=pointer]
+              - button "Plan tomorrow" [ref=e32] [cursor=pointer]
+      - generic [ref=e35]:
+        - generic [ref=e36]: SSE disconnected
+        - generic [ref=e37]:
+          - generic [ref=e38]:
+            - generic [ref=e39]: Overdue
+            - generic [ref=e40]: "0"
+          - generic [ref=e41]:
+            - generic [ref=e42]: SLA breached
+            - generic [ref=e43]: "0"
+          - generic [ref=e44]:
+            - generic [ref=e45]: In progress
+            - generic [ref=e46]: "0"
+          - generic [ref=e47]:
+            - generic [ref=e48]: Velocity (7d)
+            - generic [ref=e49]: 0 pts
+        - list "Kanban columns" [ref=e50]:
+          - listitem [ref=e51]:
+            - generic [ref=e52]:
+              - generic [ref=e54]:
+                - generic [ref=e55]:
+                  - heading "Backlog" [level=3] [ref=e56]
+                  - generic [ref=e57]: 0 active
+                - button "+" [ref=e59] [cursor=pointer]
+              - generic [ref=e60]:
+                - generic [ref=e61]:
+                  - paragraph [ref=e62]: Backlog is clear
+                  - paragraph [ref=e63]: Ask the agent to seed work or reshuffle priorities.
+                  - generic [ref=e64]:
+                    - button "Create card 'Capture customer feedback' in Backlog" [ref=e65] [cursor=pointer]
+                    - button "Add task [3pts] Clarify acceptance criteria in Backlog" [ref=e66] [cursor=pointer]
+                    - button "Ask agent for top 3 opportunities this week" [ref=e67] [cursor=pointer]
+                - button "+ Nova tarefa" [ref=e69] [cursor=pointer]
+          - listitem [ref=e70]:
+            - generic [ref=e71]:
+              - generic [ref=e73]:
+                - generic [ref=e74]:
+                  - heading "Done" [level=3] [ref=e75]
+                  - generic [ref=e76]: 0 active
+                - button "+" [ref=e78] [cursor=pointer]
+              - generic [ref=e79]:
+                - generic [ref=e80]:
+                  - generic [ref=e81]: Done is clear
+                  - generic [ref=e82]:
+                    - button "Move last review → Done" [ref=e83]
+                    - button "Show Done this week" [ref=e84]
+                    - button "Archive oldest" [ref=e85]
+                - button "+ Nova tarefa" [ref=e87] [cursor=pointer]
+          - listitem [ref=e88]:
+            - generic [ref=e89]:
+              - generic [ref=e91]:
+                - generic [ref=e92]:
+                  - heading "In Progress" [level=3] [ref=e93]
+                  - generic [ref=e94]: 0 active
+                - button "+" [ref=e96] [cursor=pointer]
+              - generic [ref=e97]:
+                - generic [ref=e98]:
+                  - paragraph [ref=e99]: In Progress is clear
+                  - paragraph [ref=e100]: Ask the agent to seed work or reshuffle priorities.
+                  - generic [ref=e101]:
+                    - button "Show board summary" [ref=e102] [cursor=pointer]
+                    - button "Create card \"In Progress starter\" in In Progress" [ref=e103] [cursor=pointer]
+                - button "+ Nova tarefa" [ref=e105] [cursor=pointer]
+        - status [ref=e106]
+      - button "Open chat" [ref=e107]: Ask the agent
+  - alert [ref=e108]
+```

@@ -30,9 +30,7 @@ export default function RootLayout({
       <body className={inter.className}>
         {/* ULTRA NUCLEAR SKELETON KILLER v110 - Triple Method Defense */}
         {/* Modern minimal header - hidden on workspace */}
-        <main>
-          {children}
-        </main>
+        {children}
       </body>
     </html>
   )

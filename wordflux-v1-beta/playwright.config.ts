@@ -1,71 +1,49 @@
 import { defineConfig, devices } from '@playwright/test';
-import { fileURLToPath } from 'node:url';
 
-const globalSetup = fileURLToPath(new URL('./tests/global-setup.ts', import.meta.url));
-
-const config = defineConfig({
+export default defineConfig({
   testDir: './tests',
+  timeout: 90_000,
+  expect: {
+    timeout: 10_000,
+  },
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
-  timeout: 30_000,
   reporter: [
     ['list'],
     ['json', { outputFile: 'artifacts/report.json' }],
     ['html', { outputFolder: 'artifacts/html', open: 'never' }],
   ],
-  globalSetup,
+  globalSetup: './tests/global-setup.ts',
   use: {
-    baseURL: process.env.BASE_URL || 'http://localhost:3000',
-    trace: 'on-first-retry',
+    baseURL: process.env.PLAYWRIGHT_BASE_URL || 'http://127.0.0.1:3000',
+    storageState: '.auth/admin.json',
+    trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
     actionTimeout: 15_000,
     navigationTimeout: 15_000,
   },
-
   projects: [
-    // Setup project - runs first to authenticate
-    {
-      name: 'setup',
-      testMatch: /.*\.setup\.ts/,
-    },
-    // API tests - run serially to avoid SQLite locks
     {
       name: 'api',
       testMatch: /tests\/api\/.*\.spec\.ts/,
-      workers: 1,
-      retries: 1,
-      fullyParallel: false,  // No cross-file parallelism
-      use: { 
-        baseURL: process.env.BASE_URL || 'http://localhost:3000',
-        // Note: To use mock, set TASKCAFE_MOCK=1 when running tests
+      use: {
+        ...devices['Desktop Chrome'],
       },
-      dependencies: ['setup'],
     },
     {
       name: 'chromium',
-      use: { 
+      testIgnore: /tests\/api\/.*\.spec\.ts/,
+      use: {
         ...devices['Desktop Chrome'],
-        // Use authenticated state from setup
-        storageState: 'tests/.auth/user.json',
       },
-      testIgnore: /tests\/api\/.*\.spec\.ts/,  // API tests handled separately
-      dependencies: ['setup'],
     },
   ],
-
   webServer: {
-    command: 'npm run start',
-    url: 'http://localhost:3000',
-    reuseExistingServer: !process.env.CI,
-    timeout: 120 * 1000,
+    command: 'echo "External server started separately"',
+    url: process.env.PLAYWRIGHT_BASE_URL || 'http://127.0.0.1:3000',
+    reuseExistingServer: true,
+    timeout: 120_000,
   },
 });
-
-export default config;
-
-if (typeof module !== 'undefined') {
-  // @ts-ignore - allow CommonJS consumers
-  module.exports = config;
-}

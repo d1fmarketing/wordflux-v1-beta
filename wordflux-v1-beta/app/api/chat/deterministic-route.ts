@@ -1056,10 +1056,10 @@ export async function processMessage(message: string, preview: boolean = false, 
         // Generate concise confirmation message (no emojis, past-tense)
         switch (action.type) {
           case 'create_task':
-            messages.push(`Created #${result.taskId} "${result.title}" in ${result.column}.`);
+            messages.push(`Created task "${result.title}" in ${result.column}.`);
             break;
           case 'move_task':
-            messages.push(`Moved #${result.taskId} to ${result.to}.`);
+            messages.push(`Moved task ${result.taskId} to ${result.to}.`);
             break;
           case 'update_task':
             messages.push(`Updated #${result.taskId}.`);

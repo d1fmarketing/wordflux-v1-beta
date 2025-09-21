@@ -6,16 +6,40 @@ interface RateLimitEntry {
 }
 
 class RateLimiter {
-  private store: Map<string, RateLimitEntry> = new Map();
+  private readonly store = new Map<string, RateLimitEntry>();
   private readonly windowMs: number;
   private readonly maxRequests: number;
+  private readonly cleanupIntervalMs: number;
+  private cleanupTimer: ReturnType<typeof setInterval> | null = null;
   
-  constructor(options: { windowMs?: number; maxRequests?: number } = {}) {
+  constructor(options: { windowMs?: number; maxRequests?: number; cleanupIntervalMs?: number } = {}) {
     this.windowMs = options.windowMs || 60000; // 1 minute default
-    this.maxRequests = options.maxRequests || 30; // 30 requests per minute
-    
-    // Clean up old entries every minute
-    setInterval(() => this.cleanup(), 60000);
+    this.maxRequests = options.maxRequests || 30; // 30 requests por janela
+    this.cleanupIntervalMs = options.cleanupIntervalMs || 60000;
+    this.startCleanupLoop();
+  }
+  
+  private startCleanupLoop() {
+    if (this.cleanupTimer) return;
+    this.cleanupTimer = setInterval(() => this.cleanup(), this.cleanupIntervalMs);
+    // Evita manter o event loop ativo desnecessariamente (Node.js)
+    if (typeof this.cleanupTimer.unref === 'function') {
+      this.cleanupTimer.unref();
+    }
+  }
+  
+  public stopCleanupLoop() {
+    if (!this.cleanupTimer) return;
+    clearInterval(this.cleanupTimer);
+    this.cleanupTimer = null;
+  }
+  
+  get limit(): number {
+    return this.maxRequests;
+  }
+  
+  get window(): number {
+    return this.windowMs;
   }
   
   private cleanup() {
@@ -107,12 +131,14 @@ export const chatRateLimiter = new RateLimiter({
 // Middleware function
 export async function withRateLimit(
   request: NextRequest,
-  handler: () => Promise<NextResponse>
+  handler: () => Promise<NextResponse>,
+  options: { limiter?: RateLimiter } = {}
 ): Promise<NextResponse> {
-  const { allowed, remaining, resetTime } = await chatRateLimiter.check(request);
+  const limiter = options.limiter ?? chatRateLimiter;
+  const { allowed, remaining, resetTime } = await limiter.check(request);
   
   if (!allowed) {
-    return chatRateLimiter.createResponse(
+    return limiter.createResponse(
       'Rate limit exceeded. Please wait before making more requests.',
       resetTime
     );
@@ -120,7 +146,7 @@ export async function withRateLimit(
   
   // Add rate limit headers to successful response
   const response = await handler();
-  response.headers.set('X-RateLimit-Limit', '30');
+  response.headers.set('X-RateLimit-Limit', String(limiter.limit));
   response.headers.set('X-RateLimit-Remaining', String(remaining));
   response.headers.set('X-RateLimit-Reset', String(resetTime));
   

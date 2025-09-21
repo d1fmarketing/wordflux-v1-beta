@@ -4,15 +4,89 @@ export const dynamic = 'force-dynamic'
 
 import { useEffect, useState } from 'react'
 import dynamicLoad from 'next/dynamic'
+import { Skeleton } from '../components/ui/Skeleton'
+
+function BoardSkeleton() {
+  const columns = [
+    { id: 'skeleton-backlog', title: 'Backlog' },
+    { id: 'skeleton-in-progress', title: 'In Progress' },
+    { id: 'skeleton-done', title: 'Done' }
+  ]
+  return (
+    <div className="flex flex-col gap-4 px-6 py-5" data-testid="board-skeleton" role="status" aria-live="polite">
+      <div className="text-sm text-[var(--ink-500)]">Carregando board…</div>
+      <div className="flex flex-wrap gap-4" data-testid="board-grid">
+        {columns.map(col => (
+          <div
+            key={col.id}
+            data-testid={`column-${col.id}`}
+            className="flex min-w-[180px] max-w-[220px] flex-1 flex-col gap-3 rounded-2xl border border-[rgba(60,62,110,0.32)] bg-[rgba(12,12,32,0.8)] px-4 py-3 text-[var(--ink-700)] shadow-[0_12px_28px_rgba(4,5,23,0.4)]"
+          >
+            <div className="flex items-center justify-between text-xs uppercase tracking-[0.16em] text-[var(--ink-500)]">
+              <span>{col.title}</span>
+              <Skeleton className="h-2 w-6" tone="subtle" />
+            </div>
+            <div className="flex flex-col gap-2 text-[11px] text-[var(--ink-500)]">
+              <Skeleton className="h-16 rounded-xl border border-[rgba(90,96,160,0.35)]" tone="surface" />
+              <Skeleton className="h-20 rounded-xl border border-[rgba(90,96,160,0.28)]" tone="subtle" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
 
 const Board2 = dynamicLoad(() => import('../components/board2/Board2'), {
   ssr: false,
-  loading: () => <div style={{ padding: 16 }}>Loading board...</div>
+  loading: BoardSkeleton
 })
+
+function ChatSkeleton() {
+  return (
+    <div
+      className="flex h-full flex-col gap-5 bg-[var(--surface-subtle)] px-5 py-6 text-[var(--ink-500)]"
+      data-testid="chat-skeleton"
+      role="status"
+      aria-live="polite"
+    >
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <span className="relative inline-flex h-2 w-2 rounded-full bg-[var(--success)]">
+            <span className="absolute inset-0 animate-ping rounded-full bg-[var(--success)]/50" />
+          </span>
+          <div className="space-y-1">
+            <Skeleton className="h-3 w-32 rounded-full" tone="strong" />
+            <Skeleton className="h-2.5 w-44 rounded-full" tone="subtle" />
+          </div>
+        </div>
+        <span className="rounded-full border border-[rgba(255,255,255,0.08)] px-3 py-1 text-[10px] uppercase tracking-[0.2em] text-[var(--ink-700)]">
+          Carregando chat…
+        </span>
+      </div>
+      <div className="flex flex-1 flex-col gap-4 rounded-3xl border border-[rgba(90,96,160,0.24)] bg-[rgba(12,12,32,0.75)] p-5 shadow-[0_18px_32px_rgba(5,5,23,0.32)]">
+        <div className="space-y-2">
+          <Skeleton className="h-3 w-36 rounded-full" tone="strong" />
+          <Skeleton className="h-3 w-48 rounded-full" tone="subtle" />
+          <Skeleton className="h-3 w-40 rounded-full" tone="subtle" />
+        </div>
+        <div className="mt-auto space-y-2">
+          <div className="flex gap-2">
+            <Skeleton className="h-6 flex-1 rounded-full" tone="surface" />
+            <Skeleton className="h-6 w-16 rounded-full" tone="surface" />
+          </div>
+          <div className="text-[10px] uppercase tracking-[0.18em] text-[rgba(255,255,255,0.2)]">
+            Pressione Enter para enviar
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 const Chat = dynamicLoad(() => import('../components/Chat'), {
   ssr: false,
-  loading: () => <div style={{ padding: 16 }}>Loading chat...</div>
+  loading: ChatSkeleton
 })
 
 const ToastHost = dynamicLoad(() => import('../components/ToastHost'), {
@@ -38,7 +112,7 @@ export default function WorkspacePage() {
   }, [mobileChatOpen])
 
   return (
-    <main
+    <div
       className="
         h-dvh
         grid
@@ -66,7 +140,9 @@ export default function WorkspacePage() {
       </aside>
 
       {/* Board à direita */}
-      <div
+      <main
+        id="board"
+        data-theme="quiet"
         className="flex min-w-0 flex-col overflow-hidden bg-[var(--bg)] lg:col-start-2 lg:row-span-full"
         data-testid="board-container"
       >
@@ -74,7 +150,7 @@ export default function WorkspacePage() {
           <Board2 />
         </div>
         <ToastHost />
-      </div>
+      </main>
 
       <button
         type="button"
@@ -103,7 +179,7 @@ export default function WorkspacePage() {
                 </div>
                 <div className="flex flex-col text-left">
                   <span className="text-[var(--ink-900)]">WordFlux AI</span>
-                  <span className="text-xs text-[var(--ink-500)]">Connected to TaskCafe</span>
+                  <span className="text-xs text-[var(--ink-500)]">IA pronta para comandar o fluxo</span>
                 </div>
               </div>
               <button
@@ -120,6 +196,6 @@ export default function WorkspacePage() {
           </div>
         </div>
       )}
-    </main>
+    </div>
   )
 }

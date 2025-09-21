@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withRateLimit } from '@/lib/rate-limiter'
 import { chatMessageSchema, validateInput } from '@/lib/validation'
-import { processMessage as processDeterministic } from '../deterministic-route'
 import { getAgent } from '@/lib/agent/get-agent'
 
 const encoder = new TextEncoder()
@@ -15,27 +14,27 @@ function describeAction(action: any) {
   const id = action?.taskId || action?.result?.taskId || ''
   switch (tool) {
     case 'kb_create_task':
-      return `Created card ${id ? '#' + id : ''}`
+      return `Created card${id ? ` ${id}` : ''}`
     case 'kb_move_task':
-      return `Moved card ${id ? '#' + id : ''}`
+      return `Moved card${id ? ` ${id}` : ''}`
     case 'kb_update_task':
-      return `Updated card ${id ? '#' + id : ''}`
+      return `Updated card${id ? ` ${id}` : ''}`
     case 'kb_delete_task':
-      return `Deleted card ${id ? '#' + id : ''}`
+      return `Deleted card${id ? ` ${id}` : ''}`
     case 'kb_set_due_date':
-      return `Set due date for ${id ? '#' + id : ''}`
+      return `Set due date for${id ? ` ${id}` : ''}`
     case 'kb_assign_task':
-      return `Assigned ${id ? '#' + id : ''}`
+      return `Assigned${id ? ` ${id}` : ''}`
     case 'kb_add_label':
-      return `Tagged ${id ? '#' + id : ''}`
+      return `Tagged${id ? ` ${id}` : ''}`
     case 'kb_remove_label':
-      return `Removed label from ${id ? '#' + id : ''}`
+      return `Removed label from${id ? ` ${id}` : ''}`
     case 'kb_add_comment':
-      return `Commented on ${id ? '#' + id : ''}`
+      return `Commented on${id ? ` ${id}` : ''}`
     case 'kb_bulk_move':
       return `Bulk moved ${Array.isArray(action?.results) ? action.results.length : ''} cards`
     case 'kb_set_points':
-      return `Set points for ${id ? '#' + id : ''}`
+      return `Set points for${id ? ` ${id}` : ''}`
     case 'kb_tidy_board':
       return 'Tidied board'
     case 'kb_tidy_column':
@@ -45,8 +44,22 @@ function describeAction(action: any) {
   }
 }
 
+const AGENT_MODE = (process.env.AGENT_MODE ?? 'mcp').toLowerCase()
+
+function assertMcpMode() {
+  if (AGENT_MODE !== 'mcp') {
+    throw new Error('Deterministic mode disabled. Set AGENT_MODE=mcp')
+  }
+}
+
 export async function POST(request: NextRequest) {
   return withRateLimit(request, async () => {
+    try {
+      assertMcpMode()
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Deterministic mode disabled. Set AGENT_MODE=mcp'
+      return NextResponse.json({ ok: false, message }, { status: 503 })
+    }
     const stream = new ReadableStream<Uint8Array>({
       start(controller) {
         (async () => {
@@ -59,15 +72,7 @@ export async function POST(request: NextRequest) {
               controller.close()
               return
             }
-            const { message, preview } = validation.data
-            send(controller, { type: 'progress', message: 'Analyzing command…' })
-            const deterministicResult = await processDeterministic(message, preview, request)
-            if (deterministicResult && !deterministicResult.fallback) {
-              send(controller, { type: 'result', payload: deterministicResult })
-              send(controller, { type: 'done' })
-              controller.close()
-              return
-            }
+            const { message } = validation.data
             send(controller, { type: 'progress', message: 'Talking to agent…' })
             const agent = await getAgent()
             const result = await agent.processMessage(message)
