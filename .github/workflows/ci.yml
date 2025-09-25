@@ -60,10 +60,10 @@ jobs:
         run: npm run lint --if-present
 
       - name: Build app
-        run: npx --no-install next build
+        run: ./node_modules/.bin/next build
 
       - name: Start Next server (3000)
-        run: nohup npx --no-install next start -p 3000 >/dev/null 2>&1 & echo $! > .next-server.pid
+        run: nohup ./node_modules/.bin/next start -p 3000 >/dev/null 2>&1 & echo $! > .next-server.pid
 
       - name: Wait for server
         run: |
