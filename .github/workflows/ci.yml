@@ -57,7 +57,7 @@ jobs:
         run: npx playwright install --with-deps
 
       - name: Lint
-        run: npm run lint
+        run: npm run lint --if-present
 
       - name: Build app
         run: npm run build
