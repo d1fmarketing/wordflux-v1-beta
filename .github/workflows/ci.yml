@@ -59,11 +59,9 @@ jobs:
       - name: Lint
         run: npm run lint --if-present
 
-      - name: Build app
-        run: ./node_modules/.bin/next build
-
       - name: Start Next server (3000)
-        run: nohup ./node_modules/.bin/next start -p 3000 >/dev/null 2>&1 & echo $! > .next-server.pid
+        run: |
+          PORT=3000 NODE_ENV=development nohup npm run dev >/dev/null 2>&1 & echo $! > .next-server.pid
 
       - name: Wait for server
         run: |
