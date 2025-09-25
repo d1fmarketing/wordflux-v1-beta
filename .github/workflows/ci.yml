@@ -20,9 +20,6 @@ jobs:
       AUTH_TEST_EMAIL: admin@wordflux.local
       AUTH_TEST_PASSWORD: wordflux2025
       AUTH_TEST_USER_FIELD: email
-    defaults:
-      run:
-        working-directory: wordflux
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -32,7 +29,7 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
-          cache-dependency-path: wordflux/package-lock.json
+          cache-dependency-path: package-lock.json
 
       - name: Get Playwright version
         id: pw
@@ -50,8 +47,8 @@ jobs:
       - name: Cache Next.js build cache
         uses: actions/cache@v4
         with:
-          path: wordflux/.next/cache
-          key: ${{ runner.os }}-nextjs-${{ hashFiles('wordflux/package-lock.json') }}
+          path: .next/cache
+          key: ${{ runner.os }}-nextjs-${{ hashFiles('package-lock.json') }}
 
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps
@@ -72,7 +69,7 @@ jobs:
           done
 
       - name: Verify app health
-        run: node verify-health.js
+        run: curl -fsS http://127.0.0.1:3000/api/board/state >/dev/null
 
       - name: E2E Tests
         env:
@@ -100,9 +97,6 @@ jobs:
       AUTH_TEST_EMAIL: admin@wordflux.local
       AUTH_TEST_PASSWORD: wordflux2025
       AUTH_TEST_USER_FIELD: email
-    defaults:
-      run:
-        working-directory: wordflux
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -112,7 +106,7 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
-          cache-dependency-path: wordflux/package-lock.json
+          cache-dependency-path: package-lock.json
 
       - name: Install dependencies
         run: npm ci
@@ -120,8 +114,8 @@ jobs:
       - name: Cache Next.js build cache
         uses: actions/cache@v4
         with:
-          path: wordflux/.next/cache
-          key: ${{ runner.os }}-nextjs-${{ hashFiles('wordflux/package-lock.json') }}
+          path: .next/cache
+          key: ${{ runner.os }}-nextjs-${{ hashFiles('package-lock.json') }}
 
       - name: Get Playwright version
         id: pw
@@ -149,7 +143,7 @@ jobs:
           done
 
       - name: Verify app health
-        run: node verify-health.js
+        run: curl -fsS http://127.0.0.1:3000/api/board/state >/dev/null
 
       - name: Run UI E2E with HTML report
         env:
@@ -173,5 +167,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: playwright-report
-          path: wordflux/playwright-report
+          path: playwright-report
           retention-days: 7
