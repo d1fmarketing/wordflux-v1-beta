@@ -1,7 +1,6 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import styles from './Board2.module.css'
 import { cn } from '@/lib/utils'
 import type { BoardCard } from './Board2'
 
@@ -13,6 +12,8 @@ type CardProps = BoardCard & {
   onMove?: () => void
   onAgent?: () => void
   memberDirectory?: Map<string, { initials?: string | null; color?: string | null; username?: string | null }>
+  columnName?: string
+  columnCanonical?: string
 }
 
 function normalizePriority(priority: Priority, derived?: string | null): string | null {
@@ -115,7 +116,9 @@ export function Card(props: CardProps) {
     expanded,
     onToggleExpand,
     onMove,
-    onAgent
+    onAgent,
+    columnName,
+    columnCanonical
   } = props
 
   const normalizedTags = normalizeTags(tags)
@@ -136,7 +139,7 @@ export function Card(props: CardProps) {
     if (!rawDue) return null
     const dueMs = Date.parse(rawDue)
     if (Number.isNaN(dueMs)) return null
-    const now = Date.now()
+    const now = Date.now() + tick * 0 // tick keeps memo in sync with interval updates
     const diff = dueMs - now
     const status = diff < 0 ? 'overdue' : diff <= 1000 * 60 * 60 * 48 ? 'soon' : 'ok'
     const label = diff < 0 ? `Due ${formatDuration(diff)} ago` : `Due in ${formatDuration(diff)}`
@@ -174,159 +177,171 @@ export function Card(props: CardProps) {
   const detailText = description ?? derived?.sanitizedDescription ?? null
 
   const metaItems = useMemo(() => {
-    const items: Array<{ key: string; icon?: string; label: string }> = []
-    if (dueInfo?.label) items.push({ key: 'due', icon: '📅', label: dueInfo.label })
-    if (numericPoints !== null && !Number.isNaN(numericPoints) && numericPoints > 0) {
-      items.push({ key: 'points', label: `${numericPoints} pts` })
+    const items: Array<{ key: string; icon?: string; label: string; tone?: 'warn' | 'alert' | 'info' | 'calm' }> = []
+    if (dueInfo?.label) {
+      items.push({
+        key: 'due',
+        icon: '📅',
+        label: dueInfo.label,
+        tone: dueInfo.status === 'overdue' ? 'warn' : 'info'
+      })
     }
-    if (createdLabel) items.push({ key: 'created', icon: '🕑', label: createdLabel })
+    if (numericPoints !== null && !Number.isNaN(numericPoints) && numericPoints > 0) {
+      items.push({ key: 'points', icon: '⭐', label: `${numericPoints} pts`, tone: 'calm' })
+    }
+    if (createdLabel) items.push({ key: 'created', icon: '🕑', label: createdLabel, tone: 'info' })
     return items
-  }, [dueInfo?.label, numericPoints, createdLabel])
+  }, [dueInfo?.label, dueInfo?.status, numericPoints, createdLabel])
+
+  const columnLabel = columnName ?? columnCanonical ?? ''
+  const columnSlug = (columnCanonical ?? columnName ?? '').toLowerCase()
+  const isOverdue = Boolean(derived?.overdue || dueInfo?.status === 'overdue')
+  const isSla = Boolean(derived?.slaOver)
+  const isActiveColumn = /in progress|doing|active|wip/.test(columnSlug)
+  const highlightCard = isOverdue || supportFlags.length > 0
+  const state = isOverdue ? 'is-overdue' : isSla ? 'is-sla' : isActiveColumn ? 'is-active' : ''
+  const cardClassName = cn('wf-card flex flex-col gap-3', state)
 
   return (
     <article
       role="article"
       onClick={handleClick}
       data-testid={`card-${String(id)}`}
+      data-card-id={String(id)}
+      data-card-title={title}
+      data-column={columnSlug || undefined}
+      data-column-label={columnLabel || undefined}
+      data-column-canonical={columnCanonical || undefined}
       data-expanded={expanded ? 'true' : undefined}
-      className={cn(
-        styles.cardBase,
-        'group/card text-sm leading-snug'
-      )}
+      className={cardClassName}
+      data-highlight={highlightCard ? 'true' : undefined}
     >
-      <div className="flex items-start justify-between gap-2">
-        <h4 className={cn(styles.titleClamp, 'text-sm font-semibold leading-snug text-[rgba(246,247,255,0.95)]')}>{title}</h4>
-        {priorityLabel && (
-          <span
-            className={cn(
-              styles.priorityChip,
-              normalizedPriority === 'urgent' && styles.priorityChipUrgent,
-              normalizedPriority === 'high' && styles.priorityChipHigh,
-              normalizedPriority === 'medium' && styles.priorityChipMedium,
-              normalizedPriority === 'low' && styles.priorityChipLow
+      <div className="flex flex-col gap-3">
+        <div>
+          <h4 className="text-sm font-semibold leading-tight text-[var(--ink-900)]">{title}</h4>
+          {detailText && !expanded && (
+            <p
+              className="mt-3 text-xs text-[var(--ink-500)]"
+              style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}
+            >
+              {detailText}
+            </p>
+          )}
+          {(metaItems.length > 0 || supportFlags.length > 0 || priorityLabel) && (
+            <div className="mt-3 flex flex-wrap items-center gap-3">
+              {priorityLabel && (
+                <span className="wf-chip is-active">{priorityLabel}</span>
+              )}
+              {metaItems.map(({ key, icon, label, tone }) => (
+                <span
+                  key={key}
+                  className={cn('wf-chip', (tone === 'warn' || tone === 'alert') && 'is-active')}
+                >
+                  {icon && <span aria-hidden>{icon}</span>}
+                  {label}
+                </span>
+              ))}
+              {supportFlags.map(flag => (
+                <span key={`flag-${flag}`} className="wf-chip is-active">{flag}</span>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {(normalizedTags.length > 0 || (numericPoints !== null && Number.isFinite(numericPoints) && numericPoints > 0)) && (
+          <div className="flex flex-wrap items-center gap-3">
+            {normalizedTags.map(tag => (
+              <span
+                key={tag}
+                className={cn('wf-tag', /priority|urgent|p0|p1/i.test(tag) && 'wf-tag--accent')}
+              >
+                {tag}
+              </span>
+            ))}
+            {numericPoints !== null && Number.isFinite(numericPoints) && numericPoints > 0 && (
+              <span className="wf-chip" data-quiet-muted="true">◆ {numericPoints} pts</span>
             )}
-          >
-            {priorityLabel}
-          </span>
+          </div>
         )}
       </div>
 
-      {(metaItems.length > 0 || supportFlags.length > 0) && (
-        <div className={styles.metaRow}>
-          {metaItems.map(({ key, icon, label }) => (
-            <span key={key}>
-              {icon && <span aria-hidden>{icon}</span>}
-              {label}
-            </span>
-          ))}
-          {supportFlags.map(flag => (
-            <span key={`flag-${flag}`} className={styles.metaHot}>{flag}</span>
-          ))}
-        </div>
-      )}
-
-      <div className="mt-1.5 flex items-center justify-between gap-3 text-[rgba(188,191,220,0.78)]">
-        <div className={styles.avatarGroup} aria-label={normalizedAssignees.length ? `Assigned to ${normalizedAssignees.join(', ')}` : 'Unassigned'}>
+      <div className="mt-3 flex items-center justify-between gap-3 border-t border-[var(--line)] pt-3">
+        <div className="flex items-center -space-x-2" aria-label={normalizedAssignees.length ? `Atribuído para ${normalizedAssignees.join(', ')}` : 'Sem responsável'}>
           {normalizedAssignees.length > 0 ? (
-            normalizedAssignees.slice(0, 3).map(name => {
+            normalizedAssignees.slice(0, 4).map(name => {
               const member = resolveMember(name)
               return (
                 <span
                   key={name}
-                  className={styles.avatar}
+                  className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-[var(--surface-subtle)] text-[10px] font-semibold text-[var(--ink-900)] ring-1 ring-[var(--line)] ring-offset-1 ring-offset-[var(--surface)]"
                   title={name}
-                  style={{ background: member?.color || 'rgba(229,12,120,0.35)' }}
+                  style={member?.color ? { background: member.color } : undefined}
                 >
                   {member?.initials || initials(name)}
                 </span>
               )
             })
           ) : (
-            <span className={styles.unassigned}>Unassigned</span>
-          )}
-          {normalizedAssignees.length > 3 && (
-            <span className={styles.avatarOverflow}>+{normalizedAssignees.length - 3}</span>
+            <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-[var(--surface-subtle)] text-[11px] font-medium text-[var(--ink-500)] ring-1 ring-[var(--line)] ring-offset-1 ring-offset-[var(--surface)]" title="Sem responsável">--</span>
           )}
         </div>
-        {hasChecklist && (
-          <div className={styles.progressTrack} aria-hidden>
-            <div className={styles.progressBar} style={{ width: `${Math.min(100, Math.max(0, (completedParts / (derived?.totalParts ?? 1)) * 100))}%` }} />
-          </div>
-        )}
-      </div>
-
-      <span className={styles.cardDivider} aria-hidden />
-
-      <div className={cn(styles.cardActions, 'text-[rgba(214,216,230,0.8)]')}>
-        <button
-          type="button"
-          onClick={(event) => {
-            event.stopPropagation()
-            onMove?.()
-          }}
-          className={styles.ghostBtn}
-        >
-          Move
-        </button>
-        <button
-          type="button"
-          onClick={(event) => {
-            event.stopPropagation()
-            onToggleExpand?.()
-          }}
-          className={styles.ghostBtn}
-        >
-          {expanded ? 'Less' : 'More'}
-        </button>
-        <button
-          type="button"
-          onClick={(event) => {
-            event.stopPropagation()
-            onAgent?.()
-          }}
-          className={styles.ghostBtn}
-        >
-          Agent
-        </button>
+        <div className="flex items-center gap-3">
+          {dueInfo?.dueShort && (
+            <span className={cn('wf-chip', dueInfo.status === 'overdue' && 'is-active')}>
+              Due {dueInfo.dueShort}
+            </span>
+          )}
+          {hasChecklist && (
+            <span className="wf-chip" data-quiet-muted="true">
+              ☑ {completedParts}/{derived?.totalParts}
+            </span>
+          )}
+        </div>
       </div>
 
       {expanded && (
-        <div className={styles.details} onClick={(event) => event.stopPropagation()}>
+        <div className="mt-4 space-y-3 text-xs text-[var(--ink-500)]" onClick={(event) => event.stopPropagation()}>
           {detailText && (
-            <div className="mb-2 whitespace-pre-wrap text-xs text-[rgba(214,216,230,0.88)]">
-              {detailText}
-            </div>
+            <div className="whitespace-pre-wrap">{detailText}</div>
           )}
-          <div className="flex flex-wrap items-center gap-2 text-[11px]">
-            {normalizedTags.slice(0, 8).map(tag => (
-              <span key={tag} className={styles.tag}>{tag}</span>
+          <div className="flex flex-wrap items-center gap-3">
+            {normalizedTags.map(tag => (
+              <span
+                key={`expanded-${tag}`}
+                className={cn('wf-tag', /priority|urgent|p0|p1/i.test(tag) && 'wf-tag--accent')}
+              >
+                {tag}
+              </span>
             ))}
             {normalizedAssignees.length > 0 && (
-              <span className={styles.chip}>👤 {normalizedAssignees.join(', ')}</span>
+              <span className="wf-chip" data-quiet-muted="true">👤 {normalizedAssignees.join(', ')}</span>
             )}
           </div>
-          <div className="mt-2 flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center gap-3">
             <button
               type="button"
-              className={styles.ghostBtn}
+              className="wf-chip"
               onClick={(event) => {
                 event.stopPropagation()
                 onAgent?.()
               }}
             >
-              Make urgent + set SLA 24h
+              Tornar urgente + SLA 24h
             </button>
             <button
               type="button"
-              className={styles.ghostBtn}
+              className="wf-chip"
               onClick={(event) => {
                 event.stopPropagation()
                 onMove?.()
               }}
             >
-              Move to Review
+              Mover para Review
             </button>
           </div>
+          {createdLabel && (
+            <div className="text-[var(--ink-700)]">Criado em {createdLabel}</div>
+          )}
         </div>
       )}
     </article>

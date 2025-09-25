@@ -1,67 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { MCPAgent } from '@/lib/agent/mcp-agent'
-import { processMessage as processDeterministic } from './deterministic-route'
+import { MCPAgent, type ToolInvocation } from '@/lib/agent/mcp-agent'
 import { withRateLimit } from '@/lib/rate-limiter'
 import { chatMessageSchema, validateInput } from '@/lib/validation'
-import { getBoolEnv } from '@/lib/env-config'
 import { callMcp } from '@/lib/mcp-client'
-import { TaskCafeClient } from '@/lib/providers/taskcafe-client'
-import { mapColumnsToLegacy } from '@/lib/board-legacy'
 import OpenAI from 'openai'
+import type { Action } from '@/types/chat'
+import { LRUCache } from 'lru-cache'
+import { publish } from '@/lib/event-stream'
+import { chatActionsTotal } from '@/lib/metrics'
 
-const USE_MCP = process.env.USE_MCP === 'true'
-const USE_DETERMINISTIC = getBoolEnv('USE_DETERMINISTIC_PARSER', true)
+const AGENT_MODE = (process.env.AGENT_MODE ?? 'mcp').toLowerCase()
+const USE_MCP = true
+const MCP_SOURCE = 'mcp-create'
 const PROJECT_ID = process.env.TASKCAFE_PROJECT_ID || '1'
-
-const FALLBACK_PROVIDER = new TaskCafeClient({
-  url: process.env.TASKCAFE_URL || 'http://localhost:3333',
-  username: process.env.TASKCAFE_USERNAME,
-  password: process.env.TASKCAFE_PASSWORD,
-  projectId: PROJECT_ID
-})
-
-async function getBoardStateQuickly() {
-  const timeoutMs = 2000
-  try {
-    const result = await Promise.race([
-      FALLBACK_PROVIDER.getBoardState(PROJECT_ID).catch(() => null),
-      new Promise(resolve => setTimeout(() => resolve(null), timeoutMs))
-    ])
-    return result as any
-  } catch (err) {
-    console.warn('[chat] quick board state fetch failed', err)
-    return null
-  }
-}
+const BOARD_CHANNEL = `board:${PROJECT_ID}`
 
 async function loadCanonicalColumns() {
-  try {
-    const quickState = await getBoardStateQuickly()
-    if (quickState && Array.isArray(quickState.columns)) {
-      return mapColumnsToLegacy(quickState.columns)
-    }
-  } catch (err) {
-    console.warn('[chat] canonical columns quick path failed', err)
-  }
-
-  const port = process.env.PORT || '3000'
-  const baseUrl = `http://127.0.0.1:${port}`
-  const response = await fetch(`${baseUrl}/api/board/state`, {
-    method: 'GET',
-    headers: { 'x-internal-request': 'chat-canonical' },
-    cache: 'no-store'
-  })
-
-  if (!response.ok) {
-    throw new Error(`board/state ${response.status}`)
-  }
-
-  const body = await response.json()
-  if (Array.isArray(body?.columns)) {
-    return body.columns
-  }
-
-  return mapColumnsToLegacy(body?.state?.columns || [])
+  const snapshot = await callMcp('list_cards')
+  const columns = Array.isArray((snapshot as any)?.columns) ? (snapshot as any).columns : []
+  return columns
 }
 
 const CARD_ID_REGEX = /(t-[\w-]+)/i
@@ -88,6 +45,143 @@ const tools: OpenAI.Chat.Completions.ChatCompletionTool[] = [
     }
   }
 ]
+
+const responseCache = new LRUCache<string, any>({
+  max: 5000,
+  ttl: 10 * 60 * 1000
+})
+
+const burstBuckets = new LRUCache<string, { tokens: number; ts: number }>({
+  max: 50000,
+  ttl: 60 * 60 * 1000
+})
+
+function takeBurstToken(ip: string, rate = { capacity: 30, refillPerSec: 0.5 }): boolean {
+  const now = Date.now()
+  const bucket = burstBuckets.get(ip) ?? { tokens: rate.capacity, ts: now }
+  const elapsed = (now - bucket.ts) / 1000
+  bucket.tokens = Math.min(rate.capacity, bucket.tokens + elapsed * rate.refillPerSec)
+  bucket.ts = now
+
+  if (bucket.tokens < 1) {
+    burstBuckets.set(ip, bucket)
+    return false
+  }
+
+  bucket.tokens -= 1
+  burstBuckets.set(ip, bucket)
+  return true
+}
+
+const STATE_MUTATING_ACTION_TYPES: ReadonlySet<Action['type']> = new Set<Action['type']>([
+  'create_card',
+  'move_card',
+  'update_card',
+  'delete_card',
+  'set_priority',
+  'set_due',
+  'set_points',
+  'set_assignee',
+  'set_label'
+])
+
+function invocationsToActions(invocations: ToolInvocation[] = []): Action[] {
+  const actions: Action[] = []
+
+  for (const invocation of invocations) {
+    if (!invocation?.name) continue
+
+    const args = (invocation.args ?? {}) as Record<string, any>
+    const name = String(invocation.name).toLowerCase()
+    const outputText = typeof invocation.output === 'string' ? invocation.output : undefined
+
+    switch (name) {
+      case 'create_card': {
+        const action: Action = {
+          type: 'create_card',
+          id: typeof args.id === 'string' ? args.id : undefined,
+          title: typeof args.title === 'string' ? args.title : undefined,
+          column: inferColumnTarget(args, outputText)
+        }
+        actions.push(action)
+        break
+      }
+      case 'move_card': {
+        const action: Action = {
+          type: 'move_card',
+          id: typeof args.id === 'string' ? args.id : undefined,
+          title: typeof args.search === 'string' ? args.search : (typeof args.title === 'string' ? args.title : undefined),
+          to: inferColumnTarget(args, outputText)
+        }
+        actions.push(action)
+        break
+      }
+      case 'update_card': {
+        if (typeof args.id === 'string') {
+          const { id, ...rest } = args
+          const patch = { ...rest }
+          actions.push({ type: 'update_card', id, patch })
+        }
+        break
+      }
+      case 'delete_card': {
+        const action: Action = {
+          type: 'delete_card',
+          id: typeof args.id === 'string' ? args.id : undefined,
+          title: typeof args.title === 'string' ? args.title : (typeof args.search === 'string' ? args.search : undefined)
+        }
+        actions.push(action)
+        break
+      }
+      case 'set_priority':
+      case 'set_due':
+      case 'set_points':
+      case 'set_assignee':
+      case 'set_label': {
+        if (typeof args.id === 'string') {
+          const { id, ...rest } = args
+          const setterAction = { type: name as 'set_priority' | 'set_due' | 'set_points' | 'set_assignee' | 'set_label', id, ...rest } as Action
+          actions.push(setterAction)
+        }
+        break
+      }
+      default:
+        break
+    }
+  }
+
+  return actions
+}
+
+function inferColumnTarget(args: Record<string, any>, outputText?: string): string | undefined {
+  const candidates = [args.column, args.to, args.to_column, args.destination, args.toColumn]
+  for (const candidate of candidates) {
+    if (typeof candidate === 'string' && candidate.trim()) {
+      return candidate.trim()
+    }
+  }
+  return inferColumnFromOutput(outputText)
+}
+
+function inferColumnFromOutput(outputText?: string): string | undefined {
+  if (!outputText) return undefined
+
+  const patterns = [/\bto\s+"?([^"\n]+?)"?(?:[.!]|$)/i, /\bin\s+"?([^"\n]+?)"?(?:[.!]|$)/i]
+  for (const pattern of patterns) {
+    const match = outputText.match(pattern)
+    if (match && typeof match[1] === 'string') {
+      const value = match[1].replace(/["\s.?!]+$/g, '').trim()
+      if (value) {
+        return value
+      }
+    }
+  }
+  return undefined
+}
+
+function isStateMutating(action: Action): boolean {
+  return STATE_MUTATING_ACTION_TYPES.has(action.type)
+}
 
 function extractCardId(message: string): string | undefined {
   const match = message.match(CARD_ID_REGEX)
@@ -126,10 +220,27 @@ function idempRemember(key: string, payload: any) {
 }
 
 export async function POST(request: NextRequest) {
+  if (AGENT_MODE !== 'mcp') {
+    return NextResponse.json(
+      { ok: false, error: 'Deterministic mode disabled. Set AGENT_MODE=mcp' },
+      { status: 500 }
+    )
+  }
+
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+    request.headers.get('x-real-ip')?.trim() ||
+    request.ip ||
+    'local'
+
+  if (!takeBurstToken(ip)) {
+    return NextResponse.json({ ok: false, error: 'rate_limited' }, { status: 429 })
+  }
+
   return withRateLimit(request, async () => {
     const startTime = Date.now()
-    
+
     try {
+
       // Check for idempotency key (both header cases)
       const idempKey = (
         request.headers.get('idempotency-key') || 
@@ -166,7 +277,52 @@ export async function POST(request: NextRequest) {
         }, { status: 400 })
       }
       
-      const { message, preview } = validation.data
+      const { message, request_id } = validation.data as { message: string; preview?: boolean; request_id?: string }
+      const requestId = request_id || null
+
+      if (requestId) {
+        const cachedEnvelope = responseCache.get(requestId)
+        if (cachedEnvelope) {
+          return NextResponse.json(cachedEnvelope)
+        }
+      }
+
+      const rememberEnvelope = (payload: any) => {
+        if (requestId) {
+          responseCache.set(requestId, payload)
+        }
+      }
+
+      const maybeBroadcast = (payload: any) => {
+        if (!payload || !Array.isArray(payload.actions) || payload.actions.length === 0) {
+          return
+        }
+        const mutating = payload.actions.filter(isStateMutating)
+        if (mutating.length === 0) {
+          return
+        }
+        for (const action of mutating) {
+          if (action?.type) {
+            chatActionsTotal.inc({ action: action.type })
+          }
+        }
+        const broadcastBase = {
+          type: 'board:update',
+          version: payload.version ?? Date.now(),
+          actions: mutating,
+          at: new Date().toISOString()
+        }
+        for (const channel of Array.from(new Set([BOARD_CHANNEL, 'board:default']))) {
+          const boardId = channel.split(':')[1] ?? PROJECT_ID
+          publish(channel, { ...broadcastBase, boardId })
+        }
+      }
+
+      const respondJson = (payload: any, init?: ResponseInit) => {
+        maybeBroadcast(payload)
+        rememberEnvelope(payload)
+        return NextResponse.json(payload, init)
+      }
 
       let boardUpdated = false
       let boardSnapshot: any | null = null
@@ -177,18 +333,8 @@ export async function POST(request: NextRequest) {
           boardSnapshot = await callMcp('list_cards', {})
           return boardSnapshot
         } catch (mcpError) {
-          console.warn('[chat] MCP list_cards failed, falling back to TaskCafe provider', mcpError)
-          try {
-            const fallbackState = await FALLBACK_PROVIDER.getBoardState(PROJECT_ID)
-            boardSnapshot = {
-              columns: Array.isArray(fallbackState?.columns) ? fallbackState.columns : [],
-              provider: 'taskcafe'
-            }
-          } catch (fallbackError) {
-            console.error('[chat] TaskCafe fallback failed', fallbackError)
-            boardSnapshot = { columns: [] }
-          }
-          return boardSnapshot
+          console.error('[chat] MCP list_cards failed', mcpError)
+          throw new Error('MCP unavailable')
         }
       }
 
@@ -235,7 +381,7 @@ export async function POST(request: NextRequest) {
           suggestions: []
         }
         idempRemember(idempKey, greetingPayload)
-        return NextResponse.json(greetingPayload)
+        return respondJson(greetingPayload)
       }
 
       if (wantsQuickSummary && !impliesMutation) {
@@ -251,7 +397,7 @@ export async function POST(request: NextRequest) {
           suggestions: []
         }
         idempRemember(idempKey, summaryPayload)
-        return NextResponse.json(summaryPayload)
+        return respondJson(summaryPayload)
       }
 
       if (nameMatch) {
@@ -268,7 +414,7 @@ export async function POST(request: NextRequest) {
           suggestions: []
         }
         idempRemember(idempKey, namePayload)
-        return NextResponse.json(namePayload)
+        return respondJson(namePayload)
       }
 
       if (message.includes('approve') || message.includes('reject')) {
@@ -294,7 +440,7 @@ export async function POST(request: NextRequest) {
 
           const result = await directResponse.json()
 
-          return NextResponse.json({
+          return respondJson({
             ok: true,
             message: result.success ? '✅ Operation completed' : '❌ Operation failed',
             boardUpdated: true,
@@ -315,7 +461,7 @@ export async function POST(request: NextRequest) {
             return await invokeDirect()
           } catch (fallbackError) {
             console.error('Direct gateway error:', fallbackError)
-            return NextResponse.json({
+            return respondJson({
               ok: false,
               message: 'Card operation failed',
               boardUpdated: false,
@@ -325,65 +471,10 @@ export async function POST(request: NextRequest) {
         }
     }
 
-    // Try deterministic parser first if enabled
-    if (USE_DETERMINISTIC) {
-      const deterministicResult = await processDeterministic(message, preview, request)
-      
-      if (deterministicResult && !deterministicResult.fallback) {
-        // Handle disambiguation (409 Conflict)
-        if (deterministicResult.statusCode === 409) {
-          return NextResponse.json({
-            ok: false,
-            error: deterministicResult.error,
-            message: deterministicResult.message,
-            response: deterministicResult.message,
-            actions: [],
-            results: [],
-            suggestions: deterministicResult.suggestions,
-            disambiguation: true,
-            metrics: { 
-              deterministic: true, 
-              duration_ms: deterministicResult.metrics?.duration_ms || (Date.now() - startTime)
-            }
-          }, { status: 409 })
-        }
-        
-        // Ensure consistent response format
-        const responsePayload = {
-          ok: deterministicResult.ok !== false,
-          message: deterministicResult.message || 'Command processed.',
-          response: deterministicResult.message || 'Command processed.',
-          actions: deterministicResult.actions || [],
-          results: deterministicResult.results || [],
-          undoToken: deterministicResult.undoToken,
-          metrics: { 
-            deterministic: true, 
-            duration_ms: deterministicResult.metrics?.duration_ms || (Date.now() - startTime),
-            idempotency: cached ? 'HIT' : (idempKey ? 'MISS' : 'OFF')
-          },
-          warnings: deterministicResult.warnings,
-          suggestions: deterministicResult.suggestions,
-          preview: deterministicResult.preview,
-          plan: deterministicResult.plan
-        };
-        
-        // Cache successful responses for idempotency
-        idempRemember(idempKey, responsePayload);
-        
-        return new NextResponse(JSON.stringify(responsePayload), {
-          status: 200,
-          headers: { 
-            'Content-Type': 'application/json', 
-            'X-Idempotency': idempKey ? 'MISS' : 'OFF' 
-          }
-        })
-      }
-    }
-
     // Fallback to AI agent
     // Check if OpenAI is configured
     if (!process.env.OPENAI_API_KEY) {
-      return NextResponse.json({
+      return respondJson({
         ok: false,
         message: 'AI assistant not configured. Please set OPENAI_API_KEY.',
         response: 'AI assistant not configured. Please set OPENAI_API_KEY.',
@@ -407,86 +498,31 @@ export async function POST(request: NextRequest) {
         normalizedReply.includes('failed') ||
         normalizedReply.startsWith('❌'.toLowerCase())
       const hasMeaningfulReply = replyText && !/^done\.?$/i.test(replyText) && !hasErrorReply
+      const actionsFromTools = invocationsToActions(result.invocations || [])
+      const boardUpdatedByActions = actionsFromTools.some(isStateMutating)
 
       if (result.success !== false && !hasErrorReply && (effectiveTools.length > 0 || hasMeaningfulReply)) {
-        return NextResponse.json({
+        const envelope = {
           ok: true,
           message: replyText || 'Command processed.',
           response: replyText || 'Command processed.',
-          actions: [],
+          source: MCP_SOURCE,
+          actions: actionsFromTools,
           results: [],
           metrics: {
             deterministic: false,
             mcp: true,
             tools: effectiveTools,
-            duration_ms: Date.now() - startTime
+            duration_ms: Date.now() - startTime,
+            source: MCP_SOURCE
           },
-          boardUpdated: effectiveTools.length > 0,
+          boardUpdated: boardUpdatedByActions,
           suggestions: []
-        })
+        }
+        return respondJson(envelope)
       }
       // otherwise fall through to OpenAI function path for richer handling
       console.debug('[chat] MCP fallback to function agent', { success: result.success, reply: result.reply, tools: effectiveTools.length })
-    }
-
-    if (/create/i.test(message) && /task/i.test(message)) {
-      try {
-        const priorityMatch = message.match(/(critical|high|medium|low) priority/i)
-        const subjectMatch = message.match(/about ([^.!?]+)/i)
-        const namedMatch = message.match(/called\s+"([^"]+)"/i)
-        const baseTitle = namedMatch?.[1]
-          || subjectMatch?.[1]
-          || message
-            .replace(/create/i, '')
-            .replace(/task/i, '')
-            .replace(/about/i, '')
-            .replace(/called/i, '')
-            .trim()
-        const cleanTitle = baseTitle ? baseTitle.replace(/task$/i, '').trim() : 'New Task'
-        const priority = priorityMatch ? priorityMatch[1].toLowerCase() : null
-        const needsBug = /bug/i.test(message) && !/bug/i.test(cleanTitle)
-        const needsLogin = /login/i.test(message) && !/login/i.test(cleanTitle)
-
-        const titleParts = [] as string[]
-        if (priority) {
-          titleParts.push(`${priority.charAt(0).toUpperCase()}${priority.slice(1)} priority`)
-        }
-        if (needsBug) titleParts.push('Bug')
-        const subjectParts = [] as string[]
-        if (needsLogin) subjectParts.push('Login issues')
-        if (cleanTitle) subjectParts.push(cleanTitle)
-        const title = `${titleParts.length ? titleParts.join(' ') + ': ' : ''}${subjectParts.join(' - ') || 'Unspecified concern'}`.trim()
-
-        const descriptionLines = [
-          `Source message: ${message}`,
-          priority ? `Priority: ${priority.toUpperCase()}` : null,
-          needsBug ? 'Category: Bug' : null
-        ].filter(Boolean)
-
-        const columns = await loadCanonicalColumns()
-        const backlogColumn = columns.find((col: any) => /backlog/i.test(col.name || col.displayName || ''))
-        const columnId = backlogColumn?.remoteId || backlogColumn?.id || process.env.TASKCAFE_BACKLOG_ID || null
-
-        if (!columnId) {
-          throw new Error('Could not resolve backlog column id')
-        }
-
-        const taskId = await FALLBACK_PROVIDER.createTask(PROJECT_ID, title, columnId, descriptionLines.join('\n'))
-
-        const reply = `Created ${priority ? priority.toUpperCase() + '-priority ' : ''}bug task “${title}” in Backlog.`
-        return NextResponse.json({
-          ok: true,
-          message: reply,
-          response: reply,
-          actions: [{ type: 'create', taskId, column: 'Backlog', title }],
-          results: [{ type: 'create', result: { taskId } }],
-          metrics: { deterministic: false, duration_ms: Date.now() - startTime, source: 'heuristic-create' },
-          boardUpdated: true,
-          suggestions: []
-        })
-      } catch (heuristicError) {
-        console.warn('[chat] heuristic create failed', heuristicError)
-      }
     }
 
     if (/assigned to me/i.test(normalizedQuickMessage) || /urgent tasks?/i.test(normalizedQuickMessage) || /due this week/i.test(normalizedQuickMessage)) {
@@ -534,7 +570,7 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        return NextResponse.json({
+        return respondJson({
           ok: true,
           message: reply,
           response: reply,
@@ -789,32 +825,65 @@ export async function POST(request: NextRequest) {
     }
 
     const success = successActions.length > 0
+    const responseSource = success ? MCP_SOURCE : 'mcp-error'
     const responsePayload = {
       ok: success,
+      source: responseSource,
       message: reply,
       response: reply,
       actions,
       results: [],
-      metrics: { deterministic: false, duration_ms: Date.now() - startTime },
+      metrics: { deterministic: false, mcp: true, duration_ms: Date.now() - startTime, source: responseSource },
       boardUpdated: boardUpdated && errorActions.length === 0,
       suggestions: []
     }
 
     idempRemember(idempKey, responsePayload)
 
-    return NextResponse.json(responsePayload, {
+    return respondJson(responsePayload, {
       status: success ? 200 : errorActions.length ? 400 : 200
     })
   } catch (error) {
     console.error('Chat error:', error)
+    const message = error instanceof Error ? error.message : 'I hit a temporary issue. Please try again in a moment.'
+    const errorSource = 'mcp-error'
+
+    if (message === 'MCP unavailable') {
+      return NextResponse.json({
+        ok: false,
+        source: errorSource,
+        error: 'MCP unavailable',
+        message: 'MCP unavailable',
+        response: 'MCP unavailable',
+        actions: [],
+        results: [],
+        metrics: { deterministic: false, mcp: true, duration_ms: Date.now() - startTime, source: errorSource }
+      }, { status: 503 })
+    }
+
+    if (message === 'Deterministic mode disabled. Set AGENT_MODE=mcp') {
+      return NextResponse.json({
+        ok: false,
+        source: errorSource,
+        error: message,
+        message,
+        response: message,
+        actions: [],
+        results: [],
+        metrics: { deterministic: false, mcp: true, duration_ms: Date.now() - startTime, source: errorSource }
+      }, { status: 500 })
+    }
+
     return NextResponse.json({
       ok: false,
+      source: errorSource,
+      error: 'I hit a temporary issue. Please try again in a moment.',
       message: 'I hit a temporary issue. Please try again in a moment.',
       response: 'I hit a temporary issue. Please try again in a moment.',
       actions: [],
       results: [],
-      metrics: { deterministic: false, duration_ms: Date.now() - startTime }
-    }, { status: 200 })
+      metrics: { deterministic: false, mcp: true, duration_ms: Date.now() - startTime, source: errorSource }
+    }, { status: 500 })
   }
   })
 }

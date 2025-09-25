@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 
 interface Task {
@@ -33,16 +33,7 @@ export function TaskPanel({ task, isOpen, onClose, onUpdate, onAction }: TaskPan
   const [analysis, setAnalysis] = useState<any>(null)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
 
-  useEffect(() => {
-    if (task) {
-      setEditedTask({ ...task })
-      if (activeTab === 'agent') {
-        analyzeTask()
-      }
-    }
-  }, [task, activeTab])
-
-  const analyzeTask = async () => {
+  const analyzeTask = useCallback(async () => {
     if (!task) return
 
     setIsAnalyzing(true)
@@ -82,7 +73,16 @@ export function TaskPanel({ task, isOpen, onClose, onUpdate, onAction }: TaskPan
     } finally {
       setIsAnalyzing(false)
     }
-  }
+  }, [task])
+
+  useEffect(() => {
+    if (task) {
+      setEditedTask({ ...task })
+      if (activeTab === 'agent') {
+        void analyzeTask()
+      }
+    }
+  }, [task, activeTab, analyzeTask])
 
   const handleSave = async () => {
     if (editedTask && onUpdate) {

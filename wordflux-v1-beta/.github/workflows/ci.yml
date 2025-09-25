@@ -1,0 +1,27 @@
+name: ci
+
+on:
+  - push
+  - pull_request
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run build
+      - name: Start app (reused by Playwright)
+        run: PORT=3000 NODE_ENV=test npm run start & echo $! > .server.pid
+      - name: Wait for app
+        run: |
+          for i in {1..60}; do \
+            curl -fsS http://127.0.0.1:3000/api/board/state >/dev/null && exit 0 || sleep 1; \
+          done; exit 1
+      - run: npm test
+      - name: Stop app
+        run: kill $(cat .server.pid) || true

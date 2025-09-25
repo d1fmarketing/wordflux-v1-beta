@@ -1,0 +1,24 @@
+# Cloudflare Tunnel configuration for WordFlux
+# Copy to ~/.cloudflared/wordflux-config.yml and update the hostnames before running.
+# Docs: https://developers.cloudflare.com/cloudflare-one/connections/connect-apps/install-and-setup/tunnel-guide
+
+tunnel: wordflux
+# Replace with the path Cloudflare provides when you create the tunnel credentials.
+credentials-file: /home/ubuntu/.cloudflared/wordflux.json
+
+ingress:
+  - hostname: board.wordflux.dev
+    service: http://localhost:3000
+  - hostname: mcp.wordflux.dev
+    service: http://localhost:8811
+  - service: http_status:404
+
+warp-routing:
+  enabled: false
+
+# Optional origin request overrides
+originRequest:
+  httpHostHeader: board.wordflux.dev
+
+# Logging
+loglevel: info

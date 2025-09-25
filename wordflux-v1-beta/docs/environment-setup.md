@@ -45,20 +45,20 @@ pm2 start ecosystem.config.js
 
 5) Public URL (Cloudflare Tunnel)
 ```bash
-cloudflared tunnel --url http://localhost:3001
+cloudflared tunnel --url http://localhost:3000
 # Copy the https://<name>.trycloudflare.com URL
 ```
 
 ## Verify
 ```bash
 # Health
-curl -s http://localhost:3001/api/health | jq
+curl -s http://localhost:3000/api/health | jq
 
 # Board state
-curl -s http://localhost:3001/api/board/state | jq '.state.columns | length'
+curl -s http://localhost:3000/api/board/state | jq '.state.columns | length'
 
 # Chat: create
-curl -s -X POST http://localhost:3001/api/chat \
+curl -s -X POST http://localhost:3000/api/chat \
   -H 'Content-Type: application/json' \
   -d '{"message":"create a task called Setup env"}' | jq
 ```

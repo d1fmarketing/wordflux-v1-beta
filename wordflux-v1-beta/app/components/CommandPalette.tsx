@@ -28,6 +28,16 @@ export function CommandPalette({ isOpen, onClose, onExecute, suggestions = [] }:
   const inputRef = useRef<HTMLInputElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
 
+  const handleExecute = useCallback(async (command: Command) => {
+    setIsProcessing(true)
+    try {
+      await command.action()
+      onClose()
+    } finally {
+      setIsProcessing(false)
+    }
+  }, [onClose])
+
   // Natural language command patterns
   const parseNaturalCommand = useCallback((text: string): Command[] => {
     const commands: Command[] = []
@@ -177,7 +187,7 @@ export function CommandPalette({ isOpen, onClose, onExecute, suggestions = [] }:
         case 'Enter':
           e.preventDefault()
           if (filteredCommands[selectedIndex]) {
-            handleExecute(filteredCommands[selectedIndex])
+            void handleExecute(filteredCommands[selectedIndex])
           }
           break
         case 'Escape':
@@ -189,7 +199,7 @@ export function CommandPalette({ isOpen, onClose, onExecute, suggestions = [] }:
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [isOpen, filteredCommands, selectedIndex, onClose])
+  }, [isOpen, filteredCommands, selectedIndex, onClose, handleExecute])
 
   // Focus input when opened
   useEffect(() => {
@@ -216,18 +226,6 @@ export function CommandPalette({ isOpen, onClose, onExecute, suggestions = [] }:
     window.addEventListener('keydown', handleTab);
     return () => window.removeEventListener('keydown', handleTab);
   }, [isOpen]);
-
-
-  const handleExecute = async (command: Command) => {
-    setIsProcessing(true)
-    try {
-      await command.action()
-      onClose()
-    } finally {
-      setIsProcessing(false)
-    }
-  }
-
   if (!isOpen) return null
 
   return createPortal(

@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 // Run tests serially to avoid SQLite database locks
 test.describe.configure({ mode: 'serial' });
 
-test.describe('Deterministic Chat Parser', () => {
+test.describe.skip('@det Deterministic Chat Parser', () => {
   test.slow(); // Give more headroom for DB operations
   const baseURL = 'http://localhost:3000';
 

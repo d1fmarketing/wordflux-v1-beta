@@ -34,7 +34,8 @@ export default defineConfig({
     reuseExistingServer: !process.env.CI,
     env: {
       TASKCAFE_MOCK: '1',
-      USE_DETERMINISTIC_PARSER: 'true',
+      AGENT_MODE: 'mcp',
+      USE_MCP: 'true',
     },
   },
 });

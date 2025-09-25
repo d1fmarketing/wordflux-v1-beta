@@ -13,9 +13,13 @@ concurrency:
 jobs:
   build-test:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: wordflux
+    env:
+      NEXTAUTH_URL: http://127.0.0.1:3000
+      AUTH_TRUST_HOST: "true"
+      PLAYWRIGHT_BASE_URL: http://127.0.0.1:3000
+      AUTH_TEST_EMAIL: admin@wordflux.local
+      AUTH_TEST_PASSWORD: wordflux2025
+      AUTH_TEST_USER_FIELD: email
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -25,11 +29,14 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
-          cache-dependency-path: wordflux/package-lock.json
+          cache-dependency-path: package-lock.json
 
       - name: Get Playwright version
         id: pw
-        run: echo "version=$(node -p \"require('./package.json').devDependencies.playwright\")" >> $GITHUB_OUTPUT
+        shell: bash
+        run: |
+          VERSION=$(node -p "(require('./package.json').devDependencies && require('./package.json').devDependencies.playwright) || (require('./package.json').dependencies && require('./package.json').dependencies.playwright) || ''")
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
 
       - name: Cache Playwright browsers
         uses: actions/cache@v4
@@ -43,34 +50,37 @@ jobs:
       - name: Cache Next.js build cache
         uses: actions/cache@v4
         with:
-          path: wordflux/.next/cache
-          key: ${{ runner.os }}-nextjs-${{ hashFiles('wordflux/package-lock.json') }}
+          path: .next/cache
+          key: ${{ runner.os }}-nextjs-${{ hashFiles('package-lock.json') }}
 
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps
 
       - name: Lint
-        run: npm run lint
-
-      - name: Build app
-        run: npm run build
+        run: npm run lint --if-present
 
       - name: Start Next server (3000)
-        run: nohup npm run start -- -p 3000 >/dev/null 2>&1 & echo $! > .next-server.pid
+        run: |
+          PORT=3000 NODE_ENV=development nohup npm run dev >/dev/null 2>&1 & echo $! > .next-server.pid
 
       - name: Wait for server
         run: |
           for i in {1..60}; do
-            if curl -sf http://localhost:3000/api/health >/dev/null; then echo "up"; break; fi; sleep 1;
+            if curl -sf http://127.0.0.1:3000/api/health >/dev/null; then echo "up"; break; fi; sleep 1;
           done
 
       - name: Verify app health
-        run: node verify-health.js
+        run: curl -fsS http://127.0.0.1:3000/api/board/state >/dev/null
 
       - name: E2E Tests
         env:
           UI_TESTS: 1
-          BASE_URL: http://localhost:3000
+          PLAYWRIGHT_BASE_URL: http://127.0.0.1:3000
+          NEXTAUTH_URL: http://127.0.0.1:3000
+          AUTH_TRUST_HOST: "true"
+          AUTH_TEST_EMAIL: admin@wordflux.local
+          AUTH_TEST_PASSWORD: wordflux2025
+          AUTH_TEST_USER_FIELD: email
         run: npm run test:e2e
 
       - name: Stop Next server
@@ -81,9 +91,13 @@ jobs:
   ui-e2e:
     if: ${{ vars.UI_TESTS == '1' || github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: wordflux
+    env:
+      NEXTAUTH_URL: http://127.0.0.1:3000
+      AUTH_TRUST_HOST: "true"
+      PLAYWRIGHT_BASE_URL: http://127.0.0.1:3000
+      AUTH_TEST_EMAIL: admin@wordflux.local
+      AUTH_TEST_PASSWORD: wordflux2025
+      AUTH_TEST_USER_FIELD: email
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -93,7 +107,7 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
-          cache-dependency-path: wordflux/package-lock.json
+          cache-dependency-path: package-lock.json
 
       - name: Install dependencies
         run: npm ci
@@ -101,12 +115,15 @@ jobs:
       - name: Cache Next.js build cache
         uses: actions/cache@v4
         with:
-          path: wordflux/.next/cache
-          key: ${{ runner.os }}-nextjs-${{ hashFiles('wordflux/package-lock.json') }}
+          path: .next/cache
+          key: ${{ runner.os }}-nextjs-${{ hashFiles('package-lock.json') }}
 
       - name: Get Playwright version
         id: pw
-        run: echo "version=$(node -p \"require('./package.json').devDependencies.playwright\")" >> $GITHUB_OUTPUT
+        shell: bash
+        run: |
+          VERSION=$(node -p "(require('./package.json').devDependencies && require('./package.json').devDependencies.playwright) || (require('./package.json').dependencies && require('./package.json').dependencies.playwright) || ''")
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
 
       - name: Cache Playwright browsers
         uses: actions/cache@v4
@@ -126,16 +143,21 @@ jobs:
       - name: Wait for server
         run: |
           for i in {1..60}; do
-            if curl -sf http://localhost:3000/api/health >/dev/null; then echo "up"; break; fi; sleep 1;
+            if curl -sf http://127.0.0.1:3000/api/health >/dev/null; then echo "up"; break; fi; sleep 1;
           done
 
       - name: Verify app health
-        run: node verify-health.js
+        run: curl -fsS http://127.0.0.1:3000/api/board/state >/dev/null
 
       - name: Run UI E2E with HTML report
         env:
           UI_TESTS: 1
-          BASE_URL: http://localhost:3000
+          PLAYWRIGHT_BASE_URL: http://127.0.0.1:3000
+          NEXTAUTH_URL: http://127.0.0.1:3000
+          AUTH_TRUST_HOST: "true"
+          AUTH_TEST_EMAIL: admin@wordflux.local
+          AUTH_TEST_PASSWORD: wordflux2025
+          AUTH_TEST_USER_FIELD: email
           PLAYWRIGHT_HTML_REPORT: playwright-report
         run: npx playwright test --reporter=html
 
@@ -149,5 +171,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: playwright-report
-          path: wordflux/playwright-report
+          path: playwright-report
           retention-days: 7

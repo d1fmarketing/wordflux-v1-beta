@@ -16,7 +16,8 @@ export const chatMessageSchema = z.object({
     .min(1, 'Message is required')
     .max(1000, 'Message too long (max 1000 characters)'),
     // Removed sanitizeString - only sanitize at UI render time, not in API
-  preview: z.boolean().optional().default(false)
+  preview: z.boolean().optional().default(false),
+  request_id: z.string().uuid().optional()
 });
 
 // Task creation validation

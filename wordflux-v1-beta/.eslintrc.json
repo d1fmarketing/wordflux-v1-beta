@@ -1,0 +1,21 @@
+{
+  "root": true,
+  "extends": [
+    "next/core-web-vitals"
+  ],
+  "parser": "@typescript-eslint/parser",
+  "plugins": [
+    "@typescript-eslint"
+  ],
+  "rules": {
+    "no-console": ["warn", { "allow": ["warn", "error", "log", "info", "debug"] }],
+    "no-restricted-imports": [
+      "error",
+      {
+        "patterns": [
+          "ops/*"
+        ]
+      }
+    ]
+  }
+}

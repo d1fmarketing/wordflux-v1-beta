@@ -5,10 +5,12 @@ import useSWR from 'swr'
 import styles from './Board2.module.css'
 import { callMcp } from '@/lib/mcp-client'
 import { Column } from './Column'
+import type { Action } from '@/types/chat'
+import { useBoardEvents } from '../../hooks/useBoardEvents'
+import { applyBoardActions } from '@/lib/board-reducer'
 import { DndContext, type DragEndEvent, type DragOverEvent, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { SortableContext, rectSortingStrategy } from '@dnd-kit/sortable'
 import { computePosition, STEP } from '@/lib/positioning'
-import { useWebSocket } from '@/hooks/useWebSocket'
 import type { BoardMember } from '@/lib/board-provider'
 import { BoardHeader } from './BoardHeader'
 import { cn } from '@/lib/utils'
@@ -47,8 +49,16 @@ export type BoardColumn = {
 const fetcher = (url: string) => fetch(url, { cache: 'no-store' }).then((r) => r.json())
 
 function idOf(x: string | number) { return String(x) }
+const BOARD_ID = process.env.NEXT_PUBLIC_TASKCAFE_PROJECT_ID ?? 'default';
+
 function cardKey(id: string | number) { return `card-${idOf(id)}` }
 function colKey(id: string | number) { return `col-${idOf(id)}` }
+
+const SKELETON_COLUMNS: BoardColumn[] = [
+  { id: 'skeleton-backlog', name: 'Backlog', canonicalName: 'backlog', cards: [] },
+  { id: 'skeleton-in-progress', name: 'In Progress', canonicalName: 'in_progress', cards: [] },
+  { id: 'skeleton-done', name: 'Done', canonicalName: 'done', cards: [] }
+]
 
 function columnWeight(name: string): number {
   const n = name.toLowerCase()
@@ -65,27 +75,52 @@ function sortColumns(cols: { id: string|number; name: string; cards: any[]; cano
 }
 
 export default function Board2() {
-  const { data, isLoading, mutate } = useSWR<{ columns: BoardColumn[]; members?: BoardMember[]; error?: string }>(
+  const { data, isLoading, mutate } = useSWR<{ columns: BoardColumn[]; members?: BoardMember[]; error?: string; fallback?: boolean; message?: string; generatedAt?: string }>(
     '/api/board/state',
     fetcher,
-    { refreshInterval: 1000 }
+    { refreshInterval: 0, revalidateOnFocus: false, revalidateOnReconnect: true }
   )
 
-  const handleBoardChanged = useCallback(() => {
-    mutate()
-  }, [mutate])
+  const handleActions = useCallback((actions: Action[]) => {
+    if (!Array.isArray(actions) || actions.length === 0) return;
+    let shouldRefetch = false;
+    mutate((prev) => {
+      if (!prev || !Array.isArray(prev.columns)) {
+        shouldRefetch = true;
+        return prev;
+      }
+      const { state, needsRefetch } = applyBoardActions(prev, actions);
+      if (needsRefetch) {
+        shouldRefetch = true;
+      }
+      return state;
+    }, false).then(() => {
+      if (shouldRefetch) {
+        mutate();
+      }
+    }).catch(() => {
+      mutate();
+    });
+  }, [mutate]);
 
-  const handleCardMoved = useCallback(() => {
-    mutate()
-  }, [mutate])
-
-  useWebSocket('board:changed', handleBoardChanged)
-  useWebSocket('card:updated', handleCardMoved)
+  const sseConnected = useBoardEvents(BOARD_ID, handleActions);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
 
-  const [cols, setCols] = useState<BoardColumn[]>([])
-  useEffect(() => { if (data?.columns) setCols(sortColumns(data.columns)) }, [data?.columns])
+  const [cols, setCols] = useState<BoardColumn[]>(SKELETON_COLUMNS)
+  const [fallbackNotice, setFallbackNotice] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (Array.isArray(data?.columns)) {
+      const incoming = data.columns.length > 0 ? data.columns : SKELETON_COLUMNS
+      setCols(sortColumns(incoming))
+    }
+    if (data?.fallback) {
+      setFallbackNotice(data.message || 'Operando com quadro temporário enquanto o serviço principal reconecta.')
+    } else {
+      setFallbackNotice(null)
+    }
+  }, [data?.columns, data?.fallback, data?.message])
 
   const [allowedIds, setAllowedIds] = useState<Set<string> | null>(null)
   useEffect(() => {
@@ -310,7 +345,7 @@ export default function Board2() {
     }
   }, [expandedIds])
 
-  if (isLoading && !data) return <div style={{ padding: 16 }}>Loading board…</div>
+  const showInitialLoading = isLoading && !data
 
   const base = cols
 
@@ -324,20 +359,37 @@ export default function Board2() {
     : sortColumns(base)
 
   return (
-    <div className={styles.boardWrapper} data-testid="board-shell">
-      <BoardHeader
-        metrics={headerMetrics}
-        loading={isLoading}
-        className={styles.headerBar}
-        pillClassName={styles.headerPill}
-        pillActiveClassName={styles.headerPillHot}
-      />
+    <div className={cn(styles.boardWrapper, 'wf-board')} data-testid="board-shell">
+    <span data-testid="sse-status" data-sse={sseConnected ? 'on' : 'off'} className="sr-only">SSE {sseConnected ? 'connected' : 'disconnected'}</span>
+      {fallbackNotice && (
+        <div className={styles.fallbackBanner} role="status" aria-live="polite">
+          <span className={styles.fallbackIcon} aria-hidden>⚠️</span>
+          <div>
+            <p className={styles.fallbackTitle}>Exibindo board temporário</p>
+            <p className={styles.fallbackMessage}>{fallbackNotice}</p>
+          </div>
+        </div>
+      )}
+      {showInitialLoading && (
+        <div className={styles.loadingBanner} role="status" aria-live="polite">
+          Carregando board…
+        </div>
+      )}
+      <div className="sticky top-0 z-30 border-b border-[var(--line)] bg-[var(--surface)] px-6 py-3">
+        <BoardHeader
+          metrics={headerMetrics}
+          loading={isLoading}
+          sseLive={sseConnected}
+          className="py-0"
+        />
+      </div>
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragOver={onDragOver} onDragEnd={onDragEnd}>
         <div
-          className={cn(styles.boardRoot)}
+          className={cn(styles.boardRoot, 'wf-board-scroll')}
           role="list"
           aria-label="Kanban columns"
           data-testid="board-grid"
+          data-sse={sseConnected ? 'on' : 'off'}
         >
           {displayCols.map((col) => {
             const label = col.displayName || (col as any).originalName || col.name
