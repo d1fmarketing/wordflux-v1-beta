@@ -1,0 +1,89 @@
+/* Board Guards - Ensure cards are always visible */
+.wf-col {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.wf-column-body {
+  display: grid;
+  gap: 8px;
+  overflow: auto;
+  min-height: 120px;
+}
+
+.wf-card {
+  display: block;
+}
+
+/* Never show naked zeros */
+.wf-chip[data-value="0"] {
+  display: none;
+}
+
+/* Ensure kanban container is visible */
+.kanban {
+  display: flex;
+  gap: 16px;
+  padding: 16px;
+  overflow-x: auto;
+}
+
+.kanban.b2 {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 16px;
+  overflow-x: auto;
+}
+
+.kanban .wf-col {
+  flex: 0 0 280px;
+  min-width: 280px;
+  max-width: 280px;
+}
+
+/* Card visibility */
+.wf-card {
+  padding: 12px;
+  background: var(--surface, #fff);
+  border: 1px solid var(--line, #e0e0e0);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.wf-card .title {
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+
+.wf-card .desc {
+  color: var(--ink-500, #666);
+  font-size: 0.875rem;
+  margin-bottom: 8px;
+}
+
+.wf-card .meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+/* Column headers */
+.wf-column-header {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--line, #e0e0e0);
+  margin-bottom: 12px;
+}
+
+.wf-col-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--ink-700, #333);
+  margin: 0;
+}
+
+.wf-col-count {
+  opacity: 0.6;
+  font-weight: normal;
+}
